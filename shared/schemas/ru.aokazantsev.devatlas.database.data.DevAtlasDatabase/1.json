@@ -1,0 +1,38 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "0ef2d97e840b6a12ba14f235adbca00e",
+    "entities": [
+      {
+        "tableName": "viewed_page",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`theme_id` TEXT NOT NULL, `page_id` TEXT NOT NULL, PRIMARY KEY(`theme_id`, `page_id`))",
+        "fields": [
+          {
+            "fieldPath": "themeId",
+            "columnName": "theme_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageId",
+            "columnName": "page_id",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "theme_id",
+            "page_id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0ef2d97e840b6a12ba14f235adbca00e')"
+    ]
+  }
+}
