@@ -16,7 +16,12 @@ import ru.aokazantsev.devatlas.contents.domain.ObserveContentsUseCase
 import ru.aokazantsev.devatlas.contents.domain.PageRepository
 import ru.aokazantsev.devatlas.contents.domain.model.ThemeContents
 import ru.aokazantsev.devatlas.di.PlatformBindings
+import ru.aokazantsev.devatlas.reading.domain.BookmarkRepository
+import ru.aokazantsev.devatlas.reading.domain.ReadingPointRepository
+import ru.aokazantsev.devatlas.reading.domain.model.ReadingPoint
+import ru.aokazantsev.devatlas.reading.domain.model.ScreenTarget
 import ru.aokazantsev.devatlas.themes.domain.ProgressRepository
+import ru.aokazantsev.devatlas.ui.bookmarks.BookmarkNames
 
 @AssistedInject
 class PageViewModel(
@@ -25,7 +30,11 @@ class PageViewModel(
     private val pages: PageRepository,
     private val progress: ProgressRepository,
     private val platform: PlatformBindings,
+    private val bookmarks: BookmarkRepository,
+    private val readingPoints: ReadingPointRepository,
 ) : ViewModel() {
+
+    private val target = ScreenTarget.Page(pageId)
 
     private var loaded: LoadedPage? = null
 
@@ -46,6 +55,21 @@ class PageViewModel(
 
     fun copyCode(code: String): Boolean = platform.copyToClipboard(code)
 
+    fun recordPosition(anchor: Int) {
+        val ready = state.value as? PageState.Ready ?: return
+        readingPoints.record(ReadingPoint(ready.themeId, target, anchor))
+    }
+
+    fun addBookmark(name: String, anchor: Int) {
+        val ready = state.value as? PageState.Ready ?: return
+        viewModelScope.launch {
+            try {
+                bookmarks.add(ready.themeId, target, anchor, BookmarkNames.normalize(name, ready.title))
+            } catch (_: SQLiteException) {
+            }
+        }
+    }
+
     private suspend fun toState(contents: ThemeContents): PageState {
         if (contents == ThemeContents.Unreadable) return PageState.Unreadable(title = null)
         if (contents !is ThemeContents.Ready) return PageState.Missing
@@ -62,6 +86,7 @@ class PageViewModel(
             title = page.title,
             content = content,
             viewed = pageId in contents.viewedPageIds,
+            bookmarked = contents.bookmarks.any { it.target == target },
             next = order.getOrNull(index + 1)?.let { NextPage(it.id, it.title) },
         )
     }

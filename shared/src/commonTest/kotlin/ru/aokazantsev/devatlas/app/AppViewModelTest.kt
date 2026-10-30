@@ -4,23 +4,34 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import ru.aokazantsev.devatlas.contents.domain.ObserveContentsUseCaseImpl
 import ru.aokazantsev.devatlas.navigation.Route
 import ru.aokazantsev.devatlas.onboarding.domain.OnboardingRepository
 import ru.aokazantsev.devatlas.onboarding.domain.model.Consent
+import ru.aokazantsev.devatlas.reading.FakeBookmarkRepository
+import ru.aokazantsev.devatlas.reading.FakeReadingPointRepository
+import ru.aokazantsev.devatlas.reading.FakeReadingSettings
+import ru.aokazantsev.devatlas.reading.domain.FindContinuationUseCaseImpl
+import ru.aokazantsev.devatlas.reading.domain.model.ReadingPoint
+import ru.aokazantsev.devatlas.reading.domain.model.ScreenTarget
 import ru.aokazantsev.devatlas.settings.domain.ThemeSettingsRepository
 import ru.aokazantsev.devatlas.settings.domain.model.Appearance
 import ru.aokazantsev.devatlas.settings.domain.model.ThemeMode
 import ru.aokazantsev.devatlas.startup.domain.RunStartupChecksUseCase
 import ru.aokazantsev.devatlas.startup.domain.model.StartupCheckResult
 import ru.aokazantsev.devatlas.testing.ViewModelScopes
+import ru.aokazantsev.devatlas.themeformat.manifest.ThemeManifest
+import ru.aokazantsev.devatlas.themeformat.manifest.ThemeNode
 import ru.aokazantsev.devatlas.themes.FakeClock
 import ru.aokazantsev.devatlas.themes.FakeCurrentThemeRepository
 import ru.aokazantsev.devatlas.themes.FakeInstalledThemeRepository
+import ru.aokazantsev.devatlas.themes.FakePackageReader
 import ru.aokazantsev.devatlas.themes.FakeProgressRepository
 import ru.aokazantsev.devatlas.themes.FakeThemeStorage
 import ru.aokazantsev.devatlas.themes.domain.ThemeInstaller
@@ -44,6 +55,12 @@ class AppViewModelTest {
     private val dispatcher = StandardTestDispatcher()
 
     private val scopes = ViewModelScopes()
+
+    private val storage = FakeThemeStorage()
+
+    private val reader = FakePackageReader()
+
+    private val readingPoints = FakeReadingPointRepository()
 
     @BeforeTest
     fun setUp() {
@@ -117,7 +134,7 @@ class AppViewModelTest {
 
         advanceUntilIdle()
 
-        assertEquals(Route.Onboarding, viewModel.startRoute.value)
+        assertEquals(listOf(Route.Onboarding), viewModel.startStack.value)
     }
 
     @Test
@@ -127,7 +144,7 @@ class AppViewModelTest {
 
         advanceUntilIdle()
 
-        assertEquals(Route.AddTheme(onboarding = true), viewModel.startRoute.value)
+        assertEquals(listOf(Route.AddTheme(onboarding = true)), viewModel.startStack.value)
     }
 
     @Test
@@ -142,7 +159,50 @@ class AppViewModelTest {
 
         advanceUntilIdle()
 
-        assertEquals(Route.Contents, viewModel.startRoute.value)
+        assertEquals(listOf(Route.Contents()), viewModel.startStack.value)
+    }
+
+    @Test
+    fun continuationRebuildsTreePathToLastPage() = runTest(dispatcher) {
+        readingPoints.points["a"] = ReadingPoint("a", ScreenTarget.Page("p2"), anchor = 5)
+        val viewModel = continuationViewModel()
+
+        assertEquals(
+            listOf(Route.Contents(anchor = 1), Route.Section("s", anchor = 1), Route.Page("p2", anchor = 5)),
+            viewModel.startStack.filterNotNull().first(),
+        )
+    }
+
+    @Test
+    fun continuationOpensRootWithItsAnchor() = runTest(dispatcher) {
+        readingPoints.points["a"] = ReadingPoint("a", ScreenTarget.Root, anchor = 1)
+        val viewModel = continuationViewModel()
+
+        assertEquals(listOf(Route.Contents(anchor = 1)), viewModel.startStack.filterNotNull().first())
+    }
+
+    @Test
+    fun disabledContinuationOpensContents() = runTest(dispatcher) {
+        readingPoints.points["a"] = ReadingPoint("a", ScreenTarget.Page("p2"), anchor = 5)
+        val viewModel = continuationViewModel(FakeReadingSettings(enabled = false))
+
+        assertEquals(listOf(Route.Contents()), viewModel.startStack.filterNotNull().first())
+    }
+
+    @Test
+    fun pointOfVanishedPageFallsBackToContents() = runTest(dispatcher) {
+        readingPoints.points["a"] = ReadingPoint("a", ScreenTarget.Page("gone"), anchor = 2)
+        val viewModel = continuationViewModel()
+
+        assertEquals(listOf(Route.Contents()), viewModel.startStack.filterNotNull().first())
+    }
+
+    @Test
+    fun pointOfAnotherThemeIsIgnored() = runTest(dispatcher) {
+        readingPoints.points["b"] = ReadingPoint("b", ScreenTarget.Page("p2"), anchor = 2)
+        val viewModel = continuationViewModel()
+
+        assertEquals(listOf(Route.Contents()), viewModel.startStack.filterNotNull().first())
     }
 
     @Test
@@ -198,7 +258,7 @@ class AppViewModelTest {
         assertNull(repository.find("a"))
         assertEquals(1, progress.viewedCount("a"))
         assertEquals(SplashState.Ready, viewModel.startupState.value)
-        assertEquals(Route.Contents, viewModel.startRoute.value)
+        assertEquals(listOf(Route.Contents()), viewModel.startStack.value)
     }
 
     @Test
@@ -227,15 +287,46 @@ class AppViewModelTest {
         progress: FakeProgressRepository = FakeProgressRepository(),
         current: FakeCurrentThemeRepository = FakeCurrentThemeRepository(),
         installer: ThemeInstaller = FakeInstaller(failure = null),
-    ) = scopes.track(
-        AppViewModel(
-            runStartupChecks = checks,
-            onboarding = onboarding,
-            library = ThemeLibraryImpl(repository, current, FakeThemeStorage(), progress, FakeClock()),
-            installer = installer,
-            themeSettings = settings,
-        ),
-    )
+        readingSettings: FakeReadingSettings = FakeReadingSettings(),
+    ): AppViewModel {
+        val library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock())
+        return scopes.track(
+            AppViewModel(
+                runStartupChecks = checks,
+                onboarding = onboarding,
+                library = library,
+                installer = installer,
+                findContinuation = FindContinuationUseCaseImpl(
+                    readingSettings,
+                    readingPoints,
+                    ObserveContentsUseCaseImpl(library, storage, reader, progress, FakeBookmarkRepository()),
+                ),
+                themeSettings = settings,
+            ),
+        )
+    }
+
+    private suspend fun continuationViewModel(readingSettings: FakeReadingSettings = FakeReadingSettings()): AppViewModel {
+        val repository = FakeInstalledThemeRepository()
+        repository.save(installedOf("a"))
+        reader.manifests[storage.themeDirectory("a")] = ThemeManifest(
+            formatVersion = 1,
+            id = "a",
+            title = "A",
+            description = null,
+            tree = listOf(
+                ThemeNode.Page("intro", "Вступление", "intro.html"),
+                ThemeNode.Section("s", "Раздел", listOf(ThemeNode.Page("p1", "П1", "p1.html"), ThemeNode.Page("p2", "П2", "p2.html"))),
+            ),
+        )
+        return viewModelOf(
+            QueuedChecks(StartupCheckResult.Passed),
+            onboarding = FakeOnboarding(accepted = true),
+            repository = repository,
+            current = FakeCurrentThemeRepository("a"),
+            readingSettings = readingSettings,
+        )
+    }
 
     private class FakeOnboarding(accepted: Boolean) : OnboardingRepository {
         override val consent = MutableStateFlow(

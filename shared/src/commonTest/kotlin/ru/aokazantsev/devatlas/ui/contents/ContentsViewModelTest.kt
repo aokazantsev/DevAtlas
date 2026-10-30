@@ -8,6 +8,11 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import ru.aokazantsev.devatlas.contents.domain.ObserveContentsUseCaseImpl
+import ru.aokazantsev.devatlas.reading.FakeBookmarkRepository
+import ru.aokazantsev.devatlas.reading.FakeReadingPointRepository
+import ru.aokazantsev.devatlas.reading.domain.model.Bookmark
+import ru.aokazantsev.devatlas.reading.domain.model.ReadingPoint
+import ru.aokazantsev.devatlas.reading.domain.model.ScreenTarget
 import ru.aokazantsev.devatlas.testing.ViewModelScopes
 import ru.aokazantsev.devatlas.themeformat.manifest.ThemeManifest
 import ru.aokazantsev.devatlas.themeformat.manifest.ThemeNode
@@ -32,6 +37,8 @@ class ContentsViewModelTest {
     private val storage = FakeThemeStorage()
     private val reader = FakePackageReader()
     private val progress = FakeProgressRepository()
+    private val bookmarks = FakeBookmarkRepository()
+    private val readingPoints = FakeReadingPointRepository()
 
     private val tree = listOf(
         page("welcome"),
@@ -68,7 +75,8 @@ class ContentsViewModelTest {
 
     private fun viewModel(sectionId: String? = null): ContentsViewModel {
         val library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock())
-        return scopes.track(ContentsViewModel(sectionId, ObserveContentsUseCaseImpl(library, storage, reader, progress)))
+        val contents = ObserveContentsUseCaseImpl(library, storage, reader, progress, bookmarks)
+        return scopes.track(ContentsViewModel(sectionId, contents, bookmarks, readingPoints))
     }
 
     private suspend fun ContentsViewModel.settled() = state.first { it != ContentsState.Loading }
@@ -95,6 +103,7 @@ class ContentsViewModelTest {
 
         assertEquals(
             ContentsState.Ready(
+                themeId = "t",
                 title = "Тема t",
                 description = null,
                 progress = ContentsProgress(viewed = 2, total = 4),
@@ -102,6 +111,7 @@ class ContentsViewModelTest {
                     ContentsRow.Page(id = "welcome", title = "Стр. welcome", viewed = true),
                     ContentsRow.Section(id = "basics", title = "Основы", progress = ContentsProgress(viewed = 1, total = 3)),
                 ),
+                bookmarked = false,
             ),
             state,
         )
@@ -116,6 +126,7 @@ class ContentsViewModelTest {
 
         assertEquals(
             ContentsState.Ready(
+                themeId = "t",
                 title = "Глубже",
                 description = null,
                 progress = null,
@@ -123,6 +134,7 @@ class ContentsViewModelTest {
                     ContentsRow.Page(id = "a", title = "Стр. a", viewed = true),
                     ContentsRow.Page(id = "b", title = "Стр. b", viewed = true),
                 ),
+                bookmarked = false,
             ),
             state,
         )
@@ -166,5 +178,55 @@ class ContentsViewModelTest {
     @Test
     fun emptyProgressHasZeroFraction() {
         assertEquals(0f, ContentsProgress(viewed = 0, total = 0).fraction)
+    }
+
+    @Test
+    fun bookmarkOnSectionUsesSectionTitleWhenNameIsBlank() = runTest {
+        installTheme()
+        val viewModel = viewModel(sectionId = "deep")
+        viewModel.settled()
+
+        viewModel.addBookmark("   ", anchor = 1)
+
+        assertEquals(listOf(Bookmark(1, ScreenTarget.Section("deep"), 1, "Глубже")), bookmarks.of("t"))
+        assertEquals(true, (viewModel.state.first { (it as? ContentsState.Ready)?.bookmarked == true } as ContentsState.Ready).bookmarked)
+    }
+
+    @Test
+    fun bookmarkOnRootKeepsTrimmedName() = runTest {
+        installTheme()
+        val viewModel = viewModel()
+        viewModel.settled()
+
+        viewModel.addBookmark("  Начало  ", anchor = 0)
+
+        assertEquals(listOf(Bookmark(1, ScreenTarget.Root, 0, "Начало")), bookmarks.of("t"))
+    }
+
+    @Test
+    fun positionIsRecordedForCurrentThemeAndLevel() = runTest {
+        installTheme()
+        val root = viewModel()
+        val section = viewModel(sectionId = "basics")
+        root.settled()
+        section.settled()
+
+        root.recordPosition(1)
+        section.recordPosition(0)
+
+        assertEquals(
+            listOf(ReadingPoint("t", ScreenTarget.Root, 1), ReadingPoint("t", ScreenTarget.Section("basics"), 0)),
+            readingPoints.recorded,
+        )
+    }
+
+    @Test
+    fun positionIsNotRecordedWithoutTheme() = runTest {
+        val viewModel = viewModel()
+        viewModel.settled()
+
+        viewModel.recordPosition(3)
+
+        assertEquals(emptyList(), readingPoints.recorded)
     }
 }

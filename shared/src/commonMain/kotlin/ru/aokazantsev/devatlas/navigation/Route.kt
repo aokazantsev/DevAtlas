@@ -10,7 +10,10 @@ sealed interface Route {
     data class AddTheme(val onboarding: Boolean) : Route
 
     @Serializable
-    data object Contents : Route
+    data class Contents(val anchor: Int = 0) : Route
+
+    @Serializable
+    data object Bookmarks : Route
 
     @Serializable
     data class Section(val sectionId: String, val anchor: Int = 0) : Route

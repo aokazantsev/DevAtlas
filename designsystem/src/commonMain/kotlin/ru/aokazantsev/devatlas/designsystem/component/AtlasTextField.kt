@@ -18,6 +18,7 @@ fun AtlasTextField(
     modifier: Modifier = Modifier,
     supportingText: String? = null,
     isError: Boolean = false,
+    keyboardType: KeyboardType = KeyboardType.Uri,
 ) {
     TextField(
         value = value,
@@ -27,7 +28,7 @@ fun AtlasTextField(
         supportingText = supportingText?.let { { AtlasText(text = it) } },
         isError = isError,
         singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         shape = AtlasTheme.shapes.medium,
         colors = TextFieldDefaults.colors(
             focusedContainerColor = AtlasTheme.colors.surface,

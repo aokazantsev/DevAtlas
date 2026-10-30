@@ -114,4 +114,32 @@ object AtlasIcons {
             pathData = "M280-280h280v-80H280v80Zm0-160h400v-80H280v80Zm0-160h400v-80H280v80Zm-80 480q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm0-560v560-560Z",
         )
     }
+
+    val BookmarkAdd: ImageVector by lazy {
+        materialSymbol(
+            name = "BookmarkAdd",
+            pathData = "M200-120v-640q0-33 23.5-56.5T280-840h240v80H280v518l200-86 200 86v-278h80v400L480-240 200-120Zm80-640h240-240Zm400 160v-80h-80v-80h80v-80h80v80h80v80h-80v80h-80Z",
+        )
+    }
+
+    val BookmarkAdded: ImageVector by lazy {
+        materialSymbol(
+            name = "BookmarkAdded",
+            pathData = "M713-600 600-713l56-57 57 57 141-142 57 57-198 198ZM200-120v-640q0-33 23.5-56.5T280-840h240v80H280v518l200-86 200 86v-278h80v400L480-240 200-120Zm80-640h240-240Z",
+        )
+    }
+
+    val Bookmarks: ImageVector by lazy {
+        materialSymbol(
+            name = "Bookmarks",
+            pathData = "M120-40v-640q0-33 23.5-56.5T200-760h400q33 0 56.5 23.5T680-680v640L400-160 120-40Zm80-122 200-86 200 86v-518H200v518Zm560 2v-680H240v-80h520q33 0 56.5 23.5T840-840v680h-80ZM200-680h400-400Z",
+        )
+    }
+
+    val Edit: ImageVector by lazy {
+        materialSymbol(
+            name = "Edit",
+            pathData = "M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z",
+        )
+    }
 }

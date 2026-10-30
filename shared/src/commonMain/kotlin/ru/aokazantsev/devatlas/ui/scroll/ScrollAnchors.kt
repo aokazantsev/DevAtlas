@@ -14,9 +14,17 @@ class ScrollAnchors {
 
     fun item(index: Int): Modifier = Modifier.onGloballyPositioned { items[index] = it }
 
-    fun top(index: Int): Int? {
+    private fun top(index: Int): Int? {
         val container = content?.takeIf { it.isAttached } ?: return null
         val item = items[index]?.takeIf { it.isAttached } ?: return null
         return container.localPositionOf(item, Offset.Zero).y.roundToInt()
+    }
+
+    fun topAtOrBefore(index: Int): Int? = (index downTo 0).firstNotNullOfOrNull(::top)
+
+    fun firstVisible(scrollOffset: Int): Int? {
+        val placed = items.keys.filter { top(it) != null }
+        if (placed.isEmpty()) return null
+        return placed.sortedDescending().firstOrNull { index -> top(index)?.let { it <= scrollOffset } == true } ?: 0
     }
 }

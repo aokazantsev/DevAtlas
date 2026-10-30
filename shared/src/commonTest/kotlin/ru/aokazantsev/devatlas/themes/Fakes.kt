@@ -74,6 +74,7 @@ class FakeCurrentThemeRepository(initial: String? = null) : CurrentThemeReposito
 class FakeProgressRepository : ProgressRepository {
     var keepFailure: SQLiteException? = null
     val viewed = mutableMapOf<String, MutableSet<String>>()
+    val bookmarks = mutableMapOf<String, Int>()
     private val changes = MutableStateFlow(0)
 
     override fun observeViewed(themeId: String): Flow<Set<String>> = changes.map { viewed[themeId].orEmpty().toSet() }
@@ -86,14 +87,17 @@ class FakeProgressRepository : ProgressRepository {
 
     override suspend fun viewedCount(themeId: String): Int = viewed[themeId]?.size ?: 0
 
+    override suspend fun bookmarkCount(themeId: String): Int = bookmarks[themeId] ?: 0
+
     override suspend fun reset(themeId: String) {
         viewed.remove(themeId)
+        bookmarks.remove(themeId)
         changes.value++
     }
 
-    override suspend fun keepOnly(themeId: String, pageIds: Collection<String>) {
+    override suspend fun keepOnly(themeId: String, manifest: ThemeManifest) {
         keepFailure?.let { throw it }
-        viewed[themeId]?.retainAll(pageIds.toSet())
+        viewed[themeId]?.retainAll(manifest.pages.map { it.id }.toSet())
         changes.value++
     }
 }

@@ -5,7 +5,6 @@ import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
-import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.BindingContainer
 import dev.zacsweers.metro.Provides
@@ -16,9 +15,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
 import okio.FileSystem
-import ru.aokazantsev.devatlas.database.data.DevAtlasDatabase
-import ru.aokazantsev.devatlas.database.data.dao.InstalledThemeDao
-import ru.aokazantsev.devatlas.database.data.dao.ViewedPageDao
 import ru.aokazantsev.devatlas.themeformat.archive.ThemeArchiveExtractor
 import ru.aokazantsev.devatlas.themeformat.archive.ThemeArchiveExtractorImpl
 import ru.aokazantsev.devatlas.themeformat.validation.ThemeValidator
@@ -37,22 +33,6 @@ internal object StorageBindings {
             corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
             produceFile = { platform.dataDirectory / SETTINGS_FILE },
         )
-
-    @Provides
-    @SingleIn(AppScope::class)
-    fun provideDatabase(platform: PlatformBindings, appInfo: AppInfo): DevAtlasDatabase {
-        val builder = platform.databaseBuilder()
-            .setDriver(BundledSQLiteDriver())
-            .setQueryCoroutineContext(Dispatchers.IO)
-        if (appInfo.isDebug) builder.fallbackToDestructiveMigration(dropAllTables = true)
-        return builder.build()
-    }
-
-    @Provides
-    fun provideViewedPageDao(database: DevAtlasDatabase): ViewedPageDao = database.viewedPageDao()
-
-    @Provides
-    fun provideInstalledThemeDao(database: DevAtlasDatabase): InstalledThemeDao = database.installedThemeDao()
 
     @Provides
     fun provideFileSystem(platform: PlatformBindings): FileSystem = platform.fileSystem

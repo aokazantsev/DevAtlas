@@ -42,7 +42,7 @@ private fun summaryText(state: UpdateState.Available): String {
         summary.isEmpty -> "Страницы не изменились: обновились схемы или другие файлы темы."
         else ->
             "Страниц добавлено: ${summary.added}, удалено: ${summary.removed}, изменено: ${summary.changed}. " +
-                "Отметки «Просмотрено» у удалённых страниц сбросятся."
+                "Отметки «Просмотрено» и закладки удалённых страниц и разделов сбросятся."
     }
     return source + changes
 }

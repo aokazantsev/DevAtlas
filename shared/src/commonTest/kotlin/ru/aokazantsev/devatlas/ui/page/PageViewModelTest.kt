@@ -10,6 +10,11 @@ import kotlinx.coroutines.test.setMain
 import ru.aokazantsev.devatlas.contents.domain.ObserveContentsUseCaseImpl
 import ru.aokazantsev.devatlas.contents.FakePageRepository
 import ru.aokazantsev.devatlas.contents.domain.model.PageContent
+import ru.aokazantsev.devatlas.reading.FakeBookmarkRepository
+import ru.aokazantsev.devatlas.reading.FakeReadingPointRepository
+import ru.aokazantsev.devatlas.reading.domain.model.Bookmark
+import ru.aokazantsev.devatlas.reading.domain.model.ReadingPoint
+import ru.aokazantsev.devatlas.reading.domain.model.ScreenTarget
 import ru.aokazantsev.devatlas.testing.ViewModelScopes
 import ru.aokazantsev.devatlas.themeformat.manifest.ThemeManifest
 import ru.aokazantsev.devatlas.themeformat.manifest.ThemeNode
@@ -42,6 +47,8 @@ class PageViewModelTest {
     private val progress = FakeProgressRepository()
     private val pages = FakePageRepository()
     private val platform = FakePlatformBindings()
+    private val bookmarks = FakeBookmarkRepository()
+    private val readingPoints = FakeReadingPointRepository()
 
     private val content = PageContent(
         document = PageDocument(listOf(PageBlock.Paragraph(listOf(PageInline.Text("Текст"))))),
@@ -76,7 +83,15 @@ class PageViewModelTest {
     private fun viewModel(pageId: String): PageViewModel {
         val library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock())
         return scopes.track(
-            PageViewModel(pageId, ObserveContentsUseCaseImpl(library, storage, reader, progress), pages, progress, platform),
+            PageViewModel(
+                pageId,
+                ObserveContentsUseCaseImpl(library, storage, reader, progress, bookmarks),
+                pages,
+                progress,
+                platform,
+                bookmarks,
+                readingPoints,
+            ),
         )
     }
 
@@ -89,9 +104,53 @@ class PageViewModelTest {
         val state = viewModel("one").settled()
 
         assertEquals(
-            PageState.Ready(themeId = "t", title = "Первая", content = content, viewed = false, next = NextPage("two", "Вторая")),
+            PageState.Ready(
+                themeId = "t",
+                title = "Первая",
+                content = content,
+                viewed = false,
+                bookmarked = false,
+                next = NextPage("two", "Вторая"),
+            ),
             state,
         )
+    }
+
+    @Test
+    fun bookmarkStoresPageAnchorAndMarksPage() = runTest {
+        installTheme()
+        val viewModel = viewModel("two")
+        viewModel.settled()
+
+        viewModel.addBookmark("", anchor = 4)
+
+        assertEquals(listOf(Bookmark(1, ScreenTarget.Page("two"), 4, "Вторая")), bookmarks.of("t"))
+        viewModel.state.first { (it as? PageState.Ready)?.bookmarked == true }
+        assertFalse((viewModel("one").settled() as PageState.Ready).bookmarked)
+    }
+
+    @Test
+    fun positionIsRecordedForPage() = runTest {
+        installTheme()
+        val viewModel = viewModel("one")
+        viewModel.settled()
+
+        viewModel.recordPosition(2)
+
+        assertEquals(listOf(ReadingPoint("t", ScreenTarget.Page("one"), 2)), readingPoints.recorded)
+    }
+
+    @Test
+    fun missingPageRecordsNothing() = runTest {
+        installTheme()
+        val viewModel = viewModel("nope")
+        viewModel.settled()
+
+        viewModel.recordPosition(2)
+        viewModel.addBookmark("x", anchor = 0)
+
+        assertEquals(emptyList(), readingPoints.recorded)
+        assertEquals(emptyList(), bookmarks.of("t"))
     }
 
     @Test

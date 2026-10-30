@@ -10,7 +10,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import ru.aokazantsev.devatlas.navigation.Route
+import ru.aokazantsev.devatlas.navigation.readingStack
 import ru.aokazantsev.devatlas.onboarding.domain.OnboardingRepository
+import ru.aokazantsev.devatlas.reading.domain.FindContinuationUseCase
 import ru.aokazantsev.devatlas.settings.domain.ThemeSettingsRepository
 import ru.aokazantsev.devatlas.settings.domain.model.Appearance
 import ru.aokazantsev.devatlas.startup.domain.RunStartupChecksUseCase
@@ -26,6 +28,7 @@ class AppViewModel(
     private val onboarding: OnboardingRepository,
     private val library: ThemeLibrary,
     private val installer: ThemeInstaller,
+    private val findContinuation: FindContinuationUseCase,
     themeSettings: ThemeSettingsRepository,
 ) : ViewModel() {
 
@@ -35,8 +38,8 @@ class AppViewModel(
     private val mutableStartupState = MutableStateFlow<SplashState>(SplashState.Checking)
     val startupState: StateFlow<SplashState> = mutableStartupState.asStateFlow()
 
-    private val mutableStartRoute = MutableStateFlow<Route?>(null)
-    val startRoute: StateFlow<Route?> = mutableStartRoute.asStateFlow()
+    private val mutableStartStack = MutableStateFlow<List<Route>?>(null)
+    val startStack: StateFlow<List<Route>?> = mutableStartStack.asStateFlow()
 
     init {
         check()
@@ -79,7 +82,7 @@ class AppViewModel(
         viewModelScope.launch {
             mutableStartupState.value = when (val result = runStartupChecks()) {
                 StartupCheckResult.Passed -> {
-                    mutableStartRoute.value = resolveStartRoute()
+                    mutableStartStack.value = resolveStartStack()
                     SplashState.Ready
                 }
                 is StartupCheckResult.Failed -> SplashState.Failed(result.reason)
@@ -88,9 +91,10 @@ class AppViewModel(
         }
     }
 
-    private suspend fun resolveStartRoute(): Route = when {
-        !onboarding.isPolicyAccepted() -> Route.Onboarding
-        library.resolveCurrent() != null -> Route.Contents
-        else -> Route.AddTheme(onboarding = true)
+    private suspend fun resolveStartStack(): List<Route> {
+        if (!onboarding.isPolicyAccepted()) return listOf(Route.Onboarding)
+        val theme = library.resolveCurrent() ?: return listOf(Route.AddTheme(onboarding = true))
+        val continuation = findContinuation(theme.id)
+        return continuation?.let { readingStack(it.tree, it.point.target, it.point.anchor) } ?: listOf(Route.Contents())
     }
 }

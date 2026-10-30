@@ -1,6 +1,7 @@
 package ru.aokazantsev.devatlas.themes.domain
 
 import kotlinx.coroutines.flow.Flow
+import ru.aokazantsev.devatlas.themeformat.manifest.ThemeManifest
 
 interface ProgressRepository {
     fun observeViewed(themeId: String): Flow<Set<String>>
@@ -9,7 +10,9 @@ interface ProgressRepository {
 
     suspend fun viewedCount(themeId: String): Int
 
+    suspend fun bookmarkCount(themeId: String): Int
+
     suspend fun reset(themeId: String)
 
-    suspend fun keepOnly(themeId: String, pageIds: Collection<String>)
+    suspend fun keepOnly(themeId: String, manifest: ThemeManifest)
 }

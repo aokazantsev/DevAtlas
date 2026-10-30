@@ -39,6 +39,8 @@ import ru.aokazantsev.devatlas.designsystem.component.AtlasListRow
 import ru.aokazantsev.devatlas.designsystem.component.AtlasLoading
 import ru.aokazantsev.devatlas.designsystem.component.AtlasPrimaryButton
 import ru.aokazantsev.devatlas.designsystem.component.AtlasProgressBar
+import ru.aokazantsev.devatlas.designsystem.component.AtlasReorderableGroup
+import ru.aokazantsev.devatlas.designsystem.component.AtlasRowAction
 import ru.aokazantsev.devatlas.designsystem.component.AtlasSecondaryButton
 import ru.aokazantsev.devatlas.designsystem.component.AtlasSwitchRow
 import ru.aokazantsev.devatlas.designsystem.component.AtlasText
@@ -92,6 +94,7 @@ private fun CatalogSection(themeName: String) {
             CatalogGroup("Формы") { ShapeSamples() }
             CatalogGroup("Иконки") { IconSamples() }
             CatalogGroup("Строки списка") { ListRowSamples() }
+            CatalogGroup("Перестановка удержанием") { ReorderSamples() }
             CatalogGroup("Кнопки") { ButtonSamples() }
             CatalogGroup("Группа выбора") { ChoiceSamples() }
             CatalogGroup("Переключатели") { ToggleSamples() }
@@ -219,7 +222,8 @@ private fun IconSamples() {
         AtlasIcons.Check, AtlasIcons.CheckCircle, AtlasIcons.ChevronRight, AtlasIcons.ArrowBack,
         AtlasIcons.Settings, AtlasIcons.Info, AtlasIcons.Close, AtlasIcons.Error, AtlasIcons.Refresh,
         AtlasIcons.LightMode, AtlasIcons.DarkMode, AtlasIcons.Contrast, AtlasIcons.Palette, AtlasIcons.Add,
-        AtlasIcons.Folder, AtlasIcons.Article,
+        AtlasIcons.Folder, AtlasIcons.Article, AtlasIcons.BookmarkAdd, AtlasIcons.BookmarkAdded, AtlasIcons.Bookmarks,
+        AtlasIcons.Edit,
     )
     FlowRow(
         modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
@@ -266,6 +270,34 @@ private fun ListRowSamples() {
     }
     AtlasListGroup {
         AtlasListRow(title = "С иконкой и подписью", subtitle = "Подпись строки", leadingIcon = AtlasIcons.Settings, onClick = {})
+    }
+    AtlasListGroup {
+        AtlasListRow(
+            title = "С действием",
+            subtitle = "Кнопка в конце строки",
+            leadingIcon = AtlasIcons.Article,
+            trailingAction = AtlasRowAction(AtlasIcons.Edit, "Изменить", onClick = {}),
+            onClick = {},
+        )
+    }
+}
+
+@Composable
+private fun ReorderSamples() {
+    var rows by remember { mutableStateOf(listOf("Первая", "Вторая", "Третья", "Четвёртая")) }
+    AtlasReorderableGroup(
+        items = rows,
+        itemKey = { it },
+        onMove = { from, to -> rows = rows.toMutableList().apply { add(to, removeAt(from)) } },
+    ) { title, index, count, rowModifier ->
+        AtlasListRow(
+            title = title,
+            modifier = rowModifier,
+            leadingIcon = AtlasIcons.Bookmarks,
+            index = index,
+            count = count,
+            onClick = {},
+        )
     }
 }
 

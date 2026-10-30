@@ -44,7 +44,7 @@ private fun DamagedTheme(state: SplashState.ThemeDamaged, onRedownload: () -> Un
     val failure = state.failure
     val message = buildString {
         append("Тема «${state.theme.title}» повреждена: ${state.theme.reason}. Прогресс не тронут.")
-        append("\n\n«Выбрать другую тему» уберёт эту тему с телефона, отметки «Просмотрено» сохранятся.")
+        append("\n\n«Выбрать другую тему» уберёт эту тему с телефона, отметки «Просмотрено» и закладки сохранятся.")
         if (failure != null) append("\n\nНе получилось: ${failure.message}")
     }
     AtlasError(

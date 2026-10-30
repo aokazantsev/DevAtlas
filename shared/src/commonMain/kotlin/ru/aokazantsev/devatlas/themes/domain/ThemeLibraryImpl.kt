@@ -47,6 +47,8 @@ internal class ThemeLibraryImpl(
 
     override suspend fun viewedCount(themeId: String): Int = progress.viewedCount(themeId)
 
+    override suspend fun bookmarkCount(themeId: String): Int = progress.bookmarkCount(themeId)
+
     override suspend fun remove(themeId: String, deleteTheme: Boolean, resetProgress: Boolean): ThemeRemoval =
         withContext(NonCancellable) {
             try {

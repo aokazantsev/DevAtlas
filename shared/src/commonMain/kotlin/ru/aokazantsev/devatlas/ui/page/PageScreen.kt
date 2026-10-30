@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,12 +27,16 @@ import ru.aokazantsev.devatlas.designsystem.component.AtlasTopBar
 import ru.aokazantsev.devatlas.designsystem.theme.AtlasTheme
 import ru.aokazantsev.devatlas.themeformat.page.model.LinkTarget
 import ru.aokazantsev.devatlas.themeformat.page.model.PageBlock
+import ru.aokazantsev.devatlas.ui.bookmarks.AddBookmarkButton
+import ru.aokazantsev.devatlas.ui.bookmarks.NewBookmarkSheet
 import ru.aokazantsev.devatlas.ui.page.content.PageBlocks
 import ru.aokazantsev.devatlas.ui.page.diagram.DiagramViewer
 import ru.aokazantsev.devatlas.ui.page.diagram.SvgColorTokens
 import ru.aokazantsev.devatlas.ui.page.diagram.rememberSvgPalette
+import ru.aokazantsev.devatlas.ui.scroll.RecordPosition
 import ru.aokazantsev.devatlas.ui.scroll.RestoreAnchor
-import ru.aokazantsev.devatlas.ui.scroll.ScrollAnchors
+import ru.aokazantsev.devatlas.ui.scroll.ScrollPosition
+import ru.aokazantsev.devatlas.ui.scroll.rememberScrollPosition
 
 @Composable
 fun PageScreen(
@@ -49,7 +52,22 @@ fun PageScreen(
         is PageState.Unreadable -> shown.title
         else -> null
     } ?: "Страница"
-    AtlasScaffold(topBar = { AtlasTopBar(title = title, onBack = onBack) }) { padding ->
+    val position = rememberScrollPosition(anchor)
+    var bookmarkAnchor by rememberSaveable { mutableStateOf<Int?>(null) }
+    val ready = state as? PageState.Ready
+    AtlasScaffold(
+        topBar = {
+            AtlasTopBar(
+                title = title,
+                onBack = onBack,
+                actions = {
+                    if (ready != null) {
+                        AddBookmarkButton(bookmarked = ready.bookmarked, onClick = { bookmarkAnchor = position.current() ?: 0 })
+                    }
+                },
+            )
+        },
+    ) { padding ->
         val modifier = Modifier.fillMaxSize().padding(padding)
         when (val shown = state) {
             PageState.Loading -> AtlasLoading(modifier = modifier)
@@ -67,7 +85,8 @@ fun PageScreen(
             )
             is PageState.Ready -> PageBody(
                 state = shown,
-                anchor = anchor,
+                position = position,
+                onRecordPosition = viewModel::recordPosition,
                 onViewedChange = viewModel::setViewed,
                 onCopyCode = viewModel::copyCode,
                 onOpenPage = onOpenPage,
@@ -76,12 +95,14 @@ fun PageScreen(
             )
         }
     }
+    NewBookmarkSheet(anchor = bookmarkAnchor, defaultName = ready?.title, onSave = viewModel::addBookmark) { bookmarkAnchor = null }
 }
 
 @Composable
 private fun PageBody(
     state: PageState.Ready,
-    anchor: Int,
+    position: ScrollPosition,
+    onRecordPosition: (Int) -> Unit,
     onViewedChange: (Boolean) -> Unit,
     onCopyCode: (String) -> Boolean,
     onOpenPage: (String) -> Unit,
@@ -100,13 +121,12 @@ private fun PageBody(
         }
     }
     var openedDiagram by rememberSaveable { mutableStateOf<String?>(null) }
-    val scrollState = rememberScrollState()
-    val anchors = remember { ScrollAnchors() }
-    RestoreAnchor(anchors, scrollState, anchor)
+    RestoreAnchor(position)
+    RecordPosition(position, onRecordPosition)
     Column(
         modifier = modifier
-            .verticalScroll(scrollState)
-            .then(anchors.contentModifier)
+            .verticalScroll(position.scrollState)
+            .then(position.anchors.contentModifier)
             .padding(vertical = AtlasTheme.spacing.l),
         verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.xl),
     ) {
@@ -117,7 +137,7 @@ private fun PageBody(
             onOpenDiagram = { openedDiagram = it.source },
             onCopyCode = onCopyCode,
             modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
-            anchors = anchors,
+            anchors = position.anchors,
         )
         AtlasListGroup {
             AtlasSwitchRow(title = "Просмотрено", checked = state.viewed, onCheckedChange = onViewedChange)

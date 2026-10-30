@@ -7,12 +7,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import ru.aokazantsev.devatlas.contents.domain.model.ThemeContents
+import ru.aokazantsev.devatlas.reading.domain.BookmarkRepository
 import ru.aokazantsev.devatlas.themes.domain.ProgressRepository
 import ru.aokazantsev.devatlas.themes.domain.ThemeLibrary
 import ru.aokazantsev.devatlas.themes.domain.ThemePackageReader
@@ -25,6 +26,7 @@ internal class ObserveContentsUseCaseImpl(
     private val storage: ThemeStorage,
     private val reader: ThemePackageReader,
     private val progress: ProgressRepository,
+    private val bookmarks: BookmarkRepository,
 ) : ObserveContentsUseCase {
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -36,7 +38,9 @@ internal class ObserveContentsUseCaseImpl(
             if (manifest == null) {
                 flowOf(ThemeContents.Unreadable)
             } else {
-                progress.observeViewed(theme.id).map { viewed -> ThemeContents.Ready(theme, manifest, viewed) }
+                combine(progress.observeViewed(theme.id), bookmarks.observe(theme.id)) { viewed, marks ->
+                    ThemeContents.Ready(theme, manifest, viewed, marks)
+                }
             }
         }
 }

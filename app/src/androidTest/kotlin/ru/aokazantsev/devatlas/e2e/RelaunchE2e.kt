@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.rules.ExternalResource
 import org.junit.rules.RuleChain
 import ru.aokazantsev.devatlas.DevAtlasApplication
@@ -29,7 +30,24 @@ class RelaunchE2e {
         get() = ApplicationProvider.getApplicationContext()
 
     fun launch() {
-        scenario?.close()
+        close()
+        wakeScreen()
         scenario = ActivityScenario.launch(Intent(appContext, MainActivity::class.java))
+    }
+
+    private fun wakeScreen() {
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        listOf("input keyevent KEYCODE_WAKEUP", "wm dismiss-keyguard").forEach { command ->
+            automation.executeShellCommand(command).close()
+        }
+    }
+
+    fun recreate() {
+        scenario?.recreate()
+    }
+
+    fun close() {
+        scenario?.close()
+        scenario = null
     }
 }

@@ -110,6 +110,7 @@ class ManageThemeViewModelTest {
     @Test
     fun confirmDescribesWhatWillHappen() = runTest(dispatcher) {
         progress.viewed["a"] = mutableSetOf("p1", "p2", "p3")
+        progress.bookmarks["a"] = 2
         val viewModel = viewModel()
         advanceUntilIdle()
         viewModel.setDeleteTheme(true)
@@ -118,7 +119,10 @@ class ManageThemeViewModelTest {
         advanceUntilIdle()
 
         val confirm = assertNotNull(viewModel.state.value.confirm)
-        assertEquals(RemovalConfirm("Тема a", deleteTheme = true, resetProgress = false, viewedCount = 3, isCurrent = true), confirm)
+        assertEquals(
+            RemovalConfirm("Тема a", deleteTheme = true, resetProgress = false, viewedCount = 3, bookmarkCount = 2, isCurrent = true),
+            confirm,
+        )
         viewModel.cancelRemoval()
         assertNull(viewModel.state.value.confirm)
     }

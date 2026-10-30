@@ -16,6 +16,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.aokazantsev.devatlas.DevAtlasApplication
+import ru.aokazantsev.devatlas.database.data.entity.BookmarkEntity
+import ru.aokazantsev.devatlas.database.data.entity.ReadingPointEntity
 import ru.aokazantsev.devatlas.database.data.entity.ViewedPageEntity
 import java.io.File
 
@@ -40,6 +42,20 @@ class ThemeManagementE2eTest {
     }
 
     private fun viewedCount(themeId: String) = runBlocking { graph.viewedPageDao.countForTheme(themeId) }
+
+    private fun addBookmark(pageId: String, title: String, kind: String = "page") = runBlocking {
+        graph.bookmarkDao.insert(
+            BookmarkEntity(themeId = ThemeZips.SAMPLE_ID, kind = kind, nodeId = pageId, anchor = 0, title = title, position = 0),
+        )
+    }
+
+    private fun bookmarkTitles() = runBlocking { graph.bookmarkDao.all(ThemeZips.SAMPLE_ID).map { it.title } }
+
+    private fun setReadingPoint(pageId: String) = runBlocking {
+        graph.readingPointDao.upsert(ReadingPointEntity(ThemeZips.SAMPLE_ID, kind = "page", nodeId = pageId, anchor = 1))
+    }
+
+    private fun readingPoint() = runBlocking { graph.readingPointDao.find(ThemeZips.SAMPLE_ID) }
 
     private fun themeFolder(id: String) = File(app.activity.filesDir, "themes/$id")
 
@@ -121,7 +137,8 @@ class ThemeManagementE2eTest {
         app.waitForTextContaining("Эта тема уже установлена")
         app.clickText("Установить")
         app.waitForText(
-            "Заменить источник и содержимое темы «$sampleTitle»? Отметки «Просмотрено» сохранятся у страниц, которые остались в теме.",
+            "Заменить источник и содержимое темы «$sampleTitle»? " +
+                "Отметки «Просмотрено» и закладки сохранятся у страниц и разделов, которые остались в теме.",
         )
         app.clickText("Не заменять")
         app.waitForGone("Не заменять")
@@ -202,6 +219,21 @@ class ThemeManagementE2eTest {
     }
 
     @Test
+    fun updateKeepsReadingPointOfSurvivingPage() {
+        app.passOnboarding()
+        e2e.server.serveZip(TestNetwork.SAMPLE_PATH, ThemeZips.changedSampleZip())
+        app.openThemeDetails(sampleTitle)
+        setReadingPoint("welcome")
+
+        app.clickText("Обновить")
+        app.waitForTextContaining("Страниц добавлено: 1, удалено: 1, изменено: 1")
+        app.clickText("Обновить")
+
+        app.waitForText("Тема обновлена")
+        assertEquals("welcome", readingPoint()?.nodeId)
+    }
+
+    @Test
     fun changedDiagramOnlyIsOfferedWithItsOwnText() {
         app.passOnboarding()
         val files = ThemeZips.sampleFiles().toMutableMap()
@@ -220,17 +252,25 @@ class ThemeManagementE2eTest {
         app.passOnboarding()
         markViewed(ThemeZips.SAMPLE_ID, "welcome")
         markViewed(ThemeZips.SAMPLE_ID, ThemeZips.REMOVED_PAGE_ID)
+        addBookmark("welcome", "Осталась")
+        addBookmark(ThemeZips.REMOVED_PAGE_ID, "Исчезла")
+        addBookmark("code-and-tables", "Вложенный раздел", kind = "section")
+        addBookmark("", "Корень", kind = "root")
+        addBookmark("gone-section", "Исчезнувший раздел", kind = "section")
         e2e.server.serveZip(TestNetwork.SAMPLE_PATH, ThemeZips.changedSampleZip())
         app.openThemeDetails(sampleTitle)
+        setReadingPoint(ThemeZips.REMOVED_PAGE_ID)
 
         app.clickText("Обновить")
 
         app.waitForTextContaining("Страниц добавлено: 1, удалено: 1, изменено: 1")
-        app.waitForTextContaining("Отметки «Просмотрено» у удалённых страниц сбросятся")
+        app.waitForTextContaining("Отметки «Просмотрено» и закладки удалённых страниц и разделов сбросятся")
         app.clickText("Обновить")
 
         app.waitForText("Тема обновлена")
         assertEquals(1, viewedCount(ThemeZips.SAMPLE_ID))
+        assertEquals(listOf("Осталась", "Вложенный раздел", "Корень"), bookmarkTitles())
+        assertEquals(null, readingPoint())
         assertTrue(File(themeFolder(ThemeZips.SAMPLE_ID), "pages/extra.html").exists())
         assertFalse(File(themeFolder(ThemeZips.SAMPLE_ID), "pages/links/internal.html").exists())
         app.clickText("Закрыть")
@@ -363,18 +403,22 @@ class ThemeManagementE2eTest {
         app.passOnboarding()
         markViewed(ThemeZips.SAMPLE_ID, "welcome")
         markViewed(ThemeZips.SAMPLE_ID, "headings")
+        addBookmark("welcome", "Закладка")
+        setReadingPoint("headings")
         app.openThemeManagement(sampleTitle)
 
         app.clickText("Сбросить прогресс")
         app.clickText("Продолжить")
         app.waitForText("Что будет удалено")
-        app.waitForTextContaining("Отметки «Просмотрено» (2) удалятся")
+        app.waitForTextContaining("Отметки «Просмотрено» (2) и закладки (1) удалятся, место, где вы остановились, забудется.")
         app.assertNoText("Тема «$sampleTitle» и её файлы удалятся с телефона.")
         app.clickText("Подтвердить")
 
         app.waitForText("Прогресс сброшен")
         app.waitForText("Управление темой")
         assertEquals(0, viewedCount(ThemeZips.SAMPLE_ID))
+        assertEquals(emptyList<String>(), bookmarkTitles())
+        assertEquals(null, readingPoint())
         assertTrue(themeFolder(ThemeZips.SAMPLE_ID).exists())
         app.onNodeWithText("Продолжить").assertIsNotEnabled()
     }
@@ -406,7 +450,7 @@ class ThemeManagementE2eTest {
         app.clickText("Удалить тему")
         app.clickText("Продолжить")
         app.waitForTextContaining("Тема «$otherTitle» и её файлы удалятся с телефона.")
-        app.waitForTextContaining("Отметки «Просмотрено» (1) останутся и вернутся")
+        app.waitForTextContaining("Отметки «Просмотрено» (1) и закладки (0) останутся и вернутся")
         app.clickText("Подтвердить")
 
         app.waitForText("Добавить тему")
@@ -425,7 +469,7 @@ class ThemeManagementE2eTest {
         app.clickText("Удалить тему")
         app.clickText("Сбросить прогресс")
         app.clickText("Продолжить")
-        app.waitForTextContaining("Отметки «Просмотрено» (1) удалятся")
+        app.waitForTextContaining("Отметки «Просмотрено» (1) и закладки (0) удалятся")
         app.clickText("Подтвердить")
 
         app.waitForText("Добавить тему")
@@ -487,17 +531,22 @@ class ThemeManagementE2eTest {
     fun deletedThemeReturnedLaterGetsItsProgressBack() {
         app.passOnboarding()
         markViewed(ThemeZips.SAMPLE_ID, "welcome")
+        addBookmark("welcome", "Закладка")
         app.openThemeManagement(sampleTitle)
+        setReadingPoint("headings")
         app.clickText("Удалить тему")
         app.clickText("Продолжить")
+        app.waitForTextContaining("Отметки «Просмотрено» (1) и закладки (1) останутся и вернутся")
         app.clickText("Подтвердить")
         app.waitForText("Начать с примера")
+        assertEquals("headings", readingPoint()?.nodeId)
 
         app.clickText("Начать с примера")
         app.installFromPreview(sampleTitle)
 
         app.waitForContentsOf(sampleTitle)
         assertEquals(1, viewedCount(ThemeZips.SAMPLE_ID))
+        assertEquals(listOf("Закладка"), bookmarkTitles())
     }
 
     private companion object {

@@ -116,11 +116,12 @@ private fun confirmText(confirm: RemovalConfirm): String = buildString {
         append("Тема «${confirm.themeTitle}» и её файлы удалятся с телефона.")
         if (confirm.isCurrent) append(" Откроется последняя использованная тема, а если тем не останется — первый экран приложения.")
     }
+    val progress = "Отметки «Просмотрено» (${confirm.viewedCount}) и закладки (${confirm.bookmarkCount})"
     if (confirm.resetProgress) {
         if (isNotEmpty()) append("\n\n")
-        append("Отметки «Просмотрено» (${confirm.viewedCount}) удалятся.")
-    } else if (confirm.viewedCount > 0) {
-        append("\n\nОтметки «Просмотрено» (${confirm.viewedCount}) останутся ")
-        append("и вернутся у страниц, которые будут в теме, если вы снова её добавите.")
+        append("$progress удалятся, место, где вы остановились, забудется.")
+    } else if (confirm.viewedCount > 0 || confirm.bookmarkCount > 0) {
+        append("\n\n$progress останутся ")
+        append("и вернутся у страниц и разделов, которые будут в теме, если вы снова её добавите.")
     }
 }

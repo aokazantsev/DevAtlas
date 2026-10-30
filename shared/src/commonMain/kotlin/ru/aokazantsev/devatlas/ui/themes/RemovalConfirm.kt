@@ -5,5 +5,6 @@ data class RemovalConfirm(
     val deleteTheme: Boolean,
     val resetProgress: Boolean,
     val viewedCount: Int,
+    val bookmarkCount: Int,
     val isCurrent: Boolean,
 )

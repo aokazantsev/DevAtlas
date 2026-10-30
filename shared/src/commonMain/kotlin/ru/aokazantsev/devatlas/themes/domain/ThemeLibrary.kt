@@ -15,5 +15,7 @@ interface ThemeLibrary {
 
     suspend fun viewedCount(themeId: String): Int
 
+    suspend fun bookmarkCount(themeId: String): Int
+
     suspend fun remove(themeId: String, deleteTheme: Boolean, resetProgress: Boolean): ThemeRemoval
 }

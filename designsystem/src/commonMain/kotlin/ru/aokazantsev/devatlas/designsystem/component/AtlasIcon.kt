@@ -10,6 +10,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import ru.aokazantsev.devatlas.designsystem.theme.AtlasTheme
 
 @Composable
@@ -34,8 +36,10 @@ fun AtlasIconButton(
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    stateDescription: String? = null,
 ) {
-    IconButton(onClick = onClick, shapes = IconButtonDefaults.shapes(), modifier = modifier) {
+    val described = if (stateDescription == null) modifier else modifier.semantics { this.stateDescription = stateDescription }
+    IconButton(onClick = onClick, shapes = IconButtonDefaults.shapes(), modifier = described) {
         AtlasIcon(icon = icon, contentDescription = contentDescription)
     }
 }

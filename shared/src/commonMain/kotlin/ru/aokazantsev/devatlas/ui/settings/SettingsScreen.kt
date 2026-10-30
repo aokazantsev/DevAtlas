@@ -31,6 +31,7 @@ fun SettingsScreen(
     onOpenComponentCatalog: () -> Unit,
 ) {
     val appearance by viewModel.appearance.collectAsStateWithLifecycle()
+    val continueFromLastPoint by viewModel.continueFromLastPoint.collectAsStateWithLifecycle()
     AtlasScaffold(topBar = { AtlasTopBar(title = "Настройки", onBack = onBack) }) { padding ->
         Column(
             modifier = Modifier
@@ -54,6 +55,7 @@ fun SettingsScreen(
                     )
                 }
             }
+            ReadingSection(continueFromLastPoint, viewModel::setContinueFromLastPoint)
             ThemesSection(onOpenThemes)
             SectionTitle("Приложение")
             val rows = if (showComponentCatalog) 2 else 1
@@ -96,6 +98,20 @@ private fun SectionTitle(text: String) {
         color = AtlasTheme.colors.primary,
         modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l, vertical = AtlasTheme.spacing.s),
     )
+}
+
+@Composable
+private fun ReadingSection(continueFromLastPoint: Boolean?, onChange: (Boolean) -> Unit) {
+    SectionTitle("Чтение")
+    AtlasListGroup {
+        AtlasSwitchRow(
+            title = "Продолжать с последней точки",
+            subtitle = "При запуске открывать экран и место, где вы остановились",
+            checked = continueFromLastPoint == true,
+            onCheckedChange = onChange,
+            enabled = continueFromLastPoint != null,
+        )
+    }
 }
 
 @Composable

@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.semantics
@@ -28,6 +31,7 @@ import ru.aokazantsev.devatlas.settings.domain.model.ThemeMode
 import ru.aokazantsev.devatlas.themes.domain.model.ThemeRemoval
 import ru.aokazantsev.devatlas.ui.about.AboutScreen
 import ru.aokazantsev.devatlas.ui.addtheme.AddThemeScreen
+import ru.aokazantsev.devatlas.ui.bookmarks.BookmarksScreen
 import ru.aokazantsev.devatlas.ui.catalog.ComponentCatalogScreen
 import ru.aokazantsev.devatlas.ui.contents.ContentsScreen
 import ru.aokazantsev.devatlas.ui.onboarding.OnboardingScreen
@@ -53,7 +57,7 @@ fun DevAtlasApp(
     val appViewModel = viewModel { graph.appViewModel() }
     val appearance by appViewModel.appearance.collectAsStateWithLifecycle()
     val startupState by appViewModel.startupState.collectAsStateWithLifecycle()
-    val startRoute by appViewModel.startRoute.collectAsStateWithLifecycle()
+    val startStack by appViewModel.startStack.collectAsStateWithLifecycle()
     val navController = rememberNavController()
     val systemIsDark = isSystemInDarkTheme()
     val resolvedAppearance = appearance ?: return
@@ -78,9 +82,9 @@ fun DevAtlasApp(
                     surfaceColor = background.toArgb()
                 },
         ) {
-            val route = startRoute
-            if (startupState == SplashState.Ready && route != null) {
-                AppNavHost(graph = graph, navController = navController, startRoute = route)
+            val stack = startStack
+            if (startupState == SplashState.Ready && stack != null) {
+                AppNavHost(graph = graph, navController = navController, startStack = stack)
             } else {
                 SplashScreen(
                     state = startupState,
@@ -94,12 +98,18 @@ fun DevAtlasApp(
 }
 
 @Composable
-private fun AppNavHost(graph: AppGraph, navController: NavHostController, startRoute: Route) {
-    NavHost(navController = navController, startDestination = startRoute) {
+private fun AppNavHost(graph: AppGraph, navController: NavHostController, startStack: List<Route>) {
+    var stackOpened by rememberSaveable { mutableStateOf(false) }
+    NavHost(navController = navController, startDestination = startStack.first()) {
         firstRunDestinations(graph, navController)
         contentsDestinations(graph, navController)
         themeDestinations(graph, navController)
         settingsDestinations(graph, navController)
+    }
+    LaunchedEffect(Unit) {
+        if (stackOpened) return@LaunchedEffect
+        stackOpened = true
+        startStack.drop(1).forEach { navController.navigate(it) }
     }
 }
 
@@ -118,7 +128,7 @@ private fun NavGraphBuilder.firstRunDestinations(graph: AppGraph, navController:
             onBack = if (onboarding) null else ({ entry.whenResumed { navController.popBackStack() } }),
             onInstalled = { themeId ->
                 if (onboarding) {
-                    navController.resetTo(Route.Contents)
+                    navController.resetTo(Route.Contents())
                 } else {
                     navController.navigate(Route.ThemeDetails(themeId)) { popUpTo<Route.AddTheme> { inclusive = true } }
                 }
@@ -134,8 +144,10 @@ private fun NavGraphBuilder.contentsDestinations(graph: AppGraph, navController:
             onOpenSection = { id -> entry.whenResumed { navController.navigate(Route.Section(id)) } },
             onOpenPage = { id -> entry.whenResumed { navController.navigate(Route.Page(id)) } },
             onOpenSettings = { entry.whenResumed { navController.navigate(Route.Settings) } },
+            onOpenBookmarks = { entry.whenResumed { navController.navigate(Route.Bookmarks) } },
             onAddTheme = { entry.whenResumed { navController.resetTo(Route.AddTheme(onboarding = true)) } },
             onBack = null,
+            anchor = entry.toRoute<Route.Contents>().anchor,
         )
     }
     composable<Route.Section> { entry ->
@@ -145,6 +157,7 @@ private fun NavGraphBuilder.contentsDestinations(graph: AppGraph, navController:
             onOpenSection = { id -> entry.whenResumed { navController.navigate(Route.Section(id)) } },
             onOpenPage = { id -> entry.whenResumed { navController.navigate(Route.Page(id)) } },
             onOpenSettings = null,
+            onOpenBookmarks = null,
             onAddTheme = { entry.whenResumed { navController.resetTo(Route.AddTheme(onboarding = true)) } },
             onBack = { entry.whenResumed { navController.popBackStack() } },
             anchor = section.anchor,
@@ -160,6 +173,13 @@ private fun NavGraphBuilder.contentsDestinations(graph: AppGraph, navController:
                 entry.whenResumed { navController.navigate(Route.Page(id)) { popUpTo(page) { inclusive = true } } }
             },
             onBack = { entry.whenResumed { navController.popBackStack() } },
+        )
+    }
+    composable<Route.Bookmarks> { entry ->
+        BookmarksScreen(
+            viewModel = viewModel { graph.bookmarksViewModel() },
+            onBack = { entry.whenResumed { navController.popBackStack() } },
+            onOpen = { stack -> entry.whenResumed { navController.openStack(stack) } },
         )
     }
 }
@@ -178,7 +198,7 @@ private fun NavGraphBuilder.themeDestinations(graph: AppGraph, navController: Na
         ThemeDetailsScreen(
             viewModel = viewModel(key = themeId) { graph.themeDetailsViewModel.create(themeId) },
             onBack = { entry.whenResumed { navController.popBackStack() } },
-            onApplied = { navController.resetTo(Route.Contents) },
+            onApplied = { navController.resetTo(Route.Contents()) },
             onManage = { entry.whenResumed { navController.navigate(Route.ManageTheme(themeId)) } },
         )
     }
@@ -218,10 +238,15 @@ private fun NavHostController.resetTo(route: Route) {
     navigate(route) { popUpTo(graph.id) { inclusive = true } }
 }
 
+private fun NavHostController.openStack(stack: List<Route>) {
+    resetTo(stack.first())
+    stack.drop(1).forEach { navigate(it) }
+}
+
 private fun NavHostController.handleRemoval(removal: ThemeRemoval) {
     when (removal) {
         ThemeRemoval.ThemeDeleted -> popBackStack<Route.Themes>(inclusive = false)
-        is ThemeRemoval.SwitchedTo -> resetTo(Route.Contents)
+        is ThemeRemoval.SwitchedTo -> resetTo(Route.Contents())
         ThemeRemoval.NoThemesLeft -> resetTo(Route.AddTheme(onboarding = true))
         ThemeRemoval.ProgressReset, is ThemeRemoval.Failed -> Unit
     }

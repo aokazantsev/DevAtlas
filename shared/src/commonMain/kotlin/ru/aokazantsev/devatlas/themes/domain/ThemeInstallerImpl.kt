@@ -94,7 +94,7 @@ internal class ThemeInstallerImpl(
             lastUsedAt = previous?.lastUsedAt ?: if (becomesCurrent) now else NEVER_USED,
         )
         repository.save(theme)
-        progress.keepOnly(id, prepared.manifest.pages.map { it.id })
+        progress.keepOnly(id, prepared.manifest)
         if (becomesCurrent) current.setCurrent(id)
         return theme
     }

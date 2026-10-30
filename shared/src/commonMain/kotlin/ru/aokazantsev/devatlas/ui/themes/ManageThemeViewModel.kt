@@ -76,6 +76,7 @@ class ManageThemeViewModel(
         if (!current.canContinue) return
         viewModelScope.launch {
             val viewed = library.viewedCount(themeId)
+            val bookmarked = library.bookmarkCount(themeId)
             val isCurrent = library.observeCurrent().first()?.id == themeId
             mutableState.update {
                 it.copy(
@@ -84,6 +85,7 @@ class ManageThemeViewModel(
                         deleteTheme = current.deleteTheme,
                         resetProgress = current.resetProgress,
                         viewedCount = viewed,
+                        bookmarkCount = bookmarked,
                         isCurrent = isCurrent,
                     ),
                 )

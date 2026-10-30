@@ -43,13 +43,15 @@ fun AtlasListRow(
     counter: String? = null,
     checked: Boolean = false,
     showChevron: Boolean = false,
+    trailingAction: AtlasRowAction? = null,
     onClick: (() -> Unit)? = null,
 ) {
     val shapes = atlasListItemShapes(index = index, count = count)
     val leading: (@Composable () -> Unit)? = leadingIcon?.let { { AtlasIcon(icon = it, contentDescription = null) } }
     val supporting: (@Composable () -> Unit)? = subtitle?.let { { AtlasText(text = it) } }
-    val trailing: (@Composable () -> Unit)? = if (counter != null || checked || showChevron) {
-        { RowTrailing(counter = counter, checked = checked, showChevron = showChevron) }
+    val marked = counter != null || checked || showChevron
+    val trailing: (@Composable () -> Unit)? = if (marked || trailingAction != null) {
+        { RowTrailing(counter = counter, checked = checked, showChevron = showChevron, action = trailingAction) }
     } else {
         null
     }
@@ -78,7 +80,7 @@ fun AtlasListRow(
 }
 
 @Composable
-private fun RowTrailing(counter: String?, checked: Boolean, showChevron: Boolean) {
+private fun RowTrailing(counter: String?, checked: Boolean, showChevron: Boolean, action: AtlasRowAction?) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.s),
         verticalAlignment = Alignment.CenterVertically,
@@ -91,6 +93,9 @@ private fun RowTrailing(counter: String?, checked: Boolean, showChevron: Boolean
         }
         if (showChevron) {
             AtlasIcon(icon = AtlasIcons.ChevronRight, contentDescription = null)
+        }
+        if (action != null) {
+            AtlasIconButton(icon = action.icon, contentDescription = action.contentDescription, onClick = action.onClick)
         }
     }
 }

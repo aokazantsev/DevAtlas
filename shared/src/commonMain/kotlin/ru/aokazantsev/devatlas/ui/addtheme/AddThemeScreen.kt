@@ -126,7 +126,7 @@ private fun PreviewContent(state: AddThemeState.Preview, viewModel: AddThemeView
         if (state.existing != null) {
             AtlasText(
                 text = "Эта тема уже установлена. Установка заменит источник и содержимое, " +
-                    "отметки «Просмотрено» сохранятся у страниц, которые остались в теме.",
+                    "отметки «Просмотрено» и закладки сохранятся у страниц и разделов, которые остались в теме.",
                 color = AtlasTheme.colors.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
             )
@@ -143,7 +143,7 @@ private fun PreviewContent(state: AddThemeState.Preview, viewModel: AddThemeView
         AtlasConfirmDialog(
             title = "Тема уже установлена",
             text = "Заменить источник и содержимое темы «${manifest.title}»? " +
-                "Отметки «Просмотрено» сохранятся у страниц, которые остались в теме.",
+                "Отметки «Просмотрено» и закладки сохранятся у страниц и разделов, которые остались в теме.",
             confirmText = "Заменить",
             dismissText = "Не заменять",
             onConfirm = viewModel::install,

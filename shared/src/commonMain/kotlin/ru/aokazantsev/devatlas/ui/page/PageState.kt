@@ -14,6 +14,7 @@ sealed interface PageState {
         val title: String,
         val content: PageContent,
         val viewed: Boolean,
+        val bookmarked: Boolean,
         val next: NextPage?,
     ) : PageState
 }

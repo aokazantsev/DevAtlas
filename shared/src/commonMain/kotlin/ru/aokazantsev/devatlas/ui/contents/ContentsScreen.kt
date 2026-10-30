@@ -4,11 +4,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ru.aokazantsev.devatlas.designsystem.component.AtlasError
@@ -23,8 +24,12 @@ import ru.aokazantsev.devatlas.designsystem.component.AtlasTopBar
 import ru.aokazantsev.devatlas.designsystem.icon.AtlasIcons
 import ru.aokazantsev.devatlas.designsystem.theme.AtlasTheme
 import ru.aokazantsev.devatlas.text.russianPlural
+import ru.aokazantsev.devatlas.ui.bookmarks.AddBookmarkButton
+import ru.aokazantsev.devatlas.ui.bookmarks.NewBookmarkSheet
+import ru.aokazantsev.devatlas.ui.scroll.RecordPosition
 import ru.aokazantsev.devatlas.ui.scroll.RestoreAnchor
-import ru.aokazantsev.devatlas.ui.scroll.ScrollAnchors
+import ru.aokazantsev.devatlas.ui.scroll.ScrollPosition
+import ru.aokazantsev.devatlas.ui.scroll.rememberScrollPosition
 
 @Composable
 fun ContentsScreen(
@@ -32,18 +37,28 @@ fun ContentsScreen(
     onOpenSection: (String) -> Unit,
     onOpenPage: (String) -> Unit,
     onOpenSettings: (() -> Unit)?,
+    onOpenBookmarks: (() -> Unit)?,
     onAddTheme: () -> Unit,
     onBack: (() -> Unit)?,
-    anchor: Int = 0,
+    anchor: Int,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val title = (state as? ContentsState.Ready)?.title ?: "Содержание"
+    val ready = state as? ContentsState.Ready
+    val title = ready?.title ?: "Содержание"
+    val position = rememberScrollPosition(anchor)
+    var bookmarkAnchor by rememberSaveable { mutableStateOf<Int?>(null) }
     AtlasScaffold(
         topBar = {
             AtlasTopBar(
                 title = title,
                 onBack = onBack,
                 actions = {
+                    if (onOpenBookmarks != null && ready != null) {
+                        AtlasIconButton(icon = AtlasIcons.Bookmarks, contentDescription = "Закладки", onClick = onOpenBookmarks)
+                    }
+                    if (ready != null) {
+                        AddBookmarkButton(bookmarked = ready.bookmarked, onClick = { bookmarkAnchor = position.current() ?: 0 })
+                    }
                     if (onOpenSettings != null) {
                         AtlasIconButton(icon = AtlasIcons.Settings, contentDescription = "Настройки", onClick = onOpenSettings)
                     }
@@ -72,29 +87,32 @@ fun ContentsScreen(
             )
             is ContentsState.Ready -> ContentsList(
                 state = shown,
-                anchor = anchor,
+                position = position,
+                onRecordPosition = viewModel::recordPosition,
                 onOpenSection = onOpenSection,
                 onOpenPage = onOpenPage,
                 modifier = modifier,
             )
         }
     }
+    NewBookmarkSheet(anchor = bookmarkAnchor, defaultName = ready?.title, onSave = viewModel::addBookmark) { bookmarkAnchor = null }
 }
 
 @Composable
 private fun ContentsList(
     state: ContentsState.Ready,
-    anchor: Int,
+    position: ScrollPosition,
+    onRecordPosition: (Int) -> Unit,
     onOpenSection: (String) -> Unit,
     onOpenPage: (String) -> Unit,
     modifier: Modifier,
 ) {
-    val scrollState = rememberScrollState()
-    val anchors = remember { ScrollAnchors() }
-    RestoreAnchor(anchors, scrollState, anchor)
+    val anchors = position.anchors
+    RestoreAnchor(position)
+    RecordPosition(position, onRecordPosition)
     Column(
         modifier = modifier
-            .verticalScroll(scrollState)
+            .verticalScroll(position.scrollState)
             .then(anchors.contentModifier)
             .padding(bottom = AtlasTheme.spacing.l),
         verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.l),
