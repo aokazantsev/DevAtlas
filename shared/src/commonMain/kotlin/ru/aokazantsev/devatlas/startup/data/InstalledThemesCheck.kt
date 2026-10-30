@@ -1,14 +1,69 @@
 package ru.aokazantsev.devatlas.startup.data
 
+import androidx.sqlite.SQLiteException
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
+import okio.FileSystem
+import okio.IOException
 import ru.aokazantsev.devatlas.startup.domain.StartupCheck
 import ru.aokazantsev.devatlas.startup.domain.model.StartupCheckResult
+import ru.aokazantsev.devatlas.themeformat.manifest.ThemeManifest
+import ru.aokazantsev.devatlas.themes.domain.CurrentThemeRepository
+import ru.aokazantsev.devatlas.themes.domain.InstalledThemeRepository
+import ru.aokazantsev.devatlas.themes.domain.ThemePackageReader
+import ru.aokazantsev.devatlas.themes.domain.ThemeStorage
+import ru.aokazantsev.devatlas.themes.domain.model.DamagedTheme
+import ru.aokazantsev.devatlas.themes.domain.model.InstalledTheme
 
 @ContributesIntoSet(AppScope::class)
 @Inject
-internal class InstalledThemesCheck : StartupCheck {
+internal class InstalledThemesCheck(
+    private val repository: InstalledThemeRepository,
+    private val current: CurrentThemeRepository,
+    private val storage: ThemeStorage,
+    private val reader: ThemePackageReader,
+    private val fileSystem: FileSystem,
+) : StartupCheck {
 
-    override suspend fun check(): StartupCheckResult = StartupCheckResult.Passed
+    override suspend fun check(): StartupCheckResult = try {
+        withContext(Dispatchers.IO) { checkThemes() }
+    } catch (error: SQLiteException) {
+        StartupCheckResult.Failed(error.message ?: "SQLiteException")
+    } catch (error: IOException) {
+        StartupCheckResult.Failed(error.message ?: "IOException")
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (error: IllegalStateException) {
+        StartupCheckResult.Failed(error.message ?: "IllegalStateException")
+    }
+
+    private suspend fun checkThemes(): StartupCheckResult {
+        storage.clearStaging()
+        val currentId = current.currentThemeId.first()
+        val themes = repository.all().sortedByDescending { it.id == currentId }
+        for (theme in themes) {
+            val reason = damageOf(theme)
+            if (reason != null) return StartupCheckResult.ThemeDamaged(DamagedTheme(theme.id, theme.title, reason))
+        }
+        return StartupCheckResult.Passed
+    }
+
+    private fun damageOf(theme: InstalledTheme): String? {
+        val directory = storage.themeDirectory(theme.id)
+        if (!fileSystem.exists(directory / ThemeManifest.FILE_NAME)) return "Файлы темы пропали с устройства"
+        val manifest = reader.manifest(directory)
+        val missing = manifest?.pages?.firstOrNull { !fileSystem.exists(directory / it.file) }
+        return when {
+            manifest == null -> "Файл manifest.json темы испорчен"
+            manifest.id != theme.id -> "Файлы темы относятся к другой теме"
+            missing != null -> "Пропал файл страницы «${missing.file}»"
+            else -> null
+        }
+    }
 }

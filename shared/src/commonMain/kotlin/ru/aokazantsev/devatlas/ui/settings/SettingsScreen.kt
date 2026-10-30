@@ -26,6 +26,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     showComponentCatalog: Boolean,
     onBack: () -> Unit,
+    onOpenThemes: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenComponentCatalog: () -> Unit,
 ) {
@@ -53,6 +54,7 @@ fun SettingsScreen(
                     )
                 }
             }
+            ThemesSection(onOpenThemes)
             SectionTitle("Приложение")
             val rows = if (showComponentCatalog) 2 else 1
             AtlasListGroup {
@@ -94,4 +96,18 @@ private fun SectionTitle(text: String) {
         color = AtlasTheme.colors.primary,
         modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l, vertical = AtlasTheme.spacing.s),
     )
+}
+
+@Composable
+private fun ThemesSection(onOpenThemes: () -> Unit) {
+    SectionTitle("Темы")
+    AtlasListGroup {
+        AtlasListRow(
+            title = "Список тем",
+            subtitle = "Применить, обновить, добавить или удалить",
+            leadingIcon = AtlasIcons.Folder,
+            showChevron = true,
+            onClick = onOpenThemes,
+        )
+    }
 }

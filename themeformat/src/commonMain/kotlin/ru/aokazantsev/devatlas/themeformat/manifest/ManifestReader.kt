@@ -19,7 +19,7 @@ internal class ManifestReader(private val collector: IssueCollector) {
 
     fun read(root: JsonObject): ThemeManifest? {
         reportUnknownKeys(root, rootKeys, "")
-        val formatVersion = root["formatVersion"]?.let { it as? JsonPrimitive }?.intOrNull
+        val formatVersion = root["formatVersion"]?.let { it as? JsonPrimitive }?.takeUnless { it.isString }?.intOrNull
         when {
             formatVersion == null -> field("formatVersion", "нужно число — версия формата, сейчас ${ThemeManifest.CURRENT_FORMAT_VERSION}")
             formatVersion != ThemeManifest.CURRENT_FORMAT_VERSION -> collector.error(
@@ -50,8 +50,7 @@ internal class ManifestReader(private val collector: IssueCollector) {
             collector.error(IssueCode.TREE_TOO_DEEP, "$path: дерево глубже ${ThemeManifest.MAX_TREE_DEPTH} уровней")
             return null
         }
-        val nodes = element.mapIndexed { index, child -> node(child, "$path[$index]", depth) }
-        return nodes.takeIf { list -> list.all { it != null } }?.filterNotNull()
+        return element.mapIndexedNotNull { index, child -> node(child, "$path[$index]", depth) }.takeIf { it.isNotEmpty() }
     }
 
     private fun node(element: JsonElement, path: String, depth: Int): ThemeNode? {

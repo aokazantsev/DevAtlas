@@ -2,6 +2,7 @@ package ru.aokazantsev.devatlas
 
 import android.app.UiModeManager
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -26,6 +27,7 @@ class MainActivity : ComponentActivity() {
             DevAtlasApp(
                 graph = graph,
                 onThemeResolved = ::applyTheme,
+                onBackgroundResolved = { window.setBackgroundDrawable(ColorDrawable(it)) },
                 onContentReady = { contentReady = true },
             )
         }

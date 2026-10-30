@@ -3,6 +3,7 @@ package ru.aokazantsev.devatlas.startup.data
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import ru.aokazantsev.devatlas.database.data.dao.ViewedPageDao
+import ru.aokazantsev.devatlas.database.data.entity.ViewedPageEntity
 import ru.aokazantsev.devatlas.startup.domain.model.StartupCheckResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -38,6 +39,14 @@ class DatabaseCheckTest {
     }
 
     private fun dao(count: () -> Int) = object : ViewedPageDao {
+        override suspend fun upsert(entity: ViewedPageEntity) = Unit
+
         override suspend fun count(): Int = count()
+
+        override suspend fun countForTheme(themeId: String): Int = 0
+
+        override suspend fun deleteForTheme(themeId: String) = Unit
+
+        override suspend fun deleteExcept(themeId: String, keepPageIds: List<String>) = Unit
     }
 }

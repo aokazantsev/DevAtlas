@@ -76,6 +76,19 @@ class ThemeCheckCommandTest {
     }
 
     @Test
+    fun archiveInsideThemeFolderIsRefused() {
+        val theme = File(workDir, "inner-theme").apply { mkdirs() }
+        sampleTheme.copyRecursively(theme)
+        val archive = File(theme, "out/theme.zip")
+
+        val (code, output) = run(theme.path, "--zip", archive.path)
+
+        assertEquals(ThemeCheckCommand.EXIT_USAGE, code)
+        assertTrue("внутрь папки темы" in output, output)
+        assertTrue(!archive.exists())
+    }
+
+    @Test
     fun wrongArgumentsShowUsage() {
         assertEquals(ThemeCheckCommand.EXIT_USAGE, run().first)
         assertEquals(ThemeCheckCommand.EXIT_USAGE, run("a", "b").first)

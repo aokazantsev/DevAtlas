@@ -13,7 +13,8 @@ object SvgChecker {
     private val colorProperties = setOf("fill", "stroke", "stop-color", "flood-color", "lighting-color", "color")
     private val paintProperties = setOf("fill", "stroke")
     private val keywords = setOf("none", "transparent", "currentcolor", "inherit")
-    private val forbiddenElements = setOf("script", "foreignObject", "style", "image", "iframe", "audio", "video")
+    private val animationElements = setOf("set", "animate", "animateTransform", "animateMotion", "animateColor", "discard")
+    private val forbiddenElements = setOf("script", "foreignObject", "style", "image", "iframe", "audio", "video") + animationElements
     private const val HREF = "href"
     private val variable = Regex("var\\(\\s*--([A-Za-z0-9-]+)\\s*\\)")
     private val localUrl = Regex("url\\(\\s*['\"]?#[^)'\"\\s]+['\"]?\\s*\\)")
@@ -131,6 +132,7 @@ object SvgChecker {
         "script" -> "<script> запрещён: скрипты в схемах не выполняются"
         "style" -> "<style> не поддерживается: задавайте цвета атрибутами fill и stroke"
         "image" -> "<image> не поддерживается: картинки внутри схемы не показываются"
+        in animationElements -> "<$name> запрещён: анимация в схемах не поддерживается, схема статична"
         else -> "<$name> не поддерживается в схемах"
     }
 

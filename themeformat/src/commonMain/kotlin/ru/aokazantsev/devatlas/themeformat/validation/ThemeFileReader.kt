@@ -23,8 +23,10 @@ internal class ThemeFileReader(
         return try {
             val size = fileSystem.metadata(path).size ?: 0L
             if (size > limits.maxFileBytes) return null
-            val text = fileSystem.read(path) { readUtf8() }.removePrefix(BYTE_ORDER_MARK)
-            if (REPLACEMENT_CHAR in text) {
+            val bytes = fileSystem.read(path) { readByteString() }
+            val decoded = bytes.utf8()
+            val text = decoded.removePrefix(BYTE_ORDER_MARK)
+            if (!decoded.encodeToByteArray().contentEquals(bytes.toByteArray())) {
                 issues += error(file, IssueCode.ENCODING, "Файл не в кодировке UTF-8: пересохраните его в UTF-8")
                 null
             } else {
@@ -41,6 +43,5 @@ internal class ThemeFileReader(
 
     private companion object {
         const val BYTE_ORDER_MARK = "\uFEFF"
-        const val REPLACEMENT_CHAR = '\uFFFD'
     }
 }

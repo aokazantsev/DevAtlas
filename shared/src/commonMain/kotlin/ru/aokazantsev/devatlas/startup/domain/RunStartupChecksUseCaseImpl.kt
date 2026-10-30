@@ -14,7 +14,7 @@ internal class RunStartupChecksUseCaseImpl(
     override suspend fun invoke(): StartupCheckResult {
         for (check in checks) {
             val result = check.check()
-            if (result is StartupCheckResult.Failed) return result
+            if (result != StartupCheckResult.Passed) return result
         }
         return StartupCheckResult.Passed
     }

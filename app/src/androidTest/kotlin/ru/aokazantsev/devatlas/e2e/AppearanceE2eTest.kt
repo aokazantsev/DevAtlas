@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.Assert.assertEquals
 import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
@@ -50,15 +51,27 @@ class AppearanceE2eTest {
         app.passOnboarding()
         app.openSettings()
         app.waitForToggle("Цвета из обоев", on = true)
+        val withWallpaper = app.surfaceColor()
 
         app.onNodeWithText("Цвета из обоев").performClick()
 
         app.waitForToggle("Цвета из обоев", on = false)
         app.waitForAppearance(wallpaperColors = false)
+        app.waitForSurfaceColorOtherThan(withWallpaper)
+        val withSeed = app.surfaceColor()
         app.activityRule.scenario.recreate()
         app.waitForText("Оформление")
         app.waitForAppearance(wallpaperColors = false)
         app.waitForToggle("Цвета из обоев", on = false)
+        assertEquals(withSeed, app.surfaceColor())
+
+        app.onNodeWithText("Цвета из обоев").performClick()
+        app.waitForToggle("Цвета из обоев", on = true)
+        app.waitUntil(WAIT_MILLIS) { app.surfaceColor() == withWallpaper }
+    }
+
+    private companion object {
+        const val WAIT_MILLIS = 10_000L
     }
 
     @Test

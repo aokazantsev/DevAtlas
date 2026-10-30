@@ -8,5 +8,8 @@ const val APP_ROOT_TAG = "app_root"
 val DarkThemeKey = SemanticsPropertyKey<Boolean>("DarkTheme")
 var SemanticsPropertyReceiver.darkTheme by DarkThemeKey
 
+val SurfaceColorKey = SemanticsPropertyKey<Int>("SurfaceColor")
+var SemanticsPropertyReceiver.surfaceColor by SurfaceColorKey
+
 val WallpaperColorsKey = SemanticsPropertyKey<Boolean>("WallpaperColors")
 var SemanticsPropertyReceiver.wallpaperColors by WallpaperColorsKey

@@ -33,6 +33,7 @@ internal class IssueCollector(private val file: String?) {
     }
 
     private fun keep(issue: ThemeIssue) {
+        if (issue in collected) return
         if (collected.size < LIMIT) {
             collected += issue
             return

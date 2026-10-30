@@ -45,6 +45,32 @@ android {
     }
 }
 
+abstract class SyncSampleThemeAssets : DefaultTask() {
+    @get:InputDirectory
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val sampleTheme: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val output: DirectoryProperty
+
+    @TaskAction
+    fun sync() {
+        val target = output.get().asFile.resolve("sample-theme")
+        target.deleteRecursively()
+        sampleTheme.get().asFile.copyRecursively(target)
+    }
+}
+
+val syncSampleThemeAssets = tasks.register<SyncSampleThemeAssets>("syncSampleThemeAssets") {
+    sampleTheme.set(rootProject.layout.projectDirectory.dir("sample-theme"))
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.androidTest?.sources?.assets?.addGeneratedSourceDirectory(syncSampleThemeAssets, SyncSampleThemeAssets::output)
+    }
+}
+
 dependencies {
     implementation(projects.shared)
     implementation(libs.androidx.activity.compose)

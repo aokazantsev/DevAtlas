@@ -7,6 +7,9 @@ sealed interface Route {
     data object Onboarding : Route
 
     @Serializable
+    data class AddTheme(val onboarding: Boolean) : Route
+
+    @Serializable
     data object Contents : Route
 
     @Serializable
@@ -14,6 +17,15 @@ sealed interface Route {
 
     @Serializable
     data object Settings : Route
+
+    @Serializable
+    data object Themes : Route
+
+    @Serializable
+    data class ThemeDetails(val themeId: String) : Route
+
+    @Serializable
+    data class ManageTheme(val themeId: String) : Route
 
     @Serializable
     data object About : Route

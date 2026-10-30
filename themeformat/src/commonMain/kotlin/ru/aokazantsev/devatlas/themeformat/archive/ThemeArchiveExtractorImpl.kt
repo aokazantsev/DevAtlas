@@ -19,14 +19,17 @@ class ThemeArchiveExtractorImpl(
     private val limits: ArchiveLimits = ArchiveLimits.Default,
 ) : ThemeArchiveExtractor {
 
-    override fun extract(fileSystem: FileSystem, archive: Path, target: Path): ExtractionResult {
+    override fun extract(fileSystem: FileSystem, archive: Path, target: Path, subFolder: String?): ExtractionResult {
         val collector = IssueCollector(archive.name)
         if (fileSystem.exists(target)) {
             collector.error(IssueCode.ARCHIVE_UNREADABLE, "Папка распаковки уже существует: нужна новая пустая папка")
             return ExtractionResult(files = emptyList(), issues = collector.issues)
         }
         val files = try {
-            fileSystem.openReadOnly(archive).use { handle -> extract(fileSystem, handle, target, collector) }
+            fileSystem.openReadOnly(archive).use { handle -> extract(fileSystem, handle, target, subFolder, collector) }
+        } catch (error: TargetWriteException) {
+            collector.error(IssueCode.ARCHIVE_UNREADABLE, "Не удалось записать распакованную тему: ${error.message ?: "не хватает места"}")
+            emptyList()
         } catch (error: IOException) {
             collector.error(IssueCode.ARCHIVE_UNREADABLE, "Архив не читается: ${error.message ?: "ошибка ввода-вывода"}")
             emptyList()
@@ -35,46 +38,60 @@ class ThemeArchiveExtractorImpl(
         return ExtractionResult(files = files, issues = collector.issues)
     }
 
-    private fun extract(fileSystem: FileSystem, handle: FileHandle, target: Path, collector: IssueCollector): List<String> {
+    private fun extract(
+        fileSystem: FileSystem,
+        handle: FileHandle,
+        target: Path,
+        subFolder: String?,
+        collector: IssueCollector,
+    ): List<String> {
         val reader = ZipDirectoryReader(handle)
-        val plan = plan(handle, reader, collector) ?: return emptyList()
+        val plan = plan(handle, reader, subFolder, collector) ?: return emptyList()
         target.parent?.let(fileSystem::createDirectories)
         fileSystem.createDirectory(target, mustCreate = true)
         var total = 0L
         return plan.entries.map { entry ->
             val relative = entry.name.removePrefix(plan.root)
             val destination = target / relative
-            destination.parent?.let(fileSystem::createDirectories)
             total += copy(fileSystem, reader, handle, entry, destination, limits.maxTotalBytes - total)
             relative
         }
     }
 
-    private fun plan(handle: FileHandle, reader: ZipDirectoryReader, collector: IssueCollector): ExtractionPlan? {
+    private fun plan(handle: FileHandle, reader: ZipDirectoryReader, subFolder: String?, collector: IssueCollector): ExtractionPlan? {
         if (handle.size() > limits.maxArchiveBytes) {
             collector.error(IssueCode.ARCHIVE_LIMIT, "Архив больше ${limits.maxArchiveBytes / ArchiveLimits.MEGABYTE} МБ")
             return null
         }
-        val files = safeFiles(reader.entries(), collector) ?: return null
-        val root = ThemeRootLocator.locate(files.map { it.name })
-        if (root == null) {
-            collector.error(
-                IssueCode.ARCHIVE_NO_ROOT,
-                "Не найден manifest.json: он должен лежать в корне архива или в единственной папке внутри него",
-            )
+        val selected = select(reader.entries(), subFolder, collector) ?: return null
+        return selected.takeIf { checkLimits(it.entries, it.root, handle.size(), collector) }
+    }
+
+    private fun select(entries: List<ZipEntryRecord>, subFolder: String?, collector: IssueCollector): ExtractionPlan? {
+        if (entries.size > limits.maxRawEntries) {
+            collector.error(IssueCode.ARCHIVE_LIMIT, "В каталоге архива больше ${limits.maxRawEntries} записей")
+            return null
         }
-        val themeFiles = root?.let { prefix -> files.filter { it.name.startsWith(prefix) } }.orEmpty()
-        return if (root != null && checkLimits(themeFiles, root, handle.size(), collector)) ExtractionPlan(root, themeFiles) else null
+        val named = entries.filterNot { it.isDirectory }.map { it.copy(name = ArchiveEntryNames.withoutDotSegments(it.name)) }
+        val candidates = named.map { it.name }.filter { ArchiveEntryNames.unsafeReason(it) == null && !ArchiveEntryNames.isIgnored(it) }
+        val root = ThemeRootLocator.locate(candidates, subFolder)
+        if (root == null) {
+            val message = if (subFolder == null) {
+                "Не найден manifest.json: он должен лежать в корне архива или в единственной папке внутри него"
+            } else {
+                "Не найден manifest.json в папке «$subFolder» архива"
+            }
+            collector.error(IssueCode.ARCHIVE_NO_ROOT, message)
+            return null
+        }
+        val files = safeFiles(named.filter { it.name.startsWith(root) }, collector) ?: return null
+        return ExtractionPlan(root, files)
     }
 
     private fun safeFiles(entries: List<ZipEntryRecord>, collector: IssueCollector): List<ZipEntryRecord>? {
-        if (entries.size > limits.maxEntries) {
-            collector.error(IssueCode.ARCHIVE_LIMIT, "В архиве больше ${limits.maxEntries} файлов")
-            return null
-        }
         val seen = mutableSetOf<String>()
         val files = mutableListOf<ZipEntryRecord>()
-        entries.filterNot { it.isDirectory }.map { it.copy(name = ArchiveEntryNames.withoutDotSegments(it.name)) }.forEach { entry ->
+        entries.forEach { entry ->
             val reason = ArchiveEntryNames.unsafeReason(entry.name)
             when {
                 reason != null -> collector.error(IssueCode.ARCHIVE_UNSAFE_PATH, "«${entry.name}»: $reason")
@@ -87,6 +104,9 @@ class ThemeArchiveExtractorImpl(
                     collector.error(IssueCode.ARCHIVE_UNSAFE_PATH, "«${entry.name}»: файл с таким именем уже есть в архиве")
                 else -> files += entry
             }
+        }
+        if (files.size > limits.maxEntries) {
+            collector.error(IssueCode.ARCHIVE_LIMIT, "В архиве больше ${limits.maxEntries} файлов")
         }
         return files.takeIf { collector.issues.isEmpty() }
     }
@@ -126,7 +146,15 @@ class ThemeArchiveExtractorImpl(
         val source: Source = if (entry.method == DEFLATED) InflaterSource(raw, Inflater(true)) else raw
         val allowed = minOf(limits.maxFileBytes, remainingTotal)
         val written = source.use { input ->
-            fileSystem.sink(destination).buffer().use { output -> transfer(input, output, minOf(allowed, entry.uncompressedSize), entry) }
+            val output = writing {
+                destination.parent?.let(fileSystem::createDirectories)
+                fileSystem.sink(destination).buffer()
+            }
+            try {
+                transfer(input, output, minOf(allowed, entry.uncompressedSize), entry)
+            } finally {
+                writing { output.close() }
+            }
         }
         if (written != entry.uncompressedSize) throw ZipFormatException("«${entry.name}» повреждён: размер не совпал")
         return written
@@ -139,10 +167,16 @@ class ThemeArchiveExtractorImpl(
         while (read != -1L) {
             written += read
             if (written > limit) throw ZipFormatException("«${entry.name}» распаковывается больше заявленного размера")
-            output.write(buffer, read)
+            writing { output.write(buffer, read) }
             read = input.read(buffer, CHUNK_SIZE)
         }
         return written
+    }
+
+    private inline fun <T> writing(block: () -> T): T = try {
+        block()
+    } catch (error: IOException) {
+        throw TargetWriteException(error)
     }
 
     private companion object {

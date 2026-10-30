@@ -31,6 +31,7 @@ fun AtlasError(
     modifier: Modifier = Modifier,
     actionText: String? = null,
     onAction: () -> Unit = {},
+    extraActions: @Composable () -> Unit = {},
 ) {
     StateColumn(modifier) {
         AtlasIcon(
@@ -43,6 +44,7 @@ fun AtlasError(
         if (actionText != null) {
             AtlasSecondaryButton(text = actionText, onClick = onAction)
         }
+        extraActions()
     }
 }
 

@@ -10,10 +10,20 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.BindingContainer
 import dev.zacsweers.metro.Provides
 import dev.zacsweers.metro.SingleIn
+import io.ktor.client.HttpClient
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.SupervisorJob
+import okio.FileSystem
 import ru.aokazantsev.devatlas.database.data.DevAtlasDatabase
+import ru.aokazantsev.devatlas.database.data.dao.InstalledThemeDao
 import ru.aokazantsev.devatlas.database.data.dao.ViewedPageDao
+import ru.aokazantsev.devatlas.themeformat.archive.ThemeArchiveExtractor
+import ru.aokazantsev.devatlas.themeformat.archive.ThemeArchiveExtractorImpl
+import ru.aokazantsev.devatlas.themeformat.validation.ThemeValidator
+import ru.aokazantsev.devatlas.themeformat.validation.ThemeValidatorImpl
+import kotlin.time.Clock
 
 @BindingContainer
 internal object StorageBindings {
@@ -40,4 +50,27 @@ internal object StorageBindings {
 
     @Provides
     fun provideViewedPageDao(database: DevAtlasDatabase): ViewedPageDao = database.viewedPageDao()
+
+    @Provides
+    fun provideInstalledThemeDao(database: DevAtlasDatabase): InstalledThemeDao = database.installedThemeDao()
+
+    @Provides
+    fun provideFileSystem(platform: PlatformBindings): FileSystem = platform.fileSystem
+
+    @Provides
+    @SingleIn(AppScope::class)
+    fun provideHttpClient(platform: PlatformBindings): HttpClient = platform.httpClient()
+
+    @Provides
+    fun provideClock(): Clock = Clock.System
+
+    @Provides
+    @SingleIn(AppScope::class)
+    fun provideBackgroundScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    @Provides
+    fun provideThemeValidator(): ThemeValidator = ThemeValidatorImpl()
+
+    @Provides
+    fun provideThemeArchiveExtractor(): ThemeArchiveExtractor = ThemeArchiveExtractorImpl()
 }

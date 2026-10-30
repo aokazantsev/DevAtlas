@@ -26,7 +26,7 @@ class NavigationE2eTest {
         app.onNodeWithText("О приложении").assertIsDisplayed()
 
         app.onNodeWithContentDescription("Назад").performClick()
-        app.waitForText("Пример страницы")
+        app.waitForContentsOf(ThemeZips.SAMPLE_TITLE)
     }
 
     @Test

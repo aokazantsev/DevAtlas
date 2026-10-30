@@ -21,6 +21,8 @@ class ThemeCheckCommand(
         val problem = when {
             !fileSystem.exists(input) -> "Не найдено: $input"
             isArchive && options.zip != null -> "Флаг --zip нужен для папки темы: архив уже собран"
+            options.zip != null && isInside(options.zip, options.input) ->
+                "Архив --zip нельзя класть внутрь папки темы: он попадёт в саму тему"
             else -> null
         }
         return when {
@@ -31,6 +33,11 @@ class ThemeCheckCommand(
             isArchive -> checkArchive(input, options.strict)
             else -> checkFolder(input, options)
         }
+    }
+
+    private fun isInside(archive: String, folder: String): Boolean {
+        val archivePath = java.nio.file.Path.of(archive).toAbsolutePath().normalize()
+        return archivePath.startsWith(java.nio.file.Path.of(folder).toAbsolutePath().normalize())
     }
 
     private fun checkFolder(folder: Path, options: ThemeCheckOptions): Int {

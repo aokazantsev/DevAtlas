@@ -9,11 +9,27 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import ru.aokazantsev.devatlas.navigation.Route
+import ru.aokazantsev.devatlas.onboarding.domain.OnboardingRepository
+import ru.aokazantsev.devatlas.onboarding.domain.model.Consent
 import ru.aokazantsev.devatlas.settings.domain.ThemeSettingsRepository
 import ru.aokazantsev.devatlas.settings.domain.model.Appearance
 import ru.aokazantsev.devatlas.settings.domain.model.ThemeMode
 import ru.aokazantsev.devatlas.startup.domain.RunStartupChecksUseCase
 import ru.aokazantsev.devatlas.startup.domain.model.StartupCheckResult
+import ru.aokazantsev.devatlas.themes.FakeClock
+import ru.aokazantsev.devatlas.themes.FakeCurrentThemeRepository
+import ru.aokazantsev.devatlas.themes.FakeInstalledThemeRepository
+import ru.aokazantsev.devatlas.themes.FakeProgressRepository
+import ru.aokazantsev.devatlas.themes.FakeThemeStorage
+import ru.aokazantsev.devatlas.themes.domain.ThemeInstaller
+import ru.aokazantsev.devatlas.themes.domain.ThemeLibraryImpl
+import ru.aokazantsev.devatlas.themes.domain.model.DamagedTheme
+import ru.aokazantsev.devatlas.themes.domain.model.InstallResult
+import ru.aokazantsev.devatlas.themes.domain.model.PrepareResult
+import ru.aokazantsev.devatlas.themes.domain.model.PreparedTheme
+import ru.aokazantsev.devatlas.themes.domain.model.ThemeFailure
+import ru.aokazantsev.devatlas.themes.installedOf
 import ru.aokazantsev.devatlas.ui.splash.SplashState
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -38,7 +54,7 @@ class AppViewModelTest {
 
     @Test
     fun startsCheckingThenReady() = runTest(dispatcher) {
-        val viewModel = AppViewModel(QueuedChecks(StartupCheckResult.Passed), FakeThemeSettings())
+        val viewModel = viewModelOf(QueuedChecks(StartupCheckResult.Passed))
 
         assertEquals(SplashState.Checking, viewModel.startupState.value)
         advanceUntilIdle()
@@ -47,7 +63,7 @@ class AppViewModelTest {
 
     @Test
     fun failureExposesReason() = runTest(dispatcher) {
-        val viewModel = AppViewModel(QueuedChecks(StartupCheckResult.Failed("broken")), FakeThemeSettings())
+        val viewModel = viewModelOf(QueuedChecks(StartupCheckResult.Failed("broken")))
 
         advanceUntilIdle()
 
@@ -57,7 +73,7 @@ class AppViewModelTest {
     @Test
     fun retryAfterFailureReachesReady() = runTest(dispatcher) {
         val checks = QueuedChecks(StartupCheckResult.Failed("broken"), StartupCheckResult.Passed)
-        val viewModel = AppViewModel(checks, FakeThemeSettings())
+        val viewModel = viewModelOf(checks)
         advanceUntilIdle()
 
         viewModel.retry()
@@ -70,7 +86,7 @@ class AppViewModelTest {
 
     @Test
     fun appearanceIsNullUntilRepositoryEmits() = runTest(dispatcher) {
-        val viewModel = AppViewModel(QueuedChecks(StartupCheckResult.Passed), FakeThemeSettings(initial = null))
+        val viewModel = viewModelOf(QueuedChecks(StartupCheckResult.Passed), settings = FakeThemeSettings(initial = null))
 
         advanceUntilIdle()
 
@@ -80,7 +96,7 @@ class AppViewModelTest {
     @Test
     fun appearanceFollowsRepository() = runTest(dispatcher) {
         val settings = FakeThemeSettings(initial = Appearance(ThemeMode.DARK, wallpaperColors = true))
-        val viewModel = AppViewModel(QueuedChecks(StartupCheckResult.Passed), settings)
+        val viewModel = viewModelOf(QueuedChecks(StartupCheckResult.Passed), settings = settings)
         advanceUntilIdle()
         assertEquals(Appearance(ThemeMode.DARK, wallpaperColors = true), viewModel.appearance.value)
 
@@ -89,6 +105,155 @@ class AppViewModelTest {
         advanceUntilIdle()
 
         assertEquals(Appearance(ThemeMode.LIGHT, wallpaperColors = false), viewModel.appearance.value)
+    }
+
+    @Test
+    fun startRouteIsOnboardingUntilPolicyAccepted() = runTest(dispatcher) {
+        val viewModel = viewModelOf(QueuedChecks(StartupCheckResult.Passed))
+
+        advanceUntilIdle()
+
+        assertEquals(Route.Onboarding, viewModel.startRoute.value)
+    }
+
+    @Test
+    fun startRouteAsksForThemeWhenPolicyAcceptedButNoThemes() = runTest(dispatcher) {
+        val onboarding = FakeOnboarding(accepted = true)
+        val viewModel = viewModelOf(QueuedChecks(StartupCheckResult.Passed), onboarding = onboarding)
+
+        advanceUntilIdle()
+
+        assertEquals(Route.AddTheme(onboarding = true), viewModel.startRoute.value)
+    }
+
+    @Test
+    fun startRouteIsContentsWhenThemeInstalled() = runTest(dispatcher) {
+        val repository = FakeInstalledThemeRepository()
+        repository.save(installedOf("a"))
+        val viewModel = viewModelOf(
+            QueuedChecks(StartupCheckResult.Passed),
+            onboarding = FakeOnboarding(accepted = true),
+            repository = repository,
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(Route.Contents, viewModel.startRoute.value)
+    }
+
+    @Test
+    fun damagedThemeIsExposedAndRedownloadRerunsChecks() = runTest(dispatcher) {
+        val damaged = DamagedTheme("a", "Тема a", "нет файлов")
+        val checks = QueuedChecks(StartupCheckResult.ThemeDamaged(damaged), StartupCheckResult.Passed)
+        val installer = FakeInstaller(failure = null)
+        val viewModel = viewModelOf(checks, installer = installer)
+        advanceUntilIdle()
+        assertEquals(SplashState.ThemeDamaged(damaged), viewModel.startupState.value)
+
+        viewModel.redownloadDamagedTheme()
+        assertEquals("Скачиваю тему заново…", (viewModel.startupState.value as SplashState.ThemeDamaged).busyText)
+        advanceUntilIdle()
+
+        assertEquals(listOf("a"), installer.redownloaded)
+        assertEquals(SplashState.Ready, viewModel.startupState.value)
+    }
+
+    @Test
+    fun failedRedownloadKeepsDamagedScreenWithReason() = runTest(dispatcher) {
+        val damaged = DamagedTheme("a", "Тема a", "нет файлов")
+        val failure = ThemeFailure("нет сети")
+        val viewModel = viewModelOf(QueuedChecks(StartupCheckResult.ThemeDamaged(damaged)), installer = FakeInstaller(failure))
+        advanceUntilIdle()
+
+        viewModel.redownloadDamagedTheme()
+        advanceUntilIdle()
+
+        assertEquals(SplashState.ThemeDamaged(damaged, busyText = null, failure = failure), viewModel.startupState.value)
+    }
+
+    @Test
+    fun chooseAnotherThemeForgetsDamagedThemeKeepingProgress() = runTest(dispatcher) {
+        val damaged = DamagedTheme("a", "Тема a", "нет файлов")
+        val repository = FakeInstalledThemeRepository()
+        repository.save(installedOf("a", lastUsedAt = 1L))
+        repository.save(installedOf("b", lastUsedAt = 0L))
+        val progress = FakeProgressRepository().also { it.viewed["a"] = mutableSetOf("p1") }
+        val viewModel = viewModelOf(
+            QueuedChecks(StartupCheckResult.ThemeDamaged(damaged), StartupCheckResult.Passed),
+            onboarding = FakeOnboarding(accepted = true),
+            repository = repository,
+            progress = progress,
+            current = FakeCurrentThemeRepository("a"),
+        )
+        advanceUntilIdle()
+
+        viewModel.chooseAnotherTheme()
+        assertEquals("Убираю тему…", (viewModel.startupState.value as SplashState.ThemeDamaged).busyText)
+        advanceUntilIdle()
+
+        assertNull(repository.find("a"))
+        assertEquals(1, progress.viewedCount("a"))
+        assertEquals(SplashState.Ready, viewModel.startupState.value)
+        assertEquals(Route.Contents, viewModel.startRoute.value)
+    }
+
+    @Test
+    fun failedForgetKeepsDamagedScreenWithReason() = runTest(dispatcher) {
+        val damaged = DamagedTheme("a", "Тема a", "нет файлов")
+        val repository = FakeInstalledThemeRepository()
+        repository.save(installedOf("a"))
+        repository.databaseFailure = androidx.sqlite.SQLiteException("база занята")
+        val viewModel = viewModelOf(QueuedChecks(StartupCheckResult.ThemeDamaged(damaged)), repository = repository)
+        advanceUntilIdle()
+
+        viewModel.chooseAnotherTheme()
+        advanceUntilIdle()
+
+        val state = viewModel.startupState.value as SplashState.ThemeDamaged
+        assertEquals(null, state.busyText)
+        assertEquals(true, state.failure?.message?.startsWith("Не удалось изменить базу приложения"))
+    }
+
+    @Suppress("LongParameterList")
+    private fun viewModelOf(
+        checks: RunStartupChecksUseCase,
+        settings: ThemeSettingsRepository = FakeThemeSettings(),
+        onboarding: FakeOnboarding = FakeOnboarding(accepted = false),
+        repository: FakeInstalledThemeRepository = FakeInstalledThemeRepository(),
+        progress: FakeProgressRepository = FakeProgressRepository(),
+        current: FakeCurrentThemeRepository = FakeCurrentThemeRepository(),
+        installer: ThemeInstaller = FakeInstaller(failure = null),
+    ) = AppViewModel(
+        runStartupChecks = checks,
+        onboarding = onboarding,
+        library = ThemeLibraryImpl(repository, current, FakeThemeStorage(), progress, FakeClock()),
+        installer = installer,
+        themeSettings = settings,
+    )
+
+    private class FakeOnboarding(accepted: Boolean) : OnboardingRepository {
+        override val consent = MutableStateFlow(
+            Consent(policyVersion = if (accepted) Consent.CURRENT_POLICY_VERSION else 0, crashReports = false, usageStatistics = true),
+        )
+
+        override suspend fun isPolicyAccepted(): Boolean = consent.value.policyAccepted
+
+        override suspend fun accept(crashReports: Boolean, usageStatistics: Boolean) = Unit
+    }
+
+    private class FakeInstaller(private val failure: ThemeFailure?) : ThemeInstaller {
+        val redownloaded = mutableListOf<String>()
+
+        override suspend fun prepare(address: String): PrepareResult = error("не используется")
+
+        override suspend fun install(prepared: PreparedTheme): InstallResult = error("не используется")
+
+        override fun discard(prepared: PreparedTheme) = Unit
+
+        override suspend fun redownload(themeId: String): ThemeFailure? {
+            redownloaded += themeId
+            return failure
+        }
     }
 
     private class QueuedChecks(vararg results: StartupCheckResult) : RunStartupChecksUseCase {

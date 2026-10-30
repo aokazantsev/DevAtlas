@@ -24,6 +24,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(projects.designsystem)
+            api(projects.themeformat)
             implementation(libs.navigation.compose)
             implementation(libs.lifecycle.viewmodel.compose)
             implementation(libs.lifecycle.runtime.compose)
@@ -44,6 +45,8 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.okio.fakefilesystem)
+            implementation(libs.ktor.client.mock)
         }
     }
 }

@@ -29,6 +29,7 @@ import ru.aokazantsev.devatlas.designsystem.component.AtlasCheckOption
 import ru.aokazantsev.devatlas.designsystem.component.AtlasCheckboxDialog
 import ru.aokazantsev.devatlas.designsystem.component.AtlasChoiceGroup
 import ru.aokazantsev.devatlas.designsystem.component.AtlasChoiceOption
+import ru.aokazantsev.devatlas.designsystem.component.AtlasConfirmDialog
 import ru.aokazantsev.devatlas.designsystem.component.AtlasError
 import ru.aokazantsev.devatlas.designsystem.component.AtlasIcon
 import ru.aokazantsev.devatlas.designsystem.component.AtlasIconButton
@@ -41,6 +42,7 @@ import ru.aokazantsev.devatlas.designsystem.component.AtlasSecondaryButton
 import ru.aokazantsev.devatlas.designsystem.component.AtlasSwitchRow
 import ru.aokazantsev.devatlas.designsystem.component.AtlasText
 import ru.aokazantsev.devatlas.designsystem.component.AtlasTextButton
+import ru.aokazantsev.devatlas.designsystem.component.AtlasTextField
 import ru.aokazantsev.devatlas.designsystem.component.AtlasTopBar
 import ru.aokazantsev.devatlas.designsystem.icon.AtlasIcons
 import ru.aokazantsev.devatlas.designsystem.theme.AtlasTheme
@@ -92,6 +94,7 @@ private fun CatalogSection(themeName: String) {
             CatalogGroup("Кнопки") { ButtonSamples() }
             CatalogGroup("Группа выбора") { ChoiceSamples() }
             CatalogGroup("Переключатели") { ToggleSamples() }
+            CatalogGroup("Поле ввода") { TextFieldSamples() }
             CatalogGroup("Прогресс") { ProgressSamples() }
             CatalogGroup("Шторка и диалог") { OverlaySamples() }
             CatalogGroup("Загрузка и ошибка") { StateSamples() }
@@ -213,7 +216,8 @@ private fun IconSamples() {
     val icons = listOf(
         AtlasIcons.Check, AtlasIcons.CheckCircle, AtlasIcons.ChevronRight, AtlasIcons.ArrowBack,
         AtlasIcons.Settings, AtlasIcons.Info, AtlasIcons.Close, AtlasIcons.Error, AtlasIcons.Refresh,
-        AtlasIcons.LightMode, AtlasIcons.DarkMode, AtlasIcons.Contrast, AtlasIcons.Palette,
+        AtlasIcons.LightMode, AtlasIcons.DarkMode, AtlasIcons.Contrast, AtlasIcons.Palette, AtlasIcons.Add,
+        AtlasIcons.Folder,
     )
     FlowRow(
         modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
@@ -284,6 +288,29 @@ private fun ToggleSamples() {
 }
 
 @Composable
+private fun TextFieldSamples() {
+    var address by remember { mutableStateOf("") }
+    Column(
+        modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
+        verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.s),
+    ) {
+        AtlasTextField(
+            value = address,
+            onValueChange = { address = it },
+            label = "Ссылка на тему",
+            supportingText = "Папка Яндекс.Диска, GitHub или файл .zip",
+        )
+        AtlasTextField(
+            value = "http://example.com",
+            onValueChange = {},
+            label = "С ошибкой",
+            supportingText = "Нужен https://",
+            isError = true,
+        )
+    }
+}
+
+@Composable
 private fun ProgressSamples() {
     Column(
         modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
@@ -298,6 +325,7 @@ private fun ProgressSamples() {
 private fun OverlaySamples() {
     var sheetShown by remember { mutableStateOf(false) }
     var dialogShown by remember { mutableStateOf(false) }
+    var confirmShown by remember { mutableStateOf(false) }
     var options by remember {
         mutableStateOf(
             listOf(
@@ -312,6 +340,16 @@ private fun OverlaySamples() {
     ) {
         AtlasSecondaryButton(text = "Шторка", onClick = { sheetShown = true })
         AtlasSecondaryButton(text = "Диалог", onClick = { dialogShown = true })
+        AtlasSecondaryButton(text = "Вопрос", onClick = { confirmShown = true })
+    }
+    if (confirmShown) {
+        AtlasConfirmDialog(
+            title = "Тема уже установлена",
+            text = "Заменить источник и содержимое?",
+            confirmText = "Заменить",
+            onConfirm = { confirmShown = false },
+            onDismiss = { confirmShown = false },
+        )
     }
     if (sheetShown) {
         AtlasBottomSheet(title = "Что будет удалено", onDismiss = { sheetShown = false }) {

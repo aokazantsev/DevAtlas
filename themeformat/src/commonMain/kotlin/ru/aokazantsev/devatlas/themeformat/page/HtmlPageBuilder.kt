@@ -19,6 +19,7 @@ import ru.aokazantsev.devatlas.themeformat.path.ThemePaths
 internal class HtmlPageBuilder(private val file: String) {
 
     private val collector = IssueCollector(file)
+    private var linkDepth = 0
     val pageReferences = mutableListOf<Reference>()
     val imageReferences = mutableListOf<Reference>()
 
@@ -239,7 +240,7 @@ internal class HtmlPageBuilder(private val file: String) {
                 inlines(element.children, style.copy(code = true))
             }
             "br" -> listOf(PageInline.LineBreak)
-            "a" -> link(element, style)
+            "a" -> if (linkDepth > 0) nestedLink(element, style) else link(element, style)
             "img" -> {
                 misplaced(element, "<img> внутри текста не поддерживается: поставьте схему отдельным блоком")
                 emptyList()
@@ -251,14 +252,17 @@ internal class HtmlPageBuilder(private val file: String) {
         }
     }
 
+    private fun nestedLink(element: MarkupNode.Element, style: InlineStyle): List<PageInline> {
+        misplaced(element, "Ссылка внутри ссылки: внутренняя показана как текст")
+        return inlines(element.children, style)
+    }
+
     private fun link(element: MarkupNode.Element, style: InlineStyle): List<PageInline> {
-        val content = inlines(element.children, style).flatMap { inner ->
-            if (inner is PageInline.Link) {
-                misplaced(element, "Ссылка внутри ссылки: внутренняя показана как текст")
-                inner.content
-            } else {
-                listOf(inner)
-            }
+        linkDepth++
+        val content = try {
+            inlines(element.children, style)
+        } finally {
+            linkDepth--
         }
         val href = element.attribute("href")?.value?.trim()
         if (href.isNullOrEmpty()) {
