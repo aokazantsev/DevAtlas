@@ -9,7 +9,6 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isOff
 import androidx.compose.ui.test.isOn
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.test.espresso.intent.Intents.intended
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasData
@@ -36,11 +35,11 @@ class OnboardingE2eTest {
         app.waitForText("Добро пожаловать")
 
         app.onNodeWithText("Дальше").assertIsNotEnabled()
-        app.onNodeWithText("Принимаю политику данных").performClick()
+        app.clickText("Принимаю политику данных")
 
         app.waitForToggle("Принимаю политику данных", on = true)
         app.onNodeWithText("Дальше").assertIsEnabled()
-        app.onNodeWithText("Принимаю политику данных").performClick()
+        app.clickText("Принимаю политику данных")
         app.waitForToggle("Принимаю политику данных", on = false)
         app.onNodeWithText("Дальше").assertIsNotEnabled()
     }
@@ -53,8 +52,8 @@ class OnboardingE2eTest {
         app.waitFor(hasText("Отправлять отчёты о сбоях") and isOff())
         app.waitFor(hasText("Отправлять статистику") and isOn())
 
-        app.onNodeWithText("Отправлять отчёты о сбоях").performClick()
-        app.onNodeWithText("Отправлять статистику").performClick()
+        app.clickText("Отправлять отчёты о сбоях")
+        app.clickText("Отправлять статистику")
 
         app.waitFor(hasText("Отправлять отчёты о сбоях") and isOn())
         app.waitFor(hasText("Отправлять статистику") and isOff())
@@ -98,7 +97,7 @@ class OnboardingE2eTest {
         app.waitForText("Размер")
         app.waitForText("Источник")
         app.waitForText(TestNetwork.endpoints().sampleThemeUrl)
-        app.onNodeWithText("Установить").performClick()
+        app.clickText("Установить")
         app.waitForContentsOf(ThemeZips.SAMPLE_TITLE)
     }
 

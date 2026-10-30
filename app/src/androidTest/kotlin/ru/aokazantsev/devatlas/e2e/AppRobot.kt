@@ -3,7 +3,9 @@ package ru.aokazantsev.devatlas.e2e
 import android.os.SystemClock
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -15,9 +17,11 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
+import androidx.test.espresso.Espresso
 import ru.aokazantsev.devatlas.ui.semantics.APP_ROOT_TAG
 import ru.aokazantsev.devatlas.ui.semantics.DarkThemeKey
 import ru.aokazantsev.devatlas.ui.semantics.SurfaceColorKey
@@ -49,6 +53,8 @@ fun ComposeTestRule.waitForToggle(text: String, on: Boolean) {
 
 fun ComposeTestRule.clickText(text: String) {
     waitForText(text)
+    val inScrollable = hasText(text) and hasAnyAncestor(hasScrollAction())
+    if (onAllNodes(inScrollable).fetchSemanticsNodes().isNotEmpty()) onNode(inScrollable).performScrollTo()
     onNodeWithText(text).performClick()
 }
 
@@ -58,26 +64,28 @@ fun ComposeTestRule.assertNoText(text: String) {
 
 fun ComposeTestRule.acceptPolicy() {
     waitForText("Добро пожаловать")
-    onNodeWithText("Принимаю политику данных").performClick()
+    clickText("Принимаю политику данных")
     waitFor(hasText("Дальше") and isEnabled())
-    onNodeWithText("Дальше").performClick()
+    clickText("Дальше")
     waitForText("Добавить по ссылке")
 }
 
 fun ComposeTestRule.enterAddress(address: String) {
     waitFor(hasSetTextAction())
     onNode(hasSetTextAction()).performTextReplacement(address)
+    Espresso.closeSoftKeyboard()
+    waitForIdle()
 }
 
 fun ComposeTestRule.checkAddress(address: String) {
     enterAddress(address)
-    onNodeWithText("Проверить").performClick()
+    clickText("Проверить")
 }
 
 fun ComposeTestRule.installFromPreview(title: String) {
     waitForText(title)
     waitForText("Установить")
-    onNodeWithText("Установить").performClick()
+    clickText("Установить")
 }
 
 fun ComposeTestRule.installThemeByAddress(address: String, title: String) {

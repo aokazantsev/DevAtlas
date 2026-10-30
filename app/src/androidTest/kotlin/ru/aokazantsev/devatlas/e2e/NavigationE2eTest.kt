@@ -35,7 +35,7 @@ class NavigationE2eTest {
         app.passOnboarding()
         app.openSettings()
 
-        app.onNodeWithText("О приложении").performClick()
+        app.clickText("О приложении")
 
         app.waitForText("Версия")
     }

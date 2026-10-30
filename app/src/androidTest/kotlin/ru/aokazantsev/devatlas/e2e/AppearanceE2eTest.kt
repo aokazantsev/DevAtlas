@@ -3,8 +3,6 @@ package ru.aokazantsev.devatlas.e2e
 import android.os.Build
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assume.assumeTrue
@@ -27,16 +25,16 @@ class AppearanceE2eTest {
         app.openSettings()
         app.waitForToggle("Система", on = true)
 
-        app.onNodeWithText("Тёмная").performClick()
+        app.clickText("Тёмная")
         app.waitForToggle("Тёмная", on = true)
         app.waitForAppearance(darkTheme = true)
 
-        app.onNodeWithText("Светлая").performClick()
+        app.clickText("Светлая")
         app.waitForToggle("Светлая", on = true)
         app.waitForToggle("Тёмная", on = false)
         app.waitForAppearance(darkTheme = false)
 
-        app.onNodeWithText("Тёмная").performClick()
+        app.clickText("Тёмная")
         app.waitForAppearance(darkTheme = true)
         app.activityRule.scenario.recreate()
         app.waitForText("Оформление")
@@ -53,7 +51,7 @@ class AppearanceE2eTest {
         app.waitForToggle("Цвета из обоев", on = true)
         val withWallpaper = app.surfaceColor()
 
-        app.onNodeWithText("Цвета из обоев").performClick()
+        app.clickText("Цвета из обоев")
 
         app.waitForToggle("Цвета из обоев", on = false)
         app.waitForAppearance(wallpaperColors = false)
@@ -65,7 +63,7 @@ class AppearanceE2eTest {
         app.waitForToggle("Цвета из обоев", on = false)
         assertEquals(withSeed, app.surfaceColor())
 
-        app.onNodeWithText("Цвета из обоев").performClick()
+        app.clickText("Цвета из обоев")
         app.waitForToggle("Цвета из обоев", on = true)
         app.waitUntil(WAIT_MILLIS) { app.surfaceColor() == withWallpaper }
     }

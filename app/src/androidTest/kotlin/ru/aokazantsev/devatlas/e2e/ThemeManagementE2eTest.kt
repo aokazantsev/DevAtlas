@@ -6,7 +6,6 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isOff
 import androidx.compose.ui.test.isOn
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
@@ -351,10 +350,10 @@ class ThemeManagementE2eTest {
         app.openThemeManagement(sampleTitle)
 
         app.onNodeWithText("Продолжить").assertIsNotEnabled()
-        app.onNodeWithText("Сбросить прогресс").performClick()
+        app.clickText("Сбросить прогресс")
         app.waitFor(hasText("Сбросить прогресс") and isOn())
         app.onNodeWithText("Продолжить").assertIsEnabled()
-        app.onNodeWithText("Сбросить прогресс").performClick()
+        app.clickText("Сбросить прогресс")
         app.waitFor(hasText("Сбросить прогресс") and isOff())
         app.onNodeWithText("Продолжить").assertIsNotEnabled()
     }
@@ -366,7 +365,7 @@ class ThemeManagementE2eTest {
         markViewed(ThemeZips.SAMPLE_ID, "headings")
         app.openThemeManagement(sampleTitle)
 
-        app.onNodeWithText("Сбросить прогресс").performClick()
+        app.clickText("Сбросить прогресс")
         app.clickText("Продолжить")
         app.waitForText("Что будет удалено")
         app.waitForTextContaining("Отметки «Просмотрено» (2) удалятся")
@@ -385,7 +384,7 @@ class ThemeManagementE2eTest {
         app.passOnboarding()
         markViewed(ThemeZips.SAMPLE_ID, "welcome")
         app.openThemeManagement(sampleTitle)
-        app.onNodeWithText("Удалить тему").performClick()
+        app.clickText("Удалить тему")
         app.clickText("Продолжить")
         app.waitForText("Что будет удалено")
 
@@ -404,7 +403,7 @@ class ThemeManagementE2eTest {
         app.clickText("Управлять")
         app.waitForText("Управление темой")
 
-        app.onNodeWithText("Удалить тему").performClick()
+        app.clickText("Удалить тему")
         app.clickText("Продолжить")
         app.waitForTextContaining("Тема «$otherTitle» и её файлы удалятся с телефона.")
         app.waitForTextContaining("Отметки «Просмотрено» (1) останутся и вернутся")
@@ -423,8 +422,8 @@ class ThemeManagementE2eTest {
         markViewed("other-theme", "welcome")
         app.clickText("Управлять")
 
-        app.onNodeWithText("Удалить тему").performClick()
-        app.onNodeWithText("Сбросить прогресс").performClick()
+        app.clickText("Удалить тему")
+        app.clickText("Сбросить прогресс")
         app.clickText("Продолжить")
         app.waitForTextContaining("Отметки «Просмотрено» (1) удалятся")
         app.clickText("Подтвердить")
@@ -440,7 +439,7 @@ class ThemeManagementE2eTest {
         applyOtherTheme()
         app.openThemeManagement(otherTitle)
 
-        app.onNodeWithText("Удалить тему").performClick()
+        app.clickText("Удалить тему")
         app.clickText("Продолжить")
         app.waitForTextContaining("Откроется последняя использованная тема")
         app.clickText("Подтвердить")
@@ -461,7 +460,7 @@ class ThemeManagementE2eTest {
         applyOtherTheme()
         app.openThemeManagement(otherTitle)
 
-        app.onNodeWithText("Удалить тему").performClick()
+        app.clickText("Удалить тему")
         app.clickText("Продолжить")
         app.clickText("Подтвердить")
 
@@ -474,7 +473,7 @@ class ThemeManagementE2eTest {
         markViewed(ThemeZips.SAMPLE_ID, "welcome")
         app.openThemeManagement(sampleTitle)
 
-        app.onNodeWithText("Удалить тему").performClick()
+        app.clickText("Удалить тему")
         app.clickText("Продолжить")
         app.clickText("Подтвердить")
 
@@ -489,7 +488,7 @@ class ThemeManagementE2eTest {
         app.passOnboarding()
         markViewed(ThemeZips.SAMPLE_ID, "welcome")
         app.openThemeManagement(sampleTitle)
-        app.onNodeWithText("Удалить тему").performClick()
+        app.clickText("Удалить тему")
         app.clickText("Продолжить")
         app.clickText("Подтвердить")
         app.waitForText("Начать с примера")
