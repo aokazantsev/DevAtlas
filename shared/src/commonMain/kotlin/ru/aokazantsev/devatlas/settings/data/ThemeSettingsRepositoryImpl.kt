@@ -1,7 +1,9 @@
 package ru.aokazantsev.devatlas.settings.data
 
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -14,6 +16,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import okio.IOException
 import ru.aokazantsev.devatlas.settings.domain.ThemeSettingsRepository
+import ru.aokazantsev.devatlas.settings.domain.model.Appearance
 import ru.aokazantsev.devatlas.settings.domain.model.ThemeMode
 
 @SingleIn(AppScope::class)
@@ -23,20 +26,32 @@ internal class ThemeSettingsRepositoryImpl(
     private val dataStore: DataStore<Preferences>,
 ) : ThemeSettingsRepository {
 
-    override val themeMode: Flow<ThemeMode> = dataStore.data
+    override val appearance: Flow<Appearance> = dataStore.data
         .catch { error -> if (error is IOException) emit(emptyPreferences()) else throw error }
         .map { preferences ->
-        ThemeMode.entries.firstOrNull { it.name == preferences[THEME_MODE_KEY] } ?: ThemeMode.SYSTEM
-    }
+            Appearance(
+                themeMode = ThemeMode.entries.firstOrNull { it.name == preferences[THEME_MODE_KEY] } ?: Appearance.Default.themeMode,
+                wallpaperColors = preferences[WALLPAPER_COLORS_KEY] ?: Appearance.Default.wallpaperColors,
+            )
+        }
 
     override suspend fun setThemeMode(mode: ThemeMode) {
+        edit { it[THEME_MODE_KEY] = mode.name }
+    }
+
+    override suspend fun setWallpaperColors(enabled: Boolean) {
+        edit { it[WALLPAPER_COLORS_KEY] = enabled }
+    }
+
+    private suspend fun edit(transform: suspend (MutablePreferences) -> Unit) {
         try {
-            dataStore.edit { it[THEME_MODE_KEY] = mode.name }
+            dataStore.edit(transform)
         } catch (_: IOException) {
         }
     }
 
     private companion object {
         val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
+        val WALLPAPER_COLORS_KEY = booleanPreferencesKey("wallpaper_colors")
     }
 }

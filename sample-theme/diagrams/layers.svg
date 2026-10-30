@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 230" fill="currentColor" font-family="sans-serif" font-size="14">
+  <rect x="40" y="10" width="220" height="50" rx="16" fill="var(--primary-container)"/>
+  <text x="150" y="40" text-anchor="middle" fill="var(--on-primary-container)">Экран</text>
+  <rect x="40" y="90" width="220" height="50" rx="16" fill="var(--secondary-container)"/>
+  <text x="150" y="120" text-anchor="middle" fill="var(--on-secondary-container)">Логика</text>
+  <rect x="40" y="170" width="220" height="50" rx="16" fill="var(--tertiary-container)"/>
+  <text x="150" y="200" text-anchor="middle" fill="var(--on-tertiary-container)">Данные</text>
+  <path d="M150 60 V88 M150 140 V168" stroke="var(--outline)" stroke-width="2" fill="none" style="stroke-dasharray: 4 3; stroke: var(--outline)"/>
+</svg>

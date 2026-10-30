@@ -1,7 +1,6 @@
 package ru.aokazantsev.devatlas.designsystem.catalog
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,17 +21,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import ru.aokazantsev.devatlas.designsystem.component.AtlasBottomSheet
 import ru.aokazantsev.devatlas.designsystem.component.AtlasCheckOption
 import ru.aokazantsev.devatlas.designsystem.component.AtlasCheckboxDialog
-import ru.aokazantsev.devatlas.designsystem.component.AtlasDivider
+import ru.aokazantsev.devatlas.designsystem.component.AtlasChoiceGroup
+import ru.aokazantsev.devatlas.designsystem.component.AtlasChoiceOption
 import ru.aokazantsev.devatlas.designsystem.component.AtlasError
 import ru.aokazantsev.devatlas.designsystem.component.AtlasIcon
+import ru.aokazantsev.devatlas.designsystem.component.AtlasIconButton
+import ru.aokazantsev.devatlas.designsystem.component.AtlasListGroup
 import ru.aokazantsev.devatlas.designsystem.component.AtlasListRow
 import ru.aokazantsev.devatlas.designsystem.component.AtlasLoading
 import ru.aokazantsev.devatlas.designsystem.component.AtlasPrimaryButton
+import ru.aokazantsev.devatlas.designsystem.component.AtlasProgressBar
 import ru.aokazantsev.devatlas.designsystem.component.AtlasSecondaryButton
 import ru.aokazantsev.devatlas.designsystem.component.AtlasSwitchRow
 import ru.aokazantsev.devatlas.designsystem.component.AtlasText
@@ -41,11 +47,21 @@ import ru.aokazantsev.devatlas.designsystem.theme.AtlasTheme
 
 @Composable
 fun ComponentCatalog(modifier: Modifier = Modifier) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        AtlasTheme(darkTheme = false) {
+    var wallpaperColors by remember { mutableStateOf(false) }
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.l)) {
+        AtlasListGroup {
+            AtlasSwitchRow(
+                title = "Цвета из обоев",
+                subtitle = if (AtlasTheme.wallpaperColorsAvailable) "Android 12 и новее" else "Недоступно ниже Android 12",
+                checked = wallpaperColors,
+                enabled = AtlasTheme.wallpaperColorsAvailable,
+                onCheckedChange = { wallpaperColors = it },
+            )
+        }
+        AtlasTheme(darkTheme = false, wallpaperColors = wallpaperColors) {
             CatalogSection(themeName = "Светлая тема")
         }
-        AtlasTheme(darkTheme = true) {
+        AtlasTheme(darkTheme = true, wallpaperColors = wallpaperColors) {
             CatalogSection(themeName = "Тёмная тема")
         }
     }
@@ -53,78 +69,92 @@ fun ComponentCatalog(modifier: Modifier = Modifier) {
 
 @Composable
 private fun CatalogSection(themeName: String) {
-    val spacing = AtlasTheme.spacing
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(AtlasTheme.colors.background)
-            .padding(vertical = spacing.l),
-        verticalArrangement = Arrangement.spacedBy(spacing.l),
-    ) {
-        AtlasText(text = themeName, style = AtlasTheme.typography.title, modifier = Modifier.padding(horizontal = spacing.l))
-        CatalogGroup("Шапка") {
-            AtlasTopBar(title = "Содержание", onBack = {}, windowInsets = WindowInsets(0, 0, 0, 0))
+    Surface(color = AtlasTheme.colors.surfaceContainer) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = AtlasTheme.spacing.l),
+            verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.l),
+        ) {
+            AtlasText(
+                text = themeName,
+                style = AtlasTheme.typography.emphasized.headlineSmall,
+                modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
+            )
+            CatalogGroup("Шапка") {
+                AtlasTopBar(title = "Содержание", onBack = {}, windowInsets = WindowInsets(0, 0, 0, 0))
+            }
+            CatalogGroup("Цвета") { ColorRoles() }
+            CatalogGroup("Типографика") { TypographySamples() }
+            CatalogGroup("Формы") { ShapeSamples() }
+            CatalogGroup("Иконки") { IconSamples() }
+            CatalogGroup("Строки списка") { ListRowSamples() }
+            CatalogGroup("Кнопки") { ButtonSamples() }
+            CatalogGroup("Группа выбора") { ChoiceSamples() }
+            CatalogGroup("Переключатели") { ToggleSamples() }
+            CatalogGroup("Прогресс") { ProgressSamples() }
+            CatalogGroup("Шторка и диалог") { OverlaySamples() }
+            CatalogGroup("Загрузка и ошибка") { StateSamples() }
         }
-        CatalogGroup("Цвета") { ColorSwatches() }
-        CatalogGroup("Типографика") { TypographySamples() }
-        CatalogGroup("Иконки") { IconSamples() }
-        CatalogGroup("Строки списка") { ListRowSamples() }
-        CatalogGroup("Кнопки") { ButtonSamples() }
-        CatalogGroup("Переключатели") { ToggleSamples() }
-        CatalogGroup("Шторка и диалог") { OverlaySamples() }
-        CatalogGroup("Загрузка и ошибка") { StateSamples() }
     }
+}
+
+@Composable
+private fun CatalogLabel(text: String) {
+    AtlasText(
+        text = text,
+        style = AtlasTheme.typography.labelLarge,
+        color = AtlasTheme.colors.primary,
+        modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
+    )
 }
 
 @Composable
 private fun CatalogGroup(title: String, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.s)) {
-        AtlasText(
-            text = title,
-            style = AtlasTheme.typography.label,
-            color = AtlasTheme.colors.onSurfaceMuted,
-            modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
-        )
-        Column(modifier = Modifier.fillMaxWidth().background(AtlasTheme.colors.surface)) {
-            content()
-        }
+        CatalogLabel(title)
+        content()
     }
 }
 
 @Composable
-private fun ColorSwatches() {
+private fun ColorRoles() {
     val colors = AtlasTheme.colors
-    val swatches = listOf(
-        "background" to colors.background,
-        "surface" to colors.surface,
-        "surfaceRaised" to colors.surfaceRaised,
-        "onSurface" to colors.onSurface,
-        "onSurfaceMuted" to colors.onSurfaceMuted,
-        "accent" to colors.accent,
-        "onAccent" to colors.onAccent,
-        "divider" to colors.divider,
-        "success" to colors.success,
+    val roles = listOf(
+        "primary" to colors.primary,
+        "onPrimary" to colors.onPrimary,
+        "primaryContainer" to colors.primaryContainer,
+        "secondary" to colors.secondary,
+        "secondaryContainer" to colors.secondaryContainer,
+        "tertiary" to colors.tertiary,
+        "tertiaryContainer" to colors.tertiaryContainer,
         "error" to colors.error,
+        "surface" to colors.surface,
+        "surfaceContainer" to colors.surfaceContainer,
+        "surfaceContainerHighest" to colors.surfaceContainerHighest,
+        "onSurface" to colors.onSurface,
+        "onSurfaceVariant" to colors.onSurfaceVariant,
+        "outline" to colors.outline,
+        "outlineVariant" to colors.outlineVariant,
     )
     FlowRow(
-        modifier = Modifier.padding(AtlasTheme.spacing.l),
+        modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
         horizontalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.m),
         verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.m),
     ) {
-        swatches.forEach { (name, color) -> Swatch(name, color) }
+        roles.forEach { (name, color) -> Swatch(name, color) }
     }
 }
 
 @Composable
 private fun Swatch(name: String, color: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(modifier = Modifier.width(AtlasTheme.sizes.swatch * 2), horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier = Modifier
-                .size(AtlasTheme.sizes.iconLarge)
-                .background(color, AtlasTheme.shapes.small)
-                .border(AtlasTheme.sizes.divider, AtlasTheme.colors.divider, AtlasTheme.shapes.small),
+                .size(AtlasTheme.sizes.swatch)
+                .background(color, AtlasTheme.shapes.medium),
         )
-        AtlasText(text = name, style = AtlasTheme.typography.caption, color = AtlasTheme.colors.onSurfaceMuted)
+        AtlasText(text = name, style = AtlasTheme.typography.labelSmall, color = AtlasTheme.colors.onSurfaceVariant, maxLines = 1)
     }
 }
 
@@ -132,15 +162,49 @@ private fun Swatch(name: String, color: Color) {
 private fun TypographySamples() {
     val typography = AtlasTheme.typography
     Column(
-        modifier = Modifier.padding(AtlasTheme.spacing.l),
+        modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
         verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.xs),
     ) {
-        AtlasText(text = "Заголовок экрана", style = typography.title)
-        AtlasText(text = "Заголовок раздела", style = typography.heading)
-        AtlasText(text = "Основной текст страницы темы.")
-        AtlasText(text = "Подпись кнопки", style = typography.label)
-        AtlasText(text = "Мелкая подпись", style = typography.caption, color = AtlasTheme.colors.onSurfaceMuted)
+        AtlasText(text = "Заголовок темы", style = typography.emphasized.headlineMedium)
+        AtlasText(text = "Заголовок экрана", style = typography.headlineSmall)
+        AtlasText(text = "Раздел", style = typography.emphasized.titleLarge)
+        AtlasText(text = "Подраздел", style = typography.titleMedium)
+        AtlasText(text = "Основной текст страницы темы.", style = typography.bodyLarge)
+        AtlasText(text = "Вспомогательный текст.", style = typography.bodyMedium, color = AtlasTheme.colors.onSurfaceVariant)
+        AtlasText(text = "Подпись кнопки", style = typography.labelLarge)
         AtlasText(text = "val code = \"моноширинный\"", style = typography.code)
+    }
+}
+
+@Composable
+private fun ShapeSamples() {
+    val shapes = AtlasTheme.shapes
+    val samples = listOf(
+        "extraSmall" to shapes.extraSmall,
+        "small" to shapes.small,
+        "medium" to shapes.medium,
+        "large" to shapes.large,
+        "extraLarge" to shapes.extraLarge,
+        "full" to shapes.full,
+        "cookie" to shapes.cookie,
+        "clover" to shapes.clover,
+        "sunny" to shapes.sunny,
+        "softBurst" to shapes.softBurst,
+    )
+    FlowRow(
+        modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
+        horizontalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.m),
+        verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.m),
+    ) {
+        samples.forEach { (name, shape) -> ShapeSample(name, shape) }
+    }
+}
+
+@Composable
+private fun ShapeSample(name: String, shape: Shape) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(modifier = Modifier.size(AtlasTheme.sizes.shapeSample).background(AtlasTheme.colors.primaryContainer, shape))
+        AtlasText(text = name, style = AtlasTheme.typography.labelSmall, color = AtlasTheme.colors.onSurfaceVariant)
     }
 }
 
@@ -149,52 +213,85 @@ private fun IconSamples() {
     val icons = listOf(
         AtlasIcons.Check, AtlasIcons.CheckCircle, AtlasIcons.ChevronRight, AtlasIcons.ArrowBack,
         AtlasIcons.Settings, AtlasIcons.Info, AtlasIcons.Close, AtlasIcons.Error, AtlasIcons.Refresh,
-        AtlasIcons.LightMode, AtlasIcons.DarkMode, AtlasIcons.Contrast, AtlasIcons.CheckBox,
-        AtlasIcons.CheckBoxOutlineBlank,
+        AtlasIcons.LightMode, AtlasIcons.DarkMode, AtlasIcons.Contrast, AtlasIcons.Palette,
     )
     FlowRow(
-        modifier = Modifier.padding(AtlasTheme.spacing.l),
+        modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
         horizontalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.m),
         verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.m),
     ) {
         icons.forEach { AtlasIcon(icon = it, contentDescription = it.name) }
-        AtlasIcon(icon = AtlasIcons.CheckCircle, contentDescription = null, tint = AtlasTheme.colors.accent)
+        AtlasIcon(icon = AtlasIcons.CheckCircle, contentDescription = null, tint = AtlasTheme.colors.primary)
+        AtlasIconButton(icon = AtlasIcons.Settings, contentDescription = "Настройки", onClick = {})
     }
 }
 
 @Composable
 private fun ListRowSamples() {
-    AtlasListRow(title = "Страница", checked = false, onClick = {})
-    AtlasDivider()
-    AtlasListRow(title = "Просмотренная страница", checked = true, onClick = {})
-    AtlasDivider()
-    AtlasListRow(title = "Раздел", counter = "3 из 7", showChevron = true, onClick = {})
-    AtlasDivider()
-    AtlasListRow(title = "Пройденный раздел", counter = "7 из 7", checked = true, showChevron = true, onClick = {})
-    AtlasDivider()
-    AtlasListRow(title = "С иконкой и подписью", subtitle = "Подпись строки", leadingIcon = AtlasIcons.Settings, onClick = {})
+    AtlasListGroup {
+        AtlasListRow(title = "Страница", index = 0, count = 4, onClick = {})
+        AtlasListRow(title = "Просмотренная страница", checked = true, index = 1, count = 4, onClick = {})
+        AtlasListRow(title = "Раздел", counter = "3 из 7", showChevron = true, index = 2, count = 4, onClick = {})
+        AtlasListRow(
+            title = "Пройденный раздел",
+            counter = "7 из 7",
+            checked = true,
+            showChevron = true,
+            index = 3,
+            count = 4,
+            onClick = {},
+        )
+    }
+    AtlasListGroup {
+        AtlasListRow(title = "С иконкой и подписью", subtitle = "Подпись строки", leadingIcon = AtlasIcons.Settings, onClick = {})
+    }
 }
 
 @Composable
 private fun ButtonSamples() {
     Column(
-        modifier = Modifier.padding(AtlasTheme.spacing.l),
+        modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
         verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.s),
     ) {
         AtlasPrimaryButton(text = "Дальше", onClick = {}, modifier = Modifier.fillMaxWidth())
         AtlasPrimaryButton(text = "Недоступно", onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth())
-        Row(horizontalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.s)) {
-            AtlasSecondaryButton(text = "Отмена", onClick = {})
-            AtlasTextButton(text = "Подробнее", onClick = {})
-        }
+        AtlasSecondaryButton(text = "Скачать заново", onClick = {}, modifier = Modifier.fillMaxWidth())
+        AtlasTextButton(text = "Подробнее", onClick = {})
     }
+}
+
+@Composable
+private fun ChoiceSamples() {
+    var selected by remember { mutableStateOf("system") }
+    AtlasChoiceGroup(
+        options = listOf(
+            AtlasChoiceOption("light", "Светлая", AtlasIcons.LightMode),
+            AtlasChoiceOption("dark", "Тёмная", AtlasIcons.DarkMode),
+            AtlasChoiceOption("system", "Система", AtlasIcons.Contrast),
+        ),
+        selected = selected,
+        onSelect = { selected = it },
+    )
 }
 
 @Composable
 private fun ToggleSamples() {
     var checked by remember { mutableStateOf(true) }
-    AtlasSwitchRow(title = "Просмотрено", checked = checked, onCheckedChange = { checked = it })
-    AtlasSwitchRow(title = "Выключено", subtitle = "Подпись переключателя", checked = false, onCheckedChange = {})
+    AtlasListGroup {
+        AtlasSwitchRow(title = "Просмотрено", checked = checked, index = 0, count = 2, onCheckedChange = { checked = it })
+        AtlasSwitchRow(title = "Выключено", subtitle = "Подпись переключателя", checked = false, index = 1, count = 2, onCheckedChange = {})
+    }
+}
+
+@Composable
+private fun ProgressSamples() {
+    Column(
+        modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
+        verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.s),
+    ) {
+        AtlasText(text = "Пройдено 12 из 30", style = AtlasTheme.typography.bodyMedium)
+        AtlasProgressBar(progress = 0.4f)
+    }
 }
 
 @Composable
@@ -210,7 +307,7 @@ private fun OverlaySamples() {
         )
     }
     Row(
-        modifier = Modifier.padding(AtlasTheme.spacing.l),
+        modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
         horizontalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.s),
     ) {
         AtlasSecondaryButton(text = "Шторка", onClick = { sheetShown = true })
@@ -218,7 +315,7 @@ private fun OverlaySamples() {
     }
     if (sheetShown) {
         AtlasBottomSheet(title = "Что будет удалено", onDismiss = { sheetShown = false }) {
-            AtlasText(text = "Тема и её файлы. Прогресс останется.", color = AtlasTheme.colors.onSurfaceMuted)
+            AtlasText(text = "Тема и её файлы. Прогресс останется.", color = AtlasTheme.colors.onSurfaceVariant)
             AtlasPrimaryButton(text = "Подтвердить", onClick = { sheetShown = false }, modifier = Modifier.fillMaxWidth())
             AtlasSecondaryButton(text = "Отмена", onClick = { sheetShown = false }, modifier = Modifier.fillMaxWidth())
         }
@@ -240,18 +337,17 @@ private fun OverlaySamples() {
 @Composable
 private fun StateSamples() {
     Box(modifier = Modifier.fillMaxWidth().height(160.dp)) {
-        AtlasLoading(text = "Загружаю каталог")
+        AtlasLoading(text = "Загружаю тему")
     }
-    AtlasDivider()
     Box(modifier = Modifier.fillMaxWidth().height(240.dp)) {
-        AtlasError(message = "Не удалось загрузить каталог", actionText = "Повторить")
+        AtlasError(message = "Не удалось загрузить тему", actionText = "Повторить")
     }
 }
 
 @Preview
 @Composable
 private fun ComponentCatalogLightPreview() {
-    AtlasTheme(darkTheme = false) {
+    AtlasTheme(darkTheme = false, wallpaperColors = false) {
         CatalogSection(themeName = "Светлая тема")
     }
 }
@@ -259,7 +355,7 @@ private fun ComponentCatalogLightPreview() {
 @Preview
 @Composable
 private fun ComponentCatalogDarkPreview() {
-    AtlasTheme(darkTheme = true) {
+    AtlasTheme(darkTheme = true, wallpaperColors = false) {
         CatalogSection(themeName = "Тёмная тема")
     }
 }

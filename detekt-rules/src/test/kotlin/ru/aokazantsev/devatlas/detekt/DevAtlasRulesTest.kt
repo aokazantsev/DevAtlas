@@ -112,4 +112,20 @@ class DevAtlasRulesTest {
 
         assertEquals(listOf(3, 6), findings.map { it.location.source.line })
     }
+
+    @Test
+    fun `materialkolor import and fully qualified usage are reported`() {
+        val findings = Material3OutsideDesignSystem().lint(
+            """
+            package ru.example
+
+            import com.materialkolor.PaletteStyle
+            import com.materialkolorful.Other
+
+            val scheme = com.materialkolor.dynamicColorScheme(seed, false)
+            """.trimIndent(),
+        )
+
+        assertEquals(listOf(3, 6), findings.map { it.location.source.line })
+    }
 }

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 200" fill="currentColor" font-family="sans-serif" font-size="14">
+  <rect x="130" y="12" width="100" height="36" rx="18" fill="var(--primary-container)"/>
+  <text x="180" y="35" text-anchor="middle" fill="var(--on-primary-container)">Тема</text>
+  <path d="M180 48 V70 M70 70 H290 M70 70 V90 M180 70 V90 M290 70 V90" stroke="var(--outline)" stroke-width="2" fill="none"/>
+  <rect x="20" y="90" width="100" height="36" rx="12" fill="var(--secondary-container)"/>
+  <text x="70" y="113" text-anchor="middle" fill="var(--on-secondary-container)">Раздел</text>
+  <rect x="130" y="90" width="100" height="36" rx="12" fill="var(--secondary-container)"/>
+  <text x="180" y="113" text-anchor="middle" fill="var(--on-secondary-container)">Раздел</text>
+  <rect x="240" y="90" width="100" height="36" rx="12" fill="var(--surface-container-highest)"/>
+  <text x="290" y="113" text-anchor="middle" fill="var(--on-surface)">Страница</text>
+  <path d="M70 126 V150 M40 150 H100 M40 150 V160 M100 150 V160" stroke="var(--outline)" stroke-width="2" fill="none"/>
+  <rect x="10" y="160" width="60" height="30" rx="10" fill="var(--surface-container-highest)"/>
+  <text x="40" y="180" text-anchor="middle" font-size="11" fill="var(--on-surface)">Стр.</text>
+  <rect x="75" y="160" width="60" height="30" rx="10" fill="var(--surface-container-highest)"/>
+  <text x="105" y="180" text-anchor="middle" font-size="11" fill="var(--on-surface)">Стр.</text>
+</svg>

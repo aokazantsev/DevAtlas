@@ -8,6 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -29,6 +31,9 @@ import ru.aokazantsev.devatlas.ui.catalog.ComponentCatalogScreen
 import ru.aokazantsev.devatlas.ui.contents.ContentsScreen
 import ru.aokazantsev.devatlas.ui.onboarding.OnboardingScreen
 import ru.aokazantsev.devatlas.ui.page.PageScreen
+import ru.aokazantsev.devatlas.ui.semantics.APP_ROOT_TAG
+import ru.aokazantsev.devatlas.ui.semantics.darkTheme
+import ru.aokazantsev.devatlas.ui.semantics.wallpaperColors
 import ru.aokazantsev.devatlas.ui.settings.SettingsScreen
 import ru.aokazantsev.devatlas.ui.splash.SplashScreen
 import ru.aokazantsev.devatlas.ui.splash.SplashState
@@ -45,19 +50,29 @@ fun DevAtlasApp(
             .build()
     }
     val appViewModel = viewModel { graph.appViewModel() }
-    val themeMode by appViewModel.themeMode.collectAsStateWithLifecycle()
+    val appearance by appViewModel.appearance.collectAsStateWithLifecycle()
     val startupState by appViewModel.startupState.collectAsStateWithLifecycle()
     val navController = rememberNavController()
     val systemIsDark = isSystemInDarkTheme()
-    val mode = themeMode ?: return
+    val resolvedAppearance = appearance ?: return
+    val mode = resolvedAppearance.themeMode
     val darkTheme = mode.isDark(systemIsDark)
     val startupFinished = startupState != SplashState.Checking
     LaunchedEffect(mode, darkTheme) { onThemeResolved(mode, darkTheme) }
     LaunchedEffect(startupFinished) {
         if (startupFinished) onContentReady()
     }
-    AtlasTheme(darkTheme = darkTheme) {
-        Box(modifier = Modifier.fillMaxSize().background(AtlasTheme.colors.background)) {
+    AtlasTheme(darkTheme = darkTheme, wallpaperColors = resolvedAppearance.wallpaperColors) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(AtlasTheme.colors.surfaceContainer)
+                .semantics {
+                    testTag = APP_ROOT_TAG
+                    this.darkTheme = darkTheme
+                    this.wallpaperColors = resolvedAppearance.wallpaperColors
+                },
+        ) {
             val state = startupState
             if (state == SplashState.Ready) {
                 AppNavHost(graph = graph, navController = navController)

@@ -1,0 +1,9 @@
+{
+  "formatVersion": 1,
+  "id": "broken-sample",
+  "title": "Сломанная тема",
+  "tree": [
+    { "id": "bad", "title": "Ошибки страницы", "file": "pages/bad.html" },
+    { "id": "bad", "title": "Повтор id", "file": "pages/missing.html" }
+  ]
+}

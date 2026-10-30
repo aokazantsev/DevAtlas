@@ -19,8 +19,7 @@ fun AtlasScaffold(
         modifier = modifier,
         topBar = topBar,
         bottomBar = bottomBar,
-        containerColor = AtlasTheme.colors.background,
-        contentColor = AtlasTheme.colors.onSurface,
+        containerColor = AtlasTheme.colors.surfaceContainer,
         contentWindowInsets = WindowInsets.safeDrawing,
         content = content,
     )

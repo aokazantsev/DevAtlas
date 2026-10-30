@@ -1,0 +1,56 @@
+{
+  "formatVersion": 1,
+  "id": "devatlas-sample",
+  "title": "Пример DevAtlas",
+  "description": "Короткая тема, которая показывает всё, что умеет приложение: дерево разделов, оформление текста, схемы в цветах приложения, ссылки между страницами и файлы PDF.",
+  "tree": [
+    { "id": "welcome", "title": "Добро пожаловать", "file": "pages/welcome.html" },
+    {
+      "id": "text",
+      "title": "Текст",
+      "children": [
+        { "id": "text-intro", "title": "О разделе", "file": "pages/text/intro.html" },
+        { "id": "headings", "title": "Заголовки и абзацы", "file": "pages/text/headings.html" },
+        { "id": "lists", "title": "Списки и цитаты", "file": "pages/text/lists.html" },
+        {
+          "id": "code-and-tables",
+          "title": "Код и таблицы",
+          "children": [
+            { "id": "code", "title": "Код", "file": "pages/text/code.html" },
+            { "id": "tables", "title": "Таблицы", "file": "pages/text/tables.html" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "diagrams",
+      "title": "Схемы",
+      "children": [
+        { "id": "diagrams-intro", "title": "Как устроены схемы", "file": "pages/diagrams/intro.html" },
+        {
+          "id": "diagram-examples",
+          "title": "Примеры схем",
+          "children": [
+            {
+              "id": "diagram-flows",
+              "title": "Потоки",
+              "children": [
+                { "id": "flow-theme", "title": "Путь темы в приложение", "file": "pages/diagrams/flow-theme.html" },
+                { "id": "flow-layers", "title": "Слои приложения", "file": "pages/diagrams/flow-layers.html" }
+              ]
+            },
+            { "id": "palette", "title": "Роли цвета", "file": "pages/diagrams/palette.html" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "links",
+      "title": "Ссылки и файлы",
+      "children": [
+        { "id": "internal-links", "title": "Ссылки между страницами", "file": "pages/links/internal.html" },
+        { "id": "external-links", "title": "Сайты и PDF", "file": "pages/links/external.html" }
+      ]
+    }
+  ]
+}

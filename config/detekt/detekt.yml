@@ -30,6 +30,9 @@ naming:
     constantPattern: '[A-Z][A-Za-z0-9_]*'
 
 style:
+  ReturnCount:
+    max: 3
+    excludeGuardClauses: true
   MagicNumber:
     ignorePropertyDeclaration: true
     ignoreCompanionObjectPropertyDeclaration: true

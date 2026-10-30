@@ -5,7 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -13,18 +14,13 @@ import androidx.compose.ui.text.style.TextAlign
 import ru.aokazantsev.devatlas.designsystem.icon.AtlasIcons
 import ru.aokazantsev.devatlas.designsystem.theme.AtlasTheme
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AtlasLoading(modifier: Modifier = Modifier, text: String? = null) {
-    val colors = AtlasTheme.colors
     StateColumn(modifier) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(AtlasTheme.sizes.loader),
-            color = colors.accent,
-            trackColor = colors.surfaceRaised,
-            strokeWidth = AtlasTheme.sizes.loaderStroke,
-        )
+        LoadingIndicator(modifier = Modifier.size(AtlasTheme.sizes.loader))
         if (text != null) {
-            AtlasText(text = text, color = colors.onSurfaceMuted, textAlign = TextAlign.Center)
+            AtlasText(text = text, color = AtlasTheme.colors.onSurfaceVariant, textAlign = TextAlign.Center)
         }
     }
 }
@@ -36,12 +32,11 @@ fun AtlasError(
     actionText: String? = null,
     onAction: () -> Unit = {},
 ) {
-    val colors = AtlasTheme.colors
     StateColumn(modifier) {
         AtlasIcon(
             icon = AtlasIcons.Error,
             contentDescription = null,
-            tint = colors.error,
+            tint = AtlasTheme.colors.error,
             modifier = Modifier.size(AtlasTheme.sizes.iconLarge),
         )
         AtlasText(text = message, textAlign = TextAlign.Center)

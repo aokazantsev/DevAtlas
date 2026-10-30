@@ -1,8 +1,11 @@
 package ru.aokazantsev.devatlas.designsystem.component
 
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -14,7 +17,7 @@ fun AtlasIcon(
     icon: ImageVector,
     contentDescription: String?,
     modifier: Modifier = Modifier,
-    tint: Color = AtlasTheme.colors.onSurface,
+    tint: Color = LocalContentColor.current,
 ) {
     Icon(
         imageVector = icon,
@@ -24,15 +27,15 @@ fun AtlasIcon(
     )
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AtlasIconButton(
     icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    tint: Color = AtlasTheme.colors.onSurface,
 ) {
-    IconButton(onClick = onClick, modifier = modifier.size(AtlasTheme.sizes.touchTarget)) {
-        AtlasIcon(icon = icon, contentDescription = contentDescription, tint = tint)
+    IconButton(onClick = onClick, shapes = IconButtonDefaults.shapes(), modifier = modifier) {
+        AtlasIcon(icon = icon, contentDescription = contentDescription)
     }
 }

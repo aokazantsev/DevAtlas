@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" fill="currentColor">
+  <rect width="5" height="5" fill="#ff0000"/>
+  <rect width="5" height="5" fill="var(--accent)"/>
+  <script>alert(1)</script>
+</svg>

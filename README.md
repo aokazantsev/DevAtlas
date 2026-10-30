@@ -4,8 +4,8 @@
 «Просмотрено». Тему добавляют ссылкой (папка Яндекс.Диска, GitHub, zip), дальше приложение работает
 без сети.
 
-Статус: в разработке, версия 0.1 ещё не выпущена. Сейчас готов каркас: дизайн-система, навигация
-с пустыми экранами, выбор оформления «Светлая / Тёмная / Как в системе».
+Статус: в разработке, версия 0.1 ещё не выпущена. Сейчас готовы каркас с навигацией, дизайн-система на
+Material 3 Expressive с цветами из обоев, формат темы с проверкой и тема-пример.
 
 ## Платформы
 
@@ -20,8 +20,11 @@ Kotlin Multiplatform + Compose Multiplatform. Собирается только 
 ```
 ./gradlew :app:assembleDebug
 ./gradlew detekt
-./gradlew :detekt-rules:test :shared:testAndroidHostTest
+./gradlew :detekt-rules:test :shared:testAndroidHostTest :themeformat:jvmTest :tools:themecheck:test
+./gradlew :app:connectedDebugAndroidTest
 ```
+
+Последняя команда — e2e-тесты на подключённом телефоне или эмуляторе.
 
 APK отладочной сборки — `app/build/outputs/apk/debug/`. В отладочной сборке в настройках есть
 каталог компонентов дизайн-системы в светлой и тёмной теме.
@@ -32,12 +35,22 @@ APK отладочной сборки — `app/build/outputs/apk/debug/`. В о�
 |---|---|
 | `:app` | точка входа Android: `Application`, `Activity`, системный сплеш, иконка |
 | `:shared` | общий код приложения: граф DI, навигация, экраны, настройки, база |
-| `:designsystem` | токены, иконки и компоненты; единственное место, где используется Material3 |
+| `:designsystem` | тема Material 3 Expressive, иконки и компоненты; единственное место, где используется Material3 |
+| `:themeformat` | формат темы: манифест, разбор страниц и схем, проверка, безопасная распаковка архива |
+| `:tools:themecheck` | проверка и упаковка темы из командной строки |
 | `:detekt-rules` | свои правила detekt: цвета, отступы и Material3 только в дизайн-системе |
-| `tools/themecheck` | место под проверку и упаковку папки темы (появится позже) |
 
 Библиотеки: Compose Multiplatform, Navigation Compose, Metro (DI), Room, DataStore, okio, Ktor,
 kotlinx-serialization, Coil 3. Версии — `gradle/libs.versions.toml`.
+
+## Как сделать тему
+
+Формат темы описан в [docs/theme-format.md](docs/theme-format.md), пример — папка
+[sample-theme](sample-theme). Проверить свою тему и собрать архив:
+
+```
+./gradlew :tools:themecheck:run --args="путь/к/теме --zip тема.zip"
+```
 
 ## Лицензия
 

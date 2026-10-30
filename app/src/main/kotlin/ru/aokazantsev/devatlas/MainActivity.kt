@@ -17,10 +17,11 @@ class MainActivity : ComponentActivity() {
     private var contentReady = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen().setKeepOnScreenCondition { !contentReady }
+        val application = application as DevAtlasApplication
+        installSplashScreen().setKeepOnScreenCondition { application.holdsSystemSplash && !contentReady }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val graph = (application as DevAtlasApplication).graph
+        val graph = application.graph
         setContent {
             DevAtlasApp(
                 graph = graph,

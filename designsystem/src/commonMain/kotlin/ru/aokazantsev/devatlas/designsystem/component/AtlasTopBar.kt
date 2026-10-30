@@ -23,7 +23,7 @@ fun AtlasTopBar(
     windowInsets: WindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
 ) {
     TopAppBar(
-        title = { AtlasText(text = title, style = AtlasTheme.typography.heading, maxLines = 1) },
+        title = { AtlasText(text = title, maxLines = 1) },
         modifier = modifier,
         navigationIcon = {
             if (onBack != null) {
@@ -31,13 +31,10 @@ fun AtlasTopBar(
             }
         },
         actions = actions,
-        expandedHeight = AtlasTheme.sizes.topBarHeight,
         windowInsets = windowInsets,
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = AtlasTheme.colors.background,
-            titleContentColor = AtlasTheme.colors.onSurface,
-            navigationIconContentColor = AtlasTheme.colors.onSurface,
-            actionIconContentColor = AtlasTheme.colors.onSurface,
+            containerColor = AtlasTheme.colors.surfaceContainer,
+            scrolledContainerColor = AtlasTheme.colors.surfaceContainer,
         ),
     )
 }

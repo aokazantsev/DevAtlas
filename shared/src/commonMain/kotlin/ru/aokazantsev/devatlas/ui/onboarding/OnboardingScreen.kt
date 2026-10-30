@@ -23,10 +23,10 @@ fun OnboardingScreen(onNext: () -> Unit) {
                 .padding(AtlasTheme.spacing.l),
             verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.l),
         ) {
-            AtlasText(text = "Добро пожаловать", style = AtlasTheme.typography.title)
+            AtlasText(text = "Добро пожаловать", style = AtlasTheme.typography.emphasized.headlineMedium)
             AtlasText(
                 text = "Здесь будут согласие с политикой данных и выбор темы.",
-                color = AtlasTheme.colors.onSurfaceMuted,
+                color = AtlasTheme.colors.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
             )
             AtlasPrimaryButton(text = "Дальше", onClick = onNext, modifier = Modifier.fillMaxWidth())

@@ -26,7 +26,10 @@ jobs:
         run: ./gradlew detekt --console=plain
 
       - name: Unit tests
-        run: ./gradlew :detekt-rules:test :shared:testAndroidHostTest --console=plain
+        run: ./gradlew :detekt-rules:test :shared:testAndroidHostTest :themeformat:jvmTest :tools:themecheck:test --console=plain
+
+      - name: Check sample theme
+        run: ./gradlew :tools:themecheck:run --args="sample-theme --strict --zip build/sample-theme.zip" --console=plain
 
       - name: Build APKs
         run: ./gradlew :app:assembleDebug :app:assembleRelease --console=plain
@@ -35,4 +38,49 @@ jobs:
         with:
           name: devatlas-debug-apk
           path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sample-theme
+          path: build/sample-theme.zip
+          retention-days: 14
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Build test APKs
+        run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --console=plain
+
+      - name: E2E on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: ./gradlew :app:connectedDebugAndroidTest --console=plain
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: devatlas-e2e-reports
+          path: app/build/reports/androidTests/connected/
           retention-days: 14

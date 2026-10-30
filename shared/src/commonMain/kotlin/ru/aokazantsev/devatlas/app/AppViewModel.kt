@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import ru.aokazantsev.devatlas.settings.domain.ThemeSettingsRepository
-import ru.aokazantsev.devatlas.settings.domain.model.ThemeMode
+import ru.aokazantsev.devatlas.settings.domain.model.Appearance
 import ru.aokazantsev.devatlas.startup.domain.RunStartupChecksUseCase
 import ru.aokazantsev.devatlas.startup.domain.model.StartupCheckResult
 import ru.aokazantsev.devatlas.ui.splash.SplashState
@@ -21,7 +21,7 @@ class AppViewModel(
     themeSettings: ThemeSettingsRepository,
 ) : ViewModel() {
 
-    val themeMode: StateFlow<ThemeMode?> = themeSettings.themeMode
+    val appearance: StateFlow<Appearance?> = themeSettings.appearance
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val mutableStartupState = MutableStateFlow<SplashState>(SplashState.Checking)

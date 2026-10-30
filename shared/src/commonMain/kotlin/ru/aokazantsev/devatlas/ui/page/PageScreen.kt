@@ -13,7 +13,7 @@ fun PageScreen(pageId: String, onBack: () -> Unit) {
     AtlasScaffold(topBar = { AtlasTopBar(title = "Страница", onBack = onBack) }) { padding ->
         AtlasText(
             text = "Здесь будет страница «$pageId».",
-            color = AtlasTheme.colors.onSurfaceMuted,
+            color = AtlasTheme.colors.onSurfaceVariant,
             modifier = Modifier.padding(padding).padding(AtlasTheme.spacing.l),
         )
     }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import ru.aokazantsev.devatlas.designsystem.component.AtlasIconButton
+import ru.aokazantsev.devatlas.designsystem.component.AtlasListGroup
 import ru.aokazantsev.devatlas.designsystem.component.AtlasListRow
 import ru.aokazantsev.devatlas.designsystem.component.AtlasScaffold
 import ru.aokazantsev.devatlas.designsystem.component.AtlasText
@@ -27,10 +28,12 @@ fun ContentsScreen(onOpenPage: (String) -> Unit, onOpenSettings: () -> Unit) {
         Column(modifier = Modifier.padding(padding)) {
             AtlasText(
                 text = "Темы появятся в следующих версиях.",
-                color = AtlasTheme.colors.onSurfaceMuted,
+                color = AtlasTheme.colors.onSurfaceVariant,
                 modifier = Modifier.padding(AtlasTheme.spacing.l),
             )
-            AtlasListRow(title = "Пример страницы", showChevron = true, onClick = { onOpenPage(SAMPLE_PAGE_ID) })
+            AtlasListGroup {
+                AtlasListRow(title = "Пример страницы", showChevron = true, onClick = { onOpenPage(SAMPLE_PAGE_ID) })
+            }
         }
     }
 }

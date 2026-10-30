@@ -21,4 +21,6 @@ dependencyResolutionManagement {
 include(":app")
 include(":shared")
 include(":designsystem")
+include(":themeformat")
+include(":tools:themecheck")
 include(":detekt-rules")

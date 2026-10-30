@@ -17,14 +17,14 @@ class Material3OutsideDesignSystem(config: Config = Config.empty) : Rule(config)
     override val issue = Issue(
         javaClass.simpleName,
         Severity.Style,
-        "Компоненты Material3 используются только внутри :designsystem.",
+        "Material3 и MaterialKolor используются только внутри :designsystem.",
         Debt.TEN_MINS,
     )
 
     override fun visitImportDirective(importDirective: KtImportDirective) {
         super.visitImportDirective(importDirective)
         val path = importDirective.importPath?.pathStr.orEmpty()
-        if (path.isMaterial3()) {
+        if (path.isDesignSystemLibrary()) {
             report(CodeSmell(issue, Entity.from(importDirective), "Импорт $path вне :designsystem: возьми компонент Atlas*."))
         }
     }
@@ -34,14 +34,14 @@ class Material3OutsideDesignSystem(config: Config = Config.empty) : Rule(config)
         val isTopmost = expression.parent !is KtDotQualifiedExpression
         val isDeclaration = expression.getStrictParentOfType<KtImportDirective>() != null ||
             expression.getStrictParentOfType<KtPackageDirective>() != null
-        if (isTopmost && !isDeclaration && expression.text.isMaterial3()) {
-            report(CodeSmell(issue, Entity.from(expression), "Material3 по полному имени вне :designsystem."))
+        if (isTopmost && !isDeclaration && expression.text.isDesignSystemLibrary()) {
+            report(CodeSmell(issue, Entity.from(expression), "Material3 или MaterialKolor по полному имени вне :designsystem."))
         }
     }
 
-    private fun String.isMaterial3(): Boolean = this == MATERIAL3_PACKAGE || startsWith("$MATERIAL3_PACKAGE.")
+    private fun String.isDesignSystemLibrary(): Boolean = DESIGN_SYSTEM_PACKAGES.any { this == it || startsWith("$it.") }
 
     private companion object {
-        const val MATERIAL3_PACKAGE = "androidx.compose.material3"
+        val DESIGN_SYSTEM_PACKAGES = listOf("androidx.compose.material3", "com.materialkolor")
     }
 }

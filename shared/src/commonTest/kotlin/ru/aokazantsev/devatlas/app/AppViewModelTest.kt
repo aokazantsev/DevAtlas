@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import ru.aokazantsev.devatlas.settings.domain.ThemeSettingsRepository
+import ru.aokazantsev.devatlas.settings.domain.model.Appearance
 import ru.aokazantsev.devatlas.settings.domain.model.ThemeMode
 import ru.aokazantsev.devatlas.startup.domain.RunStartupChecksUseCase
 import ru.aokazantsev.devatlas.startup.domain.model.StartupCheckResult
@@ -68,25 +69,26 @@ class AppViewModelTest {
     }
 
     @Test
-    fun themeModeIsNullUntilRepositoryEmits() = runTest(dispatcher) {
+    fun appearanceIsNullUntilRepositoryEmits() = runTest(dispatcher) {
         val viewModel = AppViewModel(QueuedChecks(StartupCheckResult.Passed), FakeThemeSettings(initial = null))
 
         advanceUntilIdle()
 
-        assertNull(viewModel.themeMode.value)
+        assertNull(viewModel.appearance.value)
     }
 
     @Test
-    fun themeModeFollowsRepository() = runTest(dispatcher) {
-        val settings = FakeThemeSettings(initial = ThemeMode.DARK)
+    fun appearanceFollowsRepository() = runTest(dispatcher) {
+        val settings = FakeThemeSettings(initial = Appearance(ThemeMode.DARK, wallpaperColors = true))
         val viewModel = AppViewModel(QueuedChecks(StartupCheckResult.Passed), settings)
         advanceUntilIdle()
-        assertEquals(ThemeMode.DARK, viewModel.themeMode.value)
+        assertEquals(Appearance(ThemeMode.DARK, wallpaperColors = true), viewModel.appearance.value)
 
         settings.setThemeMode(ThemeMode.LIGHT)
+        settings.setWallpaperColors(false)
         advanceUntilIdle()
 
-        assertEquals(ThemeMode.LIGHT, viewModel.themeMode.value)
+        assertEquals(Appearance(ThemeMode.LIGHT, wallpaperColors = false), viewModel.appearance.value)
     }
 
     private class QueuedChecks(vararg results: StartupCheckResult) : RunStartupChecksUseCase {
@@ -99,13 +101,17 @@ class AppViewModelTest {
         }
     }
 
-    private class FakeThemeSettings(initial: ThemeMode? = ThemeMode.SYSTEM) : ThemeSettingsRepository {
+    private class FakeThemeSettings(initial: Appearance? = Appearance.Default) : ThemeSettingsRepository {
         private val state = MutableStateFlow(initial)
 
-        override val themeMode = state.filterNotNull()
+        override val appearance = state.filterNotNull()
 
         override suspend fun setThemeMode(mode: ThemeMode) {
-            state.value = mode
+            state.value = state.value?.copy(themeMode = mode)
+        }
+
+        override suspend fun setWallpaperColors(enabled: Boolean) {
+            state.value = state.value?.copy(wallpaperColors = enabled)
         }
     }
 }
