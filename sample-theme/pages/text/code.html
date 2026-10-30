@@ -1,12 +1,14 @@
 <h1>Код</h1>
 <p>Блок кода — <code>pre</code> с <code>code</code> внутри. Язык указывается классом
-<code>language-…</code>: приложение покажет его в подписи блока.</p>
+<code>language-…</code>: приложение покажет его в подписи блока и подсветит код цветами темы.
+Кнопка «Копировать» над блоком кладёт код в буфер обмена.</p>
 <pre><code class="language-kotlin">@Composable
 fun Greeting(name: String) {
     Text(text = "Привет, $name!")
 }
 </code></pre>
-<p>Пробелы и переносы внутри блока сохраняются как есть:</p>
+<p>Пробелы и переносы внутри блока сохраняются как есть, длинные строки не переносятся — блок
+прокручивается вбок. Простой текст без подсветки — класс <code>language-text</code>:</p>
 <pre><code class="language-text">manifest.json
 pages/
   welcome.html
@@ -15,3 +17,136 @@ diagrams/
 </code></pre>
 <p>Символы <code>&lt;</code> и <code>&amp;</code> в коде пишутся как <code>&amp;lt;</code> и
 <code>&amp;amp;</code>: <code>if (a &lt; b &amp;&amp; c) { }</code>.</p>
+
+<h2>Мобильная разработка</h2>
+<pre><code class="language-java">@Override
+public int count(List&lt;String&gt; items) {
+    return items.size(); // число строк
+}
+</code></pre>
+<pre><code class="language-swift">struct Greeting: View {
+    let name: String
+    var body: some View { Text("Привет, \(name)!") }
+}
+</code></pre>
+<pre><code class="language-objectivec">@interface Greeter : NSObject
+@property (nonatomic, copy) NSString *name;
+@end
+</code></pre>
+<pre><code class="language-dart">class Counter {
+  int value = 0;
+  void increment() =&gt; value++;
+  String get label =&gt; 'Счёт: $value';
+}
+</code></pre>
+<pre><code class="language-groovy">dependencies {
+    implementation "io.ktor:ktor-client-core:$ktorVersion"
+}
+</code></pre>
+
+<h2>Веб</h2>
+<pre><code class="language-javascript">const total = items.filter(item =&gt; /^\d+$/.test(item.id)).length;
+console.log(`Найдено: ${total}`);
+</code></pre>
+<pre><code class="language-typescript">interface User {
+  id: number;
+  name: string;
+}
+const greet = (user: User): string =&gt; `Привет, ${user.name}`;
+</code></pre>
+<pre><code class="language-html">&lt;!-- карточка --&gt;
+&lt;a class="card" href="https://example.com"&gt;Открыть&lt;/a&gt;
+</code></pre>
+<pre><code class="language-css">.card:hover {
+  color: var(--primary);
+  padding: 8px 16px;
+}
+</code></pre>
+<pre><code class="language-php">&lt;?php
+function greet(string $name): string {
+    return "Привет, $name!";
+}
+</code></pre>
+
+<h2>Системные языки</h2>
+<pre><code class="language-c">#include &lt;stdio.h&gt;
+
+int main(void) {
+    printf("%d\n", 42);
+    return 0;
+}
+</code></pre>
+<pre><code class="language-cpp">template &lt;typename T&gt;
+T max(const std::vector&lt;T&gt;&amp; values) {
+    return *std::max_element(values.begin(), values.end());
+}
+</code></pre>
+<pre><code class="language-csharp">public record User(int Id, string Name);
+
+var path = @"C:\themes";
+</code></pre>
+<pre><code class="language-go">func Sum(values []int) int {
+    total := 0
+    for _, v := range values {
+        total += v
+    }
+    return total
+}
+</code></pre>
+<pre><code class="language-rust">#[derive(Debug)]
+struct Point&lt;'a&gt; { name: &amp;'a str, x: i32 }
+
+fn main() { println!("{:?}", Point { name: "A", x: 1 }); }
+</code></pre>
+
+<h2>Скрипты и данные</h2>
+<pre><code class="language-python">@dataclass
+class Page:
+    title: str
+    viewed: bool = False  # отметка «Просмотрено»
+</code></pre>
+<pre><code class="language-ruby">class Theme
+  attr_reader :title
+
+  def initialize(title)
+    @title = title
+  end
+end
+</code></pre>
+<pre><code class="language-shell"># собрать архив темы
+./gradlew :tools:themecheck:run --args="sample-theme --zip $HOME/theme.zip"
+</code></pre>
+<pre><code class="language-sql">SELECT page_id, COUNT(*) AS views
+FROM viewed_pages
+WHERE theme_id = 'devatlas-sample'
+GROUP BY page_id;
+</code></pre>
+<pre><code class="language-json">{
+  "id": "welcome",
+  "title": "Добро пожаловать",
+  "file": "pages/welcome.html"
+}
+</code></pre>
+<pre><code class="language-yaml">name: CI
+on:
+  push:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest  # бесплатно для открытых репозиториев
+</code></pre>
+<pre><code class="language-xml">&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;TextView android:id="@+id/title" android:text="@string/app_name" /&gt;
+</code></pre>
+<pre><code class="language-markdown"># Тема
+- страницы в `pages/`
+- [формат](https://aokazantsev.ru/pets/devatlas/themes/)
+</code></pre>
+<pre><code class="language-diff">--- a/manifest.json
++++ b/manifest.json
+@@ -2,1 +2,1 @@
+-  "title": "Пример"
++  "title": "Пример DevAtlas"
+</code></pre>
+<p>Короткие имена тоже работают: <code>kt</code>, <code>kts</code>, <code>js</code>, <code>ts</code>,
+<code>sh</code>, <code>yml</code> и другие из списка на странице «Как сделать тему».</p>

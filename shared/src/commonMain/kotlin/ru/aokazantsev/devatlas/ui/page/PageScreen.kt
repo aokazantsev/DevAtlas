@@ -69,6 +69,7 @@ fun PageScreen(
                 state = shown,
                 anchor = anchor,
                 onViewedChange = viewModel::setViewed,
+                onCopyCode = viewModel::copyCode,
                 onOpenPage = onOpenPage,
                 onNext = onNext,
                 modifier = modifier,
@@ -82,6 +83,7 @@ private fun PageBody(
     state: PageState.Ready,
     anchor: Int,
     onViewedChange: (Boolean) -> Unit,
+    onCopyCode: (String) -> Boolean,
     onOpenPage: (String) -> Unit,
     onNext: (String) -> Unit,
     modifier: Modifier,
@@ -113,6 +115,7 @@ private fun PageBody(
             diagrams = state.content.diagrams,
             onLink = onLink,
             onOpenDiagram = { openedDiagram = it.source },
+            onCopyCode = onCopyCode,
             modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
             anchors = anchors,
         )

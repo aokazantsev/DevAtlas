@@ -50,7 +50,7 @@ class ScriptedUpdater(var result: UpdateCheck = UpdateCheck.NoChanges) : ThemeUp
     }
 }
 
-class FakePlatformBindings(var clipboard: String? = null) : PlatformBindings {
+class FakePlatformBindings(var clipboard: String? = null, var copySucceeds: Boolean = true) : PlatformBindings {
     override val dataDirectory: Path = "/data".toPath()
     override val fileSystem: FileSystem get() = error("не используется")
 
@@ -59,4 +59,9 @@ class FakePlatformBindings(var clipboard: String? = null) : PlatformBindings {
     override fun httpClient(): HttpClient = error("не используется")
 
     override fun clipboardText(): String? = clipboard
+
+    override fun copyToClipboard(text: String): Boolean {
+        if (copySucceeds) clipboard = text
+        return copySucceeds
+    }
 }

@@ -1,5 +1,6 @@
 package ru.aokazantsev.devatlas.di
 
+import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.room.Room
@@ -41,8 +42,14 @@ internal class AndroidPlatformBindings(context: Context) : PlatformBindings {
         return clip.getItemAt(0).coerceToText(appContext)?.toString()
     }
 
+    override fun copyToClipboard(text: String): Boolean {
+        val clipboard = appContext.getSystemService(ClipboardManager::class.java)
+        return runCatching { clipboard.setPrimaryClip(ClipData.newPlainText(CLIP_LABEL, text)) }.isSuccess
+    }
+
     private companion object {
         const val DATABASE_NAME = "devatlas.db"
+        const val CLIP_LABEL = "DevAtlas"
         const val CONNECT_TIMEOUT_MILLIS = 15_000L
         const val SOCKET_TIMEOUT_MILLIS = 30_000L
         const val REQUEST_TIMEOUT_MILLIS = 300_000L

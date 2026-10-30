@@ -16,4 +16,6 @@ interface PlatformBindings {
     fun httpClient(): HttpClient
 
     fun clipboardText(): String?
+
+    fun copyToClipboard(text: String): Boolean
 }

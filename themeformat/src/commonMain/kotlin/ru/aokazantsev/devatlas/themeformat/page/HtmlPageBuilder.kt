@@ -1,5 +1,8 @@
 package ru.aokazantsev.devatlas.themeformat.page
 
+import ru.aokazantsev.devatlas.themeformat.code.CodeHighlighter
+import ru.aokazantsev.devatlas.themeformat.code.CodeLanguage
+import ru.aokazantsev.devatlas.themeformat.code.JsonSyntax
 import ru.aokazantsev.devatlas.themeformat.issue.IssueCode
 import ru.aokazantsev.devatlas.themeformat.issue.IssueCollector
 import ru.aokazantsev.devatlas.themeformat.issue.ThemeIssue
@@ -134,7 +137,46 @@ internal class HtmlPageBuilder(private val file: String) {
             .replace("\r\n", "\n")
             .removePrefix("\n")
             .trimEnd()
+        checkLanguage(element, language, text)
+        checkLength(element, language, text)
         return PageBlock.Code(code = text, language = language)
+    }
+
+    private fun checkLength(element: MarkupNode.Element, language: String?, text: String) {
+        val resolved = language?.let(CodeLanguage::resolve) ?: return
+        if (resolved == CodeLanguage.TEXT || text.length <= CodeHighlighter.MAX_CODE_LENGTH) return
+        collector.warning(
+            IssueCode.CODE_TOO_LONG,
+            "Блок кода длиннее ${CodeHighlighter.MAX_CODE_LENGTH} символов показывается без подсветки: разбейте его на части",
+            element.position,
+        )
+    }
+
+    private fun checkLanguage(element: MarkupNode.Element, language: String?, text: String) {
+        val resolved = language?.let(CodeLanguage::resolve)
+        when {
+            language == null -> collector.warning(
+                IssueCode.CODE_LANGUAGE,
+                "У блока кода не указан язык: блок показан без подсветки. Добавьте <code class=\"language-kotlin\">, " +
+                    "для простого текста — language-text",
+                element.position,
+            )
+            resolved == null -> collector.warning(
+                IssueCode.CODE_LANGUAGE,
+                "Язык «$language» не поддерживается: блок показан без подсветки",
+                element.position,
+            )
+            resolved == CodeLanguage.JSON -> JsonSyntax.firstProblem(text)?.let { problem ->
+                val before = text.substring(0, problem.offset)
+                val line = before.count { it == '\n' } + 1
+                val column = problem.offset - before.lastIndexOf('\n')
+                collector.warning(
+                    IssueCode.CODE_JSON_INVALID,
+                    "JSON в блоке не разбирается — строка $line, столбец $column блока: ${problem.message}",
+                    element.position,
+                )
+            }
+        }
     }
 
     private fun firstForeignTag(nodes: List<MarkupNode>, allowed: Set<String>): MarkupNode.Element? =

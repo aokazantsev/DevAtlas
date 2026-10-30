@@ -28,12 +28,13 @@ internal fun PageBlocks(
     diagrams: Map<String, String>,
     onLink: (LinkTarget) -> Unit,
     onOpenDiagram: (PageBlock.Figure) -> Unit,
+    onCopyCode: (String) -> Boolean,
     modifier: Modifier = Modifier,
     anchors: ScrollAnchors? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.m)) {
         blocks.forEachIndexed { index, block ->
-            Box(modifier = anchors?.item(index) ?: Modifier) { PageBlockView(block, diagrams, onLink, onOpenDiagram) }
+            Box(modifier = anchors?.item(index) ?: Modifier) { PageBlockView(block, diagrams, onLink, onOpenDiagram, onCopyCode) }
         }
     }
 }
@@ -44,6 +45,7 @@ private fun PageBlockView(
     diagrams: Map<String, String>,
     onLink: (LinkTarget) -> Unit,
     onOpenDiagram: (PageBlock.Figure) -> Unit,
+    onCopyCode: (String) -> Boolean,
 ) {
     when (block) {
         is PageBlock.Heading -> AtlasText(
@@ -63,16 +65,17 @@ private fun PageBlockView(
                         style = AtlasTheme.typography.bodyLarge,
                         color = AtlasTheme.colors.onSurfaceVariant,
                     )
-                    PageBlocks(item, diagrams, onLink, onOpenDiagram, Modifier.weight(1f))
+                    PageBlocks(item, diagrams, onLink, onOpenDiagram, onCopyCode, Modifier.weight(1f))
                 }
             }
         }
-        is PageBlock.Code -> CodeBlock(code = block.code)
+        is PageBlock.Code -> CodeBlock(code = block.code, language = block.language, onCopy = onCopyCode)
         is PageBlock.Quote -> PageBlocks(
             blocks = block.blocks,
             diagrams = diagrams,
             onLink = onLink,
             onOpenDiagram = onOpenDiagram,
+            onCopyCode = onCopyCode,
             modifier = Modifier
                 .clip(AtlasTheme.shapes.medium)
                 .background(AtlasTheme.colors.surfaceContainerHigh)

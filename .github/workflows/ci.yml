@@ -26,7 +26,7 @@ jobs:
         run: ./gradlew detekt --console=plain
 
       - name: Unit tests
-        run: ./gradlew :detekt-rules:test :shared:testAndroidHostTest :themeformat:jvmTest :tools:themecheck:test --console=plain
+        run: ./gradlew :detekt-rules:test :designsystem:testAndroidHostTest :shared:testAndroidHostTest :themeformat:jvmTest :tools:themecheck:test --console=plain
 
       - name: Check sample theme
         run: ./gradlew :tools:themecheck:run --args="sample-theme --strict --zip build/sample-theme.zip" --console=plain

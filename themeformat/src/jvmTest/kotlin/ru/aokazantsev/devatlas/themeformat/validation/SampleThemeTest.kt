@@ -3,6 +3,7 @@ package ru.aokazantsev.devatlas.themeformat.validation
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
+import ru.aokazantsev.devatlas.themeformat.code.CodeLanguage
 import ru.aokazantsev.devatlas.themeformat.issue.IssueCode
 import ru.aokazantsev.devatlas.themeformat.manifest.ThemeNode
 import ru.aokazantsev.devatlas.themeformat.page.HtmlPageParser
@@ -42,6 +43,8 @@ class SampleThemeTest {
         )
         assertEquals(expectedTypes, blockTypes)
         assertEquals((1..6).toSet(), blocks.filterIsInstance<PageBlock.Heading>().map { it.level }.toSet())
+        val languages = blocks.filterIsInstance<PageBlock.Code>().mapNotNull { block -> block.language?.let(CodeLanguage::resolve) }
+        assertEquals(CodeLanguage.entries.toSet(), languages.toSet())
 
         val inlines = blocks.flatMap(::inlinesOf).flatMap(::flattenInline)
         val links = inlines.filterIsInstance<PageInline.Link>()
@@ -64,7 +67,8 @@ class SampleThemeTest {
         val expected = setOf(
             IssueCode.ID_DUPLICATE, IssueCode.PAGE_FILE_MISSING, IssueCode.LINK_HTTP, IssueCode.LINK_PAGE_MISSING,
             IssueCode.PDF_DOWNLOAD_INVALID, IssueCode.TAG_UNKNOWN, IssueCode.IMAGE_MISSING, IssueCode.COLOR_LITERAL,
-            IssueCode.COLOR_ROLE_UNKNOWN, IssueCode.SVG_FORBIDDEN, IssueCode.FILE_UNSUPPORTED,
+            IssueCode.COLOR_ROLE_UNKNOWN, IssueCode.SVG_FORBIDDEN, IssueCode.FILE_UNSUPPORTED, IssueCode.CODE_LANGUAGE,
+            IssueCode.CODE_JSON_INVALID,
         )
         assertTrue(codes.containsAll(expected), "нет: ${expected - codes}")
         assertTrue(result.issues.all { it.helpUrl.startsWith("https://aokazantsev.ru/pets/devatlas/themes/#") })

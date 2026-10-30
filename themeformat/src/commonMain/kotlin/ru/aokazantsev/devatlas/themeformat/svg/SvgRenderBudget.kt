@@ -5,12 +5,15 @@ import ru.aokazantsev.devatlas.themeformat.markup.MarkupNode
 
 object SvgRenderBudget {
 
-    private const val MAX_RENDERED_ELEMENTS = 20_000L
-    private const val MAX_REFERENCE_DEPTH = 32
+    internal const val MAX_RENDERED_ELEMENTS = 20_000L
+    internal const val MAX_REFERENCE_DEPTH = 32
 
     fun fits(source: String): Boolean {
         val (nodes, problems) = MarkupDialect.Xml.parse(source)
-        if (problems.isNotEmpty()) return false
+        return problems.isEmpty() && fits(nodes)
+    }
+
+    internal fun fits(nodes: List<MarkupNode>): Boolean {
         val ids = mutableMapOf<String, MarkupNode.Element>()
         nodes.forEach { collectIds(it, ids) }
         val counter = SvgElementCounter(ids, MAX_RENDERED_ELEMENTS, MAX_REFERENCE_DEPTH)

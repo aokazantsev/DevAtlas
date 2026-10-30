@@ -31,6 +31,8 @@ class ThemeStorageImplTest {
         override fun httpClient(): HttpClient = error("не используется")
 
         override fun clipboardText(): String? = null
+
+        override fun copyToClipboard(text: String): Boolean = error("не используется")
     }
 
     private val storage = ThemeStorageImpl(platform, fileSystem, CoroutineScope(Dispatchers.Unconfined))

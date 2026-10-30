@@ -51,6 +51,14 @@ object SvgChecker {
             )
         }
         checkElement(root, collector)
+        if (problems.isEmpty() && !SvgRenderBudget.fits(nodes)) {
+            collector.error(
+                IssueCode.SVG_TOO_COMPLEX,
+                "Схема слишком сложная: больше ${SvgRenderBudget.MAX_RENDERED_ELEMENTS} элементов с учётом <use>, " +
+                    "ссылки <use> по кругу или цепочкой длиннее ${SvgRenderBudget.MAX_REFERENCE_DEPTH}",
+                root.position,
+            )
+        }
         return collector.issues
     }
 

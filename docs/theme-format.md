@@ -102,7 +102,7 @@ diagrams/
 | `p`, `br`, `hr` | абзац, перенос строки, разделитель |
 | `b`, `strong`, `i`, `em`, `code` | жирный, курсив, код в строке |
 | `ul`, `ol`, `li` | списки, в том числе вложенные |
-| `pre` + `code class="language-…"` | блок кода, язык — в классе |
+| `pre` + `code class="language-…"` | блок кода, язык — в классе, см. [Код](#code) |
 | `blockquote` | цитата |
 | `table`, `thead`, `tbody`, `tfoot`, `tr`, `th`, `td` | таблица |
 | `a` | ссылка, см. [Ссылки](#links) |
@@ -123,6 +123,57 @@ diagrams/
 - В коде тегов нет: `<` и `&` пишутся как `&lt;` и `&amp;`. Тег внутри блока кода (`pre`) — ошибка, внутри
   `code` в строке допустимы только `b`, `strong`, `i`, `em`.
 - Незакрытый `script` или `style` — ошибка: если это текст, пишите `&lt;style&gt;`.
+
+<a id="code"></a>
+## Код
+
+Блок кода — `pre` с `code` внутри, язык — классом `language-…`:
+
+```html
+<pre><code class="language-kotlin">fun greet(name: String) = "Привет, $name"
+</code></pre>
+```
+
+Приложение подсвечивает код цветами темы (они меняются вместе со светлой и тёмной темой и цветами обоев),
+пишет над блоком название языка и кнопку «Копировать». Пробелы и переносы — как у автора, длинные строки не
+переносятся: блок прокручивается вбок. Номеров строк нет.
+
+| Язык | Класс | Короткие имена |
+|---|---|---|
+| Kotlin | `language-kotlin` | `kt`, `kts` |
+| Java | `language-java` | |
+| Swift | `language-swift` | |
+| Objective-C | `language-objectivec` | `objc`, `objective-c` |
+| Dart | `language-dart` | |
+| JavaScript | `language-javascript` | `js` |
+| TypeScript | `language-typescript` | `ts` |
+| Python | `language-python` | `py` |
+| Go | `language-go` | `golang` |
+| Rust | `language-rust` | `rs` |
+| C | `language-c` | |
+| C++ | `language-cpp` | `c++` |
+| C# | `language-csharp` | `cs` |
+| PHP | `language-php` | |
+| Ruby | `language-ruby` | `rb` |
+| Shell | `language-shell` | `sh`, `bash` |
+| SQL | `language-sql` | |
+| Groovy | `language-groovy` | `gradle` |
+| JSON | `language-json` | |
+| YAML | `language-yaml` | `yml` |
+| XML | `language-xml` | |
+| HTML | `language-html` | |
+| CSS | `language-css` | |
+| Markdown | `language-markdown` | `md` |
+| Diff | `language-diff` | `patch` |
+| простой текст | `language-text` | `plaintext`, `txt` |
+
+- Регистр в имени языка не важен: `language-Kotlin` = `language-kotlin`.
+- Без языка или с незнакомым языком блок показывается моноширинным текстом без подсветки, предупреждение.
+  Для текста без подсветки (дерево папок, вывод программы) пишите `language-text` — без предупреждения.
+- JSON показывается как написан, без переформатирования. Невалидный JSON в `language-json` — предупреждение
+  с номером строки и столбца внутри блока.
+- Блок длиннее 20 000 символов показывается без подсветки, предупреждение: разбейте его на части.
+- Код в строке (`<code>` внутри абзаца) не подсвечивается.
 
 <a id="links"></a>
 ## Ссылки
@@ -182,6 +233,8 @@ diagrams/
 - Запрещены: `<script>`, `<foreignObject>`, `<style>`, `<image>`, `<iframe>`, `<audio>`, `<video>`, атрибуты `on…` и анимация — `<set>`, `<animate>`,
   `<animateTransform>`, `<animateMotion>`, `<animateColor>`, `<discard>`: схема статична. Ссылки (`href`, `xlink:href`, `url(…)`) — только на
   свои элементы: `#id`.
+- Схема не должна быть слишком сложной: до 20 000 элементов с учётом копий через `<use>`, `<use>` не ссылается
+  на себя по кругу, цепочка `<use>` → `<use>` — не длиннее 32. Иначе ошибка: такую схему телефон не нарисует.
 
 <a id="colors"></a>
 ## Цвета в SVG

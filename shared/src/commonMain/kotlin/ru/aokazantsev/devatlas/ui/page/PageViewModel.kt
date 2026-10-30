@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import ru.aokazantsev.devatlas.contents.domain.ObserveContentsUseCase
 import ru.aokazantsev.devatlas.contents.domain.PageRepository
 import ru.aokazantsev.devatlas.contents.domain.model.ThemeContents
+import ru.aokazantsev.devatlas.di.PlatformBindings
 import ru.aokazantsev.devatlas.themes.domain.ProgressRepository
 
 @AssistedInject
@@ -23,6 +24,7 @@ class PageViewModel(
     observeContents: ObserveContentsUseCase,
     private val pages: PageRepository,
     private val progress: ProgressRepository,
+    private val platform: PlatformBindings,
 ) : ViewModel() {
 
     private var loaded: LoadedPage? = null
@@ -41,6 +43,8 @@ class PageViewModel(
             }
         }
     }
+
+    fun copyCode(code: String): Boolean = platform.copyToClipboard(code)
 
     private suspend fun toState(contents: ThemeContents): PageState {
         if (contents == ThemeContents.Unreadable) return PageState.Unreadable(title = null)

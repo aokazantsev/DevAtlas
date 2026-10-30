@@ -19,6 +19,7 @@ import ru.aokazantsev.devatlas.themes.FakeClock
 import ru.aokazantsev.devatlas.themes.FakeCurrentThemeRepository
 import ru.aokazantsev.devatlas.themes.FakeInstalledThemeRepository
 import ru.aokazantsev.devatlas.themes.FakePackageReader
+import ru.aokazantsev.devatlas.themes.FakePlatformBindings
 import ru.aokazantsev.devatlas.themes.FakeProgressRepository
 import ru.aokazantsev.devatlas.themes.FakeThemeStorage
 import ru.aokazantsev.devatlas.themes.domain.ThemeLibraryImpl
@@ -27,6 +28,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -38,6 +40,7 @@ class PageViewModelTest {
     private val reader = FakePackageReader()
     private val progress = FakeProgressRepository()
     private val pages = FakePageRepository()
+    private val platform = FakePlatformBindings()
 
     private val content = PageContent(
         document = PageDocument(listOf(PageBlock.Paragraph(listOf(PageInline.Text("Текст"))))),
@@ -68,7 +71,7 @@ class PageViewModelTest {
 
     private fun viewModel(pageId: String): PageViewModel {
         val library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock())
-        return PageViewModel(pageId, ObserveContentsUseCaseImpl(library, storage, reader, progress), pages, progress)
+        return PageViewModel(pageId, ObserveContentsUseCaseImpl(library, storage, reader, progress), pages, progress, platform)
     }
 
     private suspend fun PageViewModel.settled() = state.first { it != PageState.Loading }
@@ -159,5 +162,26 @@ class PageViewModelTest {
 
         viewModel.state.first { (it as? PageState.Ready)?.content == updated }
         assertEquals(2, pages.loads)
+    }
+
+    @Test
+    fun copyCodePutsExactTextToClipboard() = runTest {
+        installTheme()
+        val viewModel = viewModel("one")
+
+        viewModel.copyCode("val a = 1\n    b()")
+
+        assertEquals("val a = 1\n    b()", platform.clipboard)
+    }
+
+    @Test
+    fun copyCodeReportsPlatformFailure() = runTest {
+        installTheme()
+        val viewModel = viewModel("one")
+        platform.copySucceeds = false
+
+        assertFalse(viewModel.copyCode("x"))
+        platform.copySucceeds = true
+        assertTrue(viewModel.copyCode("x"))
     }
 }

@@ -252,8 +252,8 @@ class HtmlPageParserTest {
             listOf(IssueCode.CODE_MARKUP),
             codes("<pre><code class=\"language-xml\"><TextView android:id=\"@+id/x\" /></code></pre>"),
         )
-        assertEquals(listOf(IssueCode.CODE_MARKUP), codes("<pre>a<br>b</pre>"))
-        assertTrue(codes("<pre><code>List&lt;String&gt; &amp;</code></pre>").isEmpty())
+        assertEquals(listOf(IssueCode.CODE_MARKUP), codes("<pre><code class=\"language-text\">a<br>b</code></pre>"))
+        assertTrue(codes("<pre><code class=\"language-kotlin\">List&lt;String&gt; &amp;</code></pre>").isEmpty())
     }
 
     @Test

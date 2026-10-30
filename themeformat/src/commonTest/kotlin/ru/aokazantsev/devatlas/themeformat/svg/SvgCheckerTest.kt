@@ -3,6 +3,7 @@ package ru.aokazantsev.devatlas.themeformat.svg
 import ru.aokazantsev.devatlas.themeformat.issue.IssueCode
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class SvgCheckerTest {
@@ -133,5 +134,15 @@ class SvgCheckerTest {
                 ),
             ),
         )
+    }
+
+    @Test
+    fun renderBudgetOverflowIsError() {
+        assertTrue(IssueCode.SVG_TOO_COMPLEX in codes(svg("""<g id="a"><use href="#b"/></g><g id="b"><use href="#a"/></g>""")))
+        assertFalse(IssueCode.SVG_TOO_COMPLEX in codes(svg("""<defs><g id="a"><rect/></g></defs><use href="#a"/>""")))
+        assertTrue(IssueCode.SVG_TOO_COMPLEX in codes(svg("<rect/>".repeat(20_001))))
+        val broken = codes(svg("""<g id="a"><use href="#a"/></g><b>"""))
+        assertTrue(IssueCode.SVG_SYNTAX in broken)
+        assertFalse(IssueCode.SVG_TOO_COMPLEX in broken)
     }
 }

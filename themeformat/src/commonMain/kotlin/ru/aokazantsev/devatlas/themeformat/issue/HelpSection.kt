@@ -7,6 +7,7 @@ enum class HelpSection(val anchor: String) {
     IDS("ids"),
     TREE("tree"),
     HTML("html"),
+    CODE("code"),
     LINKS("links"),
     PDF("pdf"),
     IMAGES("images"),
