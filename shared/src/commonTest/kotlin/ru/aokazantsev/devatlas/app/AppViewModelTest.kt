@@ -17,6 +17,7 @@ import ru.aokazantsev.devatlas.settings.domain.model.Appearance
 import ru.aokazantsev.devatlas.settings.domain.model.ThemeMode
 import ru.aokazantsev.devatlas.startup.domain.RunStartupChecksUseCase
 import ru.aokazantsev.devatlas.startup.domain.model.StartupCheckResult
+import ru.aokazantsev.devatlas.testing.ViewModelScopes
 import ru.aokazantsev.devatlas.themes.FakeClock
 import ru.aokazantsev.devatlas.themes.FakeCurrentThemeRepository
 import ru.aokazantsev.devatlas.themes.FakeInstalledThemeRepository
@@ -42,6 +43,8 @@ class AppViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
 
+    private val scopes = ViewModelScopes()
+
     @BeforeTest
     fun setUp() {
         Dispatchers.setMain(dispatcher)
@@ -49,6 +52,7 @@ class AppViewModelTest {
 
     @AfterTest
     fun tearDown() {
+        scopes.cancelAll()
         Dispatchers.resetMain()
     }
 
@@ -223,12 +227,14 @@ class AppViewModelTest {
         progress: FakeProgressRepository = FakeProgressRepository(),
         current: FakeCurrentThemeRepository = FakeCurrentThemeRepository(),
         installer: ThemeInstaller = FakeInstaller(failure = null),
-    ) = AppViewModel(
-        runStartupChecks = checks,
-        onboarding = onboarding,
-        library = ThemeLibraryImpl(repository, current, FakeThemeStorage(), progress, FakeClock()),
-        installer = installer,
-        themeSettings = settings,
+    ) = scopes.track(
+        AppViewModel(
+            runStartupChecks = checks,
+            onboarding = onboarding,
+            library = ThemeLibraryImpl(repository, current, FakeThemeStorage(), progress, FakeClock()),
+            installer = installer,
+            themeSettings = settings,
+        ),
     )
 
     private class FakeOnboarding(accepted: Boolean) : OnboardingRepository {

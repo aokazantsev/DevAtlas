@@ -8,6 +8,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import ru.aokazantsev.devatlas.testing.ViewModelScopes
 import ru.aokazantsev.devatlas.themes.FakeClock
 import ru.aokazantsev.devatlas.themes.FakeCurrentThemeRepository
 import ru.aokazantsev.devatlas.themes.FakeInstalledThemeRepository
@@ -35,6 +36,8 @@ class ManageThemeViewModelTest {
     private val storage = FakeThemeStorage()
     private val updater = ScriptedUpdater()
 
+    private val scopes = ViewModelScopes()
+
     @BeforeTest
     fun setUp() {
         Dispatchers.setMain(dispatcher)
@@ -42,17 +45,20 @@ class ManageThemeViewModelTest {
 
     @AfterTest
     fun tearDown() {
+        scopes.cancelAll()
         Dispatchers.resetMain()
     }
 
     private suspend fun viewModel(themeId: String = "a"): ManageThemeViewModel {
         repository.save(installedOf("a", lastUsedAt = 1L))
         repository.save(installedOf("b", lastUsedAt = 0L))
-        return ManageThemeViewModel(
-            themeId = themeId,
-            library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock()),
-            updater = updater,
-            installer = ScriptedInstaller(),
+        return scopes.track(
+            ManageThemeViewModel(
+                themeId = themeId,
+                library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock()),
+                updater = updater,
+                installer = ScriptedInstaller(),
+            ),
         )
     }
 

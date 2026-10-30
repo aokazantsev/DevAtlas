@@ -11,6 +11,7 @@ import kotlinx.coroutines.test.setMain
 import ru.aokazantsev.devatlas.onboarding.data.OnboardingRepositoryImpl
 import ru.aokazantsev.devatlas.onboarding.domain.model.Consent
 import ru.aokazantsev.devatlas.settings.data.InMemoryPreferencesDataStore
+import ru.aokazantsev.devatlas.testing.ViewModelScopes
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -22,6 +23,8 @@ class OnboardingViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val repository = OnboardingRepositoryImpl(InMemoryPreferencesDataStore())
 
+    private val scopes = ViewModelScopes()
+
     @BeforeTest
     fun setUp() {
         Dispatchers.setMain(dispatcher)
@@ -29,19 +32,20 @@ class OnboardingViewModelTest {
 
     @AfterTest
     fun tearDown() {
+        scopes.cancelAll()
         Dispatchers.resetMain()
     }
 
     @Test
     fun defaultsAreReportsOffAndStatisticsOnAndPolicyNotAccepted() {
-        val viewModel = OnboardingViewModel(repository)
+        val viewModel = scopes.track(OnboardingViewModel(repository))
 
         assertEquals(OnboardingState(policyAccepted = false, crashReports = false, usageStatistics = true), viewModel.state.value)
     }
 
     @Test
     fun nextWithoutPolicyDoesNothing() = runTest(dispatcher) {
-        val viewModel = OnboardingViewModel(repository)
+        val viewModel = scopes.track(OnboardingViewModel(repository))
         var done = false
 
         viewModel.next { done = true }
@@ -53,7 +57,7 @@ class OnboardingViewModelTest {
 
     @Test
     fun nextStoresChoicesWithCurrentPolicyVersion() = runTest(dispatcher) {
-        val viewModel = OnboardingViewModel(repository)
+        val viewModel = scopes.track(OnboardingViewModel(repository))
         var done = false
         viewModel.setPolicyAccepted(true)
         viewModel.setCrashReports(true)

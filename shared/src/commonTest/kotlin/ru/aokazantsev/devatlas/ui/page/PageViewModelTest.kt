@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.setMain
 import ru.aokazantsev.devatlas.contents.domain.ObserveContentsUseCaseImpl
 import ru.aokazantsev.devatlas.contents.FakePageRepository
 import ru.aokazantsev.devatlas.contents.domain.model.PageContent
+import ru.aokazantsev.devatlas.testing.ViewModelScopes
 import ru.aokazantsev.devatlas.themeformat.manifest.ThemeManifest
 import ru.aokazantsev.devatlas.themeformat.manifest.ThemeNode
 import ru.aokazantsev.devatlas.themeformat.page.model.PageBlock
@@ -47,6 +48,8 @@ class PageViewModelTest {
         diagrams = emptyMap(),
     )
 
+    private val scopes = ViewModelScopes()
+
     @BeforeTest
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -54,6 +57,7 @@ class PageViewModelTest {
 
     @AfterTest
     fun tearDown() {
+        scopes.cancelAll()
         Dispatchers.resetMain()
     }
 
@@ -71,7 +75,9 @@ class PageViewModelTest {
 
     private fun viewModel(pageId: String): PageViewModel {
         val library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock())
-        return PageViewModel(pageId, ObserveContentsUseCaseImpl(library, storage, reader, progress), pages, progress, platform)
+        return scopes.track(
+            PageViewModel(pageId, ObserveContentsUseCaseImpl(library, storage, reader, progress), pages, progress, platform),
+        )
     }
 
     private suspend fun PageViewModel.settled() = state.first { it != PageState.Loading }

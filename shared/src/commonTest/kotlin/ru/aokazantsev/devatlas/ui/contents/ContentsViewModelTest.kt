@@ -8,6 +8,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import ru.aokazantsev.devatlas.contents.domain.ObserveContentsUseCaseImpl
+import ru.aokazantsev.devatlas.testing.ViewModelScopes
 import ru.aokazantsev.devatlas.themeformat.manifest.ThemeManifest
 import ru.aokazantsev.devatlas.themeformat.manifest.ThemeNode
 import ru.aokazantsev.devatlas.themes.FakeClock
@@ -44,6 +45,8 @@ class ContentsViewModelTest {
         ),
     )
 
+    private val scopes = ViewModelScopes()
+
     @BeforeTest
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -51,6 +54,7 @@ class ContentsViewModelTest {
 
     @AfterTest
     fun tearDown() {
+        scopes.cancelAll()
         Dispatchers.resetMain()
     }
 
@@ -64,7 +68,7 @@ class ContentsViewModelTest {
 
     private fun viewModel(sectionId: String? = null): ContentsViewModel {
         val library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock())
-        return ContentsViewModel(sectionId, ObserveContentsUseCaseImpl(library, storage, reader, progress))
+        return scopes.track(ContentsViewModel(sectionId, ObserveContentsUseCaseImpl(library, storage, reader, progress)))
     }
 
     private suspend fun ContentsViewModel.settled() = state.first { it != ContentsState.Loading }
