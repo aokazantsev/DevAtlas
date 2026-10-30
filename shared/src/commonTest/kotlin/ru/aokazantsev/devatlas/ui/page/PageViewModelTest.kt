@@ -153,9 +153,11 @@ class PageViewModelTest {
         val viewModel = viewModel("one")
         viewModel.settled()
 
+        val updated = PageContent(document = PageDocument(emptyList()), diagrams = emptyMap())
+        pages.contents["one.html"] = updated
         repository.save(installedOf("t", sha256 = "updated"))
-        viewModel.state.first { pages.loads == 2 }
 
+        viewModel.state.first { (it as? PageState.Ready)?.content == updated }
         assertEquals(2, pages.loads)
     }
 }
