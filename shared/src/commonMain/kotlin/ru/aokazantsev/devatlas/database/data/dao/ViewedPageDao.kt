@@ -3,6 +3,7 @@ package ru.aokazantsev.devatlas.database.data.dao
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
+import kotlinx.coroutines.flow.Flow
 import ru.aokazantsev.devatlas.database.data.entity.ViewedPageEntity
 
 @Dao
@@ -12,6 +13,12 @@ interface ViewedPageDao {
 
     @Query("SELECT COUNT(*) FROM viewed_page")
     suspend fun count(): Int
+
+    @Query("SELECT page_id FROM viewed_page WHERE theme_id = :themeId")
+    fun observePageIds(themeId: String): Flow<List<String>>
+
+    @Query("DELETE FROM viewed_page WHERE theme_id = :themeId AND page_id = :pageId")
+    suspend fun delete(themeId: String, pageId: String)
 
     @Query("SELECT COUNT(*) FROM viewed_page WHERE theme_id = :themeId")
     suspend fun countForTheme(themeId: String): Int

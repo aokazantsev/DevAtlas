@@ -11,6 +11,7 @@ class AtlasSizes(
     val loader: Dp,
     val swatch: Dp,
     val shapeSample: Dp,
+    val tableColumnMax: Dp,
 ) {
     companion object {
         val Default = AtlasSizes(
@@ -19,6 +20,7 @@ class AtlasSizes(
             loader = 48.dp,
             swatch = 56.dp,
             shapeSample = 64.dp,
+            tableColumnMax = 240.dp,
         )
     }
 }

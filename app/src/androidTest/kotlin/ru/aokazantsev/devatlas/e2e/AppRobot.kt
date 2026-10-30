@@ -1,8 +1,10 @@
 package ru.aokazantsev.devatlas.e2e
 
 import android.os.SystemClock
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
@@ -19,6 +21,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso
@@ -56,6 +60,18 @@ fun ComposeTestRule.clickText(text: String) {
     val inScrollable = hasText(text) and hasAnyAncestor(hasScrollAction())
     if (onAllNodes(inScrollable).fetchSemanticsNodes().isNotEmpty()) onNode(inScrollable).performScrollTo()
     onNodeWithText(text).performClick()
+}
+
+fun ComposeTestRule.clickLink(linkText: String) {
+    val paragraph = hasText(linkText, substring = true) and hasAnyAncestor(hasScrollAction())
+    waitFor(paragraph)
+    val node = onNode(paragraph).performScrollTo()
+    val layouts = mutableListOf<TextLayoutResult>()
+    node.fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
+    val layout = layouts.first()
+    val start = layout.layoutInput.text.text.indexOf(linkText)
+    val box = layout.getBoundingBox(start)
+    node.performTouchInput { click(box.center) }
 }
 
 fun ComposeTestRule.assertNoText(text: String) {

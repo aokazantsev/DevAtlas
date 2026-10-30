@@ -21,9 +21,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import coil3.ImageLoader
-import coil3.compose.setSingletonImageLoaderFactory
-import coil3.svg.SvgDecoder
 import ru.aokazantsev.devatlas.designsystem.theme.AtlasTheme
 import ru.aokazantsev.devatlas.di.AppGraph
 import ru.aokazantsev.devatlas.navigation.Route
@@ -53,11 +50,6 @@ fun DevAtlasApp(
     onBackgroundResolved: (argb: Int) -> Unit,
     onContentReady: () -> Unit,
 ) {
-    setSingletonImageLoaderFactory { context ->
-        ImageLoader.Builder(context)
-            .components { add(SvgDecoder.Factory()) }
-            .build()
-    }
     val appViewModel = viewModel { graph.appViewModel() }
     val appearance by appViewModel.appearance.collectAsStateWithLifecycle()
     val startupState by appViewModel.startupState.collectAsStateWithLifecycle()
@@ -105,6 +97,7 @@ fun DevAtlasApp(
 private fun AppNavHost(graph: AppGraph, navController: NavHostController, startRoute: Route) {
     NavHost(navController = navController, startDestination = startRoute) {
         firstRunDestinations(graph, navController)
+        contentsDestinations(graph, navController)
         themeDestinations(graph, navController)
         settingsDestinations(graph, navController)
     }
@@ -132,16 +125,40 @@ private fun NavGraphBuilder.firstRunDestinations(graph: AppGraph, navController:
             },
         )
     }
+}
+
+private fun NavGraphBuilder.contentsDestinations(graph: AppGraph, navController: NavHostController) {
     composable<Route.Contents> { entry ->
         ContentsScreen(
-            viewModel = viewModel { graph.contentsViewModel() },
+            viewModel = viewModel { graph.contentsViewModel.create(null) },
+            onOpenSection = { id -> entry.whenResumed { navController.navigate(Route.Section(id)) } },
+            onOpenPage = { id -> entry.whenResumed { navController.navigate(Route.Page(id)) } },
             onOpenSettings = { entry.whenResumed { navController.navigate(Route.Settings) } },
             onAddTheme = { entry.whenResumed { navController.resetTo(Route.AddTheme(onboarding = true)) } },
+            onBack = null,
+        )
+    }
+    composable<Route.Section> { entry ->
+        val section = entry.toRoute<Route.Section>()
+        ContentsScreen(
+            viewModel = viewModel(key = section.sectionId) { graph.contentsViewModel.create(section.sectionId) },
+            onOpenSection = { id -> entry.whenResumed { navController.navigate(Route.Section(id)) } },
+            onOpenPage = { id -> entry.whenResumed { navController.navigate(Route.Page(id)) } },
+            onOpenSettings = null,
+            onAddTheme = { entry.whenResumed { navController.resetTo(Route.AddTheme(onboarding = true)) } },
+            onBack = { entry.whenResumed { navController.popBackStack() } },
+            anchor = section.anchor,
         )
     }
     composable<Route.Page> { entry ->
+        val page = entry.toRoute<Route.Page>()
         PageScreen(
-            pageId = entry.toRoute<Route.Page>().pageId,
+            viewModel = viewModel(key = page.pageId) { graph.pageViewModel.create(page.pageId) },
+            anchor = page.anchor,
+            onOpenPage = { id -> entry.whenResumed { navController.navigate(Route.Page(id)) } },
+            onNext = { id ->
+                entry.whenResumed { navController.navigate(Route.Page(id)) { popUpTo(page) { inclusive = true } } }
+            },
             onBack = { entry.whenResumed { navController.popBackStack() } },
         )
     }

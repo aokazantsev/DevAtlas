@@ -5,5 +5,14 @@ sealed interface ContentsState {
 
     data object NoTheme : ContentsState
 
-    data class Ready(val title: String, val description: String?, val sections: List<String>) : ContentsState
+    data object Unreadable : ContentsState
+
+    data object SectionMissing : ContentsState
+
+    data class Ready(
+        val title: String,
+        val description: String?,
+        val progress: ContentsProgress?,
+        val rows: List<ContentsRow>,
+    ) : ContentsState
 }

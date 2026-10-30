@@ -13,7 +13,10 @@ sealed interface Route {
     data object Contents : Route
 
     @Serializable
-    data class Page(val pageId: String) : Route
+    data class Section(val sectionId: String, val anchor: Int = 0) : Route
+
+    @Serializable
+    data class Page(val pageId: String, val anchor: Int = 0) : Route
 
     @Serializable
     data object Settings : Route

@@ -35,12 +35,10 @@ kotlin {
             implementation(libs.datastore.preferences)
             implementation(libs.okio)
             implementation(libs.ktor.client.core)
-            implementation(libs.coil.compose)
-            implementation(libs.coil.svg)
-            implementation(libs.coil.network.ktor)
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.androidsvg)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

@@ -1,6 +1,8 @@
 package ru.aokazantsev.devatlas.startup.data
 
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.runTest
 import ru.aokazantsev.devatlas.database.data.dao.ViewedPageDao
 import ru.aokazantsev.devatlas.database.data.entity.ViewedPageEntity
@@ -40,6 +42,10 @@ class DatabaseCheckTest {
 
     private fun dao(count: () -> Int) = object : ViewedPageDao {
         override suspend fun upsert(entity: ViewedPageEntity) = Unit
+
+        override fun observePageIds(themeId: String): Flow<List<String>> = emptyFlow()
+
+        override suspend fun delete(themeId: String, pageId: String) = Unit
 
         override suspend fun count(): Int = count()
 

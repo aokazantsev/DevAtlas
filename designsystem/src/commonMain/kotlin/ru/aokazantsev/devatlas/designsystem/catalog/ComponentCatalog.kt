@@ -30,6 +30,7 @@ import ru.aokazantsev.devatlas.designsystem.component.AtlasCheckboxDialog
 import ru.aokazantsev.devatlas.designsystem.component.AtlasChoiceGroup
 import ru.aokazantsev.devatlas.designsystem.component.AtlasChoiceOption
 import ru.aokazantsev.devatlas.designsystem.component.AtlasConfirmDialog
+import ru.aokazantsev.devatlas.designsystem.component.AtlasDivider
 import ru.aokazantsev.devatlas.designsystem.component.AtlasError
 import ru.aokazantsev.devatlas.designsystem.component.AtlasIcon
 import ru.aokazantsev.devatlas.designsystem.component.AtlasIconButton
@@ -96,6 +97,7 @@ private fun CatalogSection(themeName: String) {
             CatalogGroup("Переключатели") { ToggleSamples() }
             CatalogGroup("Поле ввода") { TextFieldSamples() }
             CatalogGroup("Прогресс") { ProgressSamples() }
+            CatalogGroup("Разделитель текста") { DividerSample() }
             CatalogGroup("Шторка и диалог") { OverlaySamples() }
             CatalogGroup("Загрузка и ошибка") { StateSamples() }
         }
@@ -217,7 +219,7 @@ private fun IconSamples() {
         AtlasIcons.Check, AtlasIcons.CheckCircle, AtlasIcons.ChevronRight, AtlasIcons.ArrowBack,
         AtlasIcons.Settings, AtlasIcons.Info, AtlasIcons.Close, AtlasIcons.Error, AtlasIcons.Refresh,
         AtlasIcons.LightMode, AtlasIcons.DarkMode, AtlasIcons.Contrast, AtlasIcons.Palette, AtlasIcons.Add,
-        AtlasIcons.Folder,
+        AtlasIcons.Folder, AtlasIcons.Article,
     )
     FlowRow(
         modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
@@ -233,12 +235,28 @@ private fun IconSamples() {
 @Composable
 private fun ListRowSamples() {
     AtlasListGroup {
-        AtlasListRow(title = "Страница", index = 0, count = 4, onClick = {})
-        AtlasListRow(title = "Просмотренная страница", checked = true, index = 1, count = 4, onClick = {})
-        AtlasListRow(title = "Раздел", counter = "3 из 7", showChevron = true, index = 2, count = 4, onClick = {})
+        AtlasListRow(title = "Страница", leadingIcon = AtlasIcons.Article, index = 0, count = 4, onClick = {})
+        AtlasListRow(
+            title = "Просмотренная страница",
+            leadingIcon = AtlasIcons.Article,
+            checked = true,
+            index = 1,
+            count = 4,
+            onClick = {},
+        )
+        AtlasListRow(
+            title = "Раздел",
+            subtitle = "3 из 7",
+            leadingIcon = AtlasIcons.Folder,
+            showChevron = true,
+            index = 2,
+            count = 4,
+            onClick = {},
+        )
         AtlasListRow(
             title = "Пройденный раздел",
-            counter = "7 из 7",
+            subtitle = "7 из 7",
+            leadingIcon = AtlasIcons.Folder,
             checked = true,
             showChevron = true,
             index = 3,
@@ -318,6 +336,18 @@ private fun ProgressSamples() {
     ) {
         AtlasText(text = "Пройдено 12 из 30", style = AtlasTheme.typography.bodyMedium)
         AtlasProgressBar(progress = 0.4f)
+    }
+}
+
+@Composable
+private fun DividerSample() {
+    Column(
+        modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
+        verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.m),
+    ) {
+        AtlasText(text = "Абзац до разделителя")
+        AtlasDivider()
+        AtlasText(text = "Абзац после разделителя")
     }
 }
 
