@@ -28,6 +28,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class KtorThemeDownloaderTest {
@@ -48,6 +49,89 @@ class KtorThemeDownloaderTest {
 
     private fun direct(url: String = "https://example.com/theme.zip") =
         ThemeSourcePlan(address = url, location = ArchiveLocation.Direct(url), subFolder = null)
+
+    private val googleDrive = ThemeSourcePlan(
+        address = "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view",
+        location = ArchiveLocation.GoogleDriveFile("1AbCdEfGhIjKlMnOpQrStUvWxYz012345"),
+        subFolder = null,
+    )
+
+    @Test
+    fun googleDriveFileIsDownloadedFromUsercontentWithConfirm() = runTest {
+        val loader = downloader { respond(zipBytes, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/zip")) }
+
+        assertIs<DownloadResult.Downloaded>(loader.download(googleDrive, null, target))
+
+        val url = requests.single().url
+        assertEquals("drive.usercontent.google.com", url.host)
+        assertEquals("1AbCdEfGhIjKlMnOpQrStUvWxYz012345", url.parameters["id"])
+        assertEquals("download", url.parameters["export"])
+        assertEquals("t", url.parameters["confirm"])
+        assertNull(url.parameters["resourcekey"])
+    }
+
+    @Test
+    fun googleDriveResourceKeyIsSent() = runTest {
+        val loader = downloader { respond(zipBytes, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/zip")) }
+        val plan = googleDrive.copy(location = ArchiveLocation.GoogleDriveFile("1AbCdEfGhIjKlMnOpQrStUvWxYz012345", "0-AbCdEfGhIjKl"))
+
+        assertIs<DownloadResult.Downloaded>(loader.download(plan, null, target))
+
+        assertEquals("0-AbCdEfGhIjKl", requests.single().url.parameters["resourcekey"])
+    }
+
+    @Test
+    fun googleDrivePageInsteadOfFileSaysOpenAccess() = runTest {
+        val loader = downloader {
+            respond("<html>Sign in</html>", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "text/html; charset=utf-8"))
+        }
+
+        val failure = failure(loader.download(googleDrive, null, target))
+
+        assertTrue(failure.message.contains("Все, у кого есть ссылка"))
+        assertFalse(fileSystem.exists(target))
+    }
+
+    @Test
+    fun googleDriveRedirectToSignInSaysOpenAccess() = runTest {
+        val loader = downloader { request ->
+            if (request.url.host == "drive.usercontent.google.com") {
+                respond("", HttpStatusCode.Found, headersOf(HttpHeaders.Location, "https://accounts.google.com/ServiceLogin"))
+            } else {
+                respond("<html>Sign in</html>", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "text/html; charset=utf-8"))
+            }
+        }
+
+        assertTrue(failure(loader.download(googleDrive, null, target)).message.contains("Все, у кого есть ссылка"))
+    }
+
+    @Test
+    fun googleDriveMalformedContentTypeIsNotHtml() = runTest {
+        val loader = downloader { respond(zipBytes, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "zip;;=")) }
+
+        assertIs<DownloadResult.Downloaded>(loader.download(googleDrive, null, target))
+    }
+
+    @Test
+    fun googleDriveMissingFileGivesNotFoundText() = runTest {
+        val loader = downloader { respond("", HttpStatusCode.NotFound, headersOf(HttpHeaders.ContentType, "text/html")) }
+
+        assertTrue(failure(loader.download(googleDrive, null, target)).message.contains("404"))
+    }
+
+    @Test
+    fun googleDriveIgnoringValidatorsStillDownloads() = runTest {
+        val loader = downloader { respond(zipBytes, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/octet-stream")) }
+
+        assertIs<DownloadResult.Downloaded>(loader.download(googleDrive, CacheValidators(etag = null, lastModified = "Fri"), target))
+    }
+
+    @Test
+    fun htmlFromOrdinarySiteIsStillSaved() = runTest {
+        val loader = downloader { respond(zipBytes, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "text/html")) }
+
+        assertIs<DownloadResult.Downloaded>(loader.download(direct(), null, target))
+    }
 
     private val yandex = ThemeSourcePlan(
         address = "https://disk.yandex.ru/d/key",

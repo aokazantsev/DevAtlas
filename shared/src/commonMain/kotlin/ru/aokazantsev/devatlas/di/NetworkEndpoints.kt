@@ -5,6 +5,7 @@ data class NetworkEndpoints(
     val releasesUrl: String,
     val yandexDownloadApiUrl: String = "https://cloud-api.yandex.net/v1/disk/public/resources/download",
     val githubArchiveUrl: String = "https://codeload.github.com",
+    val googleDriveDownloadUrl: String = "https://drive.usercontent.google.com/download",
     val allowCleartext: Boolean = false,
 ) {
     companion object {

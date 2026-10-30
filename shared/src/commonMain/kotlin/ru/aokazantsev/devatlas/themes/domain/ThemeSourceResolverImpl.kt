@@ -23,11 +23,12 @@ internal class ThemeSourceResolverImpl(
         val authority = match.groupValues[HOST_GROUP]
         val host = authority.lowercase().substringBefore(':')
         val segments = match.groupValues[PATH_GROUP].split('/').filter { it.isNotEmpty() }
+        val query = match.groupValues[QUERY_GROUP]
         val address = text.substringBefore('#')
         return when {
             '@' in authority -> SourceResolution.Rejected(NOT_AN_ADDRESS)
             host in YANDEX_HOSTS -> yandex(address, host, segments)
-            host in GOOGLE_HOSTS -> SourceResolution.Rejected(GOOGLE_DRIVE)
+            host in GOOGLE_HOSTS -> googleDrive(address, host, segments, query)
             host in DROPBOX_HOSTS -> SourceResolution.Rejected(DROPBOX)
             host in GITHUB_HOSTS && segments.getOrNull(MODE_INDEX) == "blob" && isZip(segments) -> githubFile(address, segments)
             isZip(segments) -> zipUrl(address)
@@ -78,6 +79,25 @@ internal class ThemeSourceResolverImpl(
         return SourceResolution.Resolved(plan)
     }
 
+    private fun googleDrive(address: String, host: String, segments: List<String>, query: String): SourceResolution {
+        val afterFile = segments.indexOf("file").takeIf { it >= 0 }?.let { segments.drop(it + 1) }.orEmpty()
+        val fileId = if ("d" in afterFile) afterFile.getOrNull(afterFile.indexOf("d") + 1) else queryParameter(query, "id")
+        val resourceKey = queryParameter(query, "resourcekey")?.takeIf { GOOGLE_FILE_ID.matches(it) }
+        return when {
+            host == GOOGLE_DOCS_HOST && segments.firstOrNull() !in DOCS_FILE_PATHS -> SourceResolution.Rejected(GOOGLE_DOCUMENT)
+            "folders" in segments -> SourceResolution.Rejected(GOOGLE_FOLDER)
+            fileId == null || !GOOGLE_FILE_ID.matches(fileId) -> SourceResolution.Rejected(GOOGLE_FILE_SHAPE)
+            else -> SourceResolution.Resolved(
+                ThemeSourcePlan(address = address, location = ArchiveLocation.GoogleDriveFile(fileId, resourceKey), subFolder = null),
+            )
+        }
+    }
+
+    private fun queryParameter(query: String, name: String): String? =
+        query.removePrefix("?").split('&').firstNotNullOfOrNull { pair ->
+            pair.substringAfter('=', missingDelimiterValue = "").takeIf { pair.substringBefore('=') == name }
+        }
+
     private fun isZip(segments: List<String>) = segments.lastOrNull()?.endsWith(ZIP_SUFFIX, ignoreCase = true) == true
 
     private fun githubFile(address: String, segments: List<String>): SourceResolution {
@@ -123,7 +143,7 @@ internal class ThemeSourceResolverImpl(
             buffer.writeByte(hex.toInt(HEX_RADIX))
             index = percent + PERCENT_ESCAPE_LENGTH
         }
-        return buffer.readUtf8().takeIf { '�' !in it }
+        return buffer.readUtf8().takeIf { '\uFFFD' !in it }
     }
 
     private companion object {
@@ -132,6 +152,7 @@ internal class ThemeSourceResolverImpl(
         const val LINK_TRAILING_PUNCTUATION = ".,;:!?)»\"'"
         const val HOST_GROUP = 1
         const val PATH_GROUP = 2
+        const val QUERY_GROUP = 3
         const val KEY_INDEX = 1
         const val MODE_INDEX = 2
         const val BRANCH_INDEX = 3
@@ -139,17 +160,26 @@ internal class ThemeSourceResolverImpl(
         const val PERCENT_ESCAPE_LENGTH = 3
         const val HEX_RADIX = 16
         val YANDEX_HOSTS = setOf("disk.yandex.ru", "disk.yandex.com", "disk.yandex.by", "disk.yandex.kz", "disk.yandex.uz", "yadi.sk")
-        val GOOGLE_HOSTS = setOf("drive.google.com", "docs.google.com")
+        const val GOOGLE_DOCS_HOST = "docs.google.com"
+        val DOCS_FILE_PATHS = setOf("uc", "file")
+        val GOOGLE_HOSTS = setOf("drive.google.com", "drive.usercontent.google.com", GOOGLE_DOCS_HOST)
+        val GOOGLE_FILE_ID = Regex("[A-Za-z0-9_-]{10,}")
         val DROPBOX_HOSTS = setOf("dropbox.com", "www.dropbox.com")
         val GITHUB_HOSTS = setOf("github.com", "www.github.com")
         const val NOT_AN_ADDRESS = "Это не похоже на ссылку: нужен адрес вида https://…"
-        const val GOOGLE_DRIVE = "Google Диск не поддерживается: выложите тему на Яндекс.Диск, GitHub или любой сайт в виде zip-архива"
-        const val DROPBOX = "Dropbox пока не поддерживается: выложите тему на Яндекс.Диск, GitHub или любой сайт в виде zip-архива"
+        const val GOOGLE_FOLDER =
+            "Папку Google Диска скачать нельзя: соберите тему в zip, выложите файл с доступом «Все, у кого есть ссылка» " +
+                "и дайте ссылку на него"
+        const val GOOGLE_DOCUMENT = "Документы Google не подходят: нужна ссылка на zip-файл на Google Диске"
+        const val GOOGLE_FILE_SHAPE = "Для Google Диска нужна ссылка на zip-файл: drive.google.com/file/d/…"
+        const val DROPBOX =
+            "Dropbox пока не поддерживается: выложите тему на Яндекс.Диск, GitHub, Google Диск или любой сайт в виде zip-архива"
         const val YANDEX_NOT_PUBLIC = "Нужна публичная ссылка на папку или файл Яндекс.Диска: disk.yandex.ru/d/… или disk.yandex.ru/i/…"
         const val GITHUB_SHAPE =
             "Для GitHub нужна ссылка на репозиторий или его папку: github.com/владелец/репозиторий или …/tree/ветка/папка"
         const val UNKNOWN_SOURCE =
-            "Не понимаю этот адрес. Подходят публичная папка или zip Яндекс.Диска, репозиторий GitHub и ссылка на файл .zip. " +
+            "Не понимаю этот адрес. Подходят публичная папка или zip Яндекс.Диска, репозиторий GitHub, zip на Google Диске " +
+                "и ссылка на файл .zip. " +
                 "Обычные папки на сайтах не поддерживаются"
     }
 }

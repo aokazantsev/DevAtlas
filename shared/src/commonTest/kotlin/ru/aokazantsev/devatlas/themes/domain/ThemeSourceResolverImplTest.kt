@@ -145,9 +145,60 @@ class ThemeSourceResolverImplTest {
     }
 
     @Test
-    fun googleDriveAndDropboxAreRejected() {
-        assertTrue(rejection("https://drive.google.com/file/d/1/view").contains("Google Диск"))
+    fun dropboxIsRejected() {
         assertTrue(rejection("https://www.dropbox.com/s/abc/theme.zip?dl=0").contains("Dropbox"))
+    }
+
+    @Test
+    fun googleDriveFileLinksGiveFileId() {
+        val expected = ArchiveLocation.GoogleDriveFile("1AbCdEfGhIjKlMnOpQrStUvWxYz012345")
+        assertEquals(expected, plan("https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view?usp=sharing").location)
+        assertEquals(expected, plan("https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345").location)
+        assertEquals(expected, plan("https://drive.google.com/open?id=1AbCdEfGhIjKlMnOpQrStUvWxYz012345").location)
+        assertEquals(expected, plan("https://drive.google.com/uc?export=download&id=1AbCdEfGhIjKlMnOpQrStUvWxYz012345").location)
+        assertEquals(
+            expected,
+            plan("https://drive.usercontent.google.com/download?id=1AbCdEfGhIjKlMnOpQrStUvWxYz012345&export=download").location,
+        )
+        assertNull(plan("https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view").subFolder)
+    }
+
+    @Test
+    fun googleDriveAccountAndLegacyFormsGiveFileId() {
+        val expected = ArchiveLocation.GoogleDriveFile("1AbCdEfGhIjKlMnOpQrStUvWxYz012345")
+        assertEquals(expected, plan("https://drive.google.com/file/u/0/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view").location)
+        assertEquals(expected, plan("https://drive.google.com/a/example.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view").location)
+        assertEquals(expected, plan("https://docs.google.com/uc?export=download&id=1AbCdEfGhIjKlMnOpQrStUvWxYz012345").location)
+        assertEquals(expected, plan("https://drive.google.com/a/d/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view").location)
+        assertEquals(expected, plan("https://docs.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/edit").location)
+    }
+
+    @Test
+    fun googleDriveResourceKeyIsKept() {
+        assertEquals(
+            ArchiveLocation.GoogleDriveFile("1AbCdEfGhIjKlMnOpQrStUvWxYz012345", "0-AbCdEfGhIjKl"),
+            plan("https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view?usp=sharing&resourcekey=0-AbCdEfGhIjKl").location,
+        )
+        assertEquals(
+            ArchiveLocation.GoogleDriveFile("1AbCdEfGhIjKlMnOpQrStUvWxYz012345", "0-AbCdEfGhIjKl"),
+            plan("https://drive.google.com/open?id=1AbCdEfGhIjKlMnOpQrStUvWxYz012345&resourcekey=0-AbCdEfGhIjKl").location,
+        )
+        assertEquals(
+            ArchiveLocation.GoogleDriveFile("1AbCdEfGhIjKlMnOpQrStUvWxYz012345"),
+            plan("https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view?resourcekey=..").location,
+        )
+    }
+
+    @Test
+    fun googleDriveFoldersDocumentsAndOddLinksAreRejected() {
+        assertTrue(rejection("https://drive.google.com/drive/folders/1FVTUAyi_CQqIaymG9SXMAcMY5yW-Y6L0?usp=drive_link").contains("Папку"))
+        assertTrue(rejection("https://drive.google.com/drive/u/0/folders/1FVTUAyi_CQqIaymG9SXMAcMY5yW-Y6L0").contains("Папку"))
+        assertTrue(rejection("https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/edit").contains("Документы Google"))
+        assertTrue(rejection("https://drive.google.com/file/d/1/view").contains("zip-файл"))
+        assertTrue(rejection("https://drive.google.com/open?id=../x").contains("zip-файл"))
+        assertTrue(rejection("https://drive.google.com/").contains("zip-файл"))
+        assertTrue(rejection("https://docs.google.com/uc?export=download").contains("zip-файл"))
+        assertTrue(rejection("https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/edit").contains("Документы Google"))
     }
 
     @Test

@@ -337,10 +337,10 @@ class ThemeManagementE2eTest {
         app.passOnboarding()
         app.openThemeManagement(sampleTitle)
 
-        app.enterAddress("https://drive.google.com/file/d/1/view")
+        app.enterAddress("https://drive.google.com/drive/folders/1FVTUAyi_CQqIaymG9SXMAcMY5yW-Y6L0")
         app.clickText("Проверить и сохранить ссылку")
 
-        app.waitForTextContaining("Google Диск не поддерживается")
+        app.waitForTextContaining("Папку Google Диска скачать нельзя")
         app.clickText("Закрыть")
     }
 

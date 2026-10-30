@@ -132,13 +132,31 @@ class ThemeSourcesE2eTest {
     }
 
     @Test
-    fun googleDriveIsRejectedWithText() {
+    fun googleDriveZipFileIsDownloaded() {
+        e2e.server.serveGoogleDriveFile("1AbCdEfGhIjKlMnOpQrStUvWxYz012345", ThemeZips.sampleZip())
+
+        installFrom("https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view?usp=sharing")
+    }
+
+    @Test
+    fun googleDriveFileWithoutAccessSaysOpenAccess() {
+        e2e.server.serveGoogleDriveSignIn()
         val app = e2e.compose
         app.acceptPolicy()
 
-        app.checkAddress("https://drive.google.com/file/d/123/view")
+        app.checkAddress("https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view")
 
-        app.waitForTextContaining("Google Диск не поддерживается")
+        app.waitForTextContaining("Все, у кого есть ссылка")
+    }
+
+    @Test
+    fun googleDriveFolderIsRejectedWithText() {
+        val app = e2e.compose
+        app.acceptPolicy()
+
+        app.checkAddress("https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz012345")
+
+        app.waitForTextContaining("Папку Google Диска скачать нельзя")
     }
 
     @Test

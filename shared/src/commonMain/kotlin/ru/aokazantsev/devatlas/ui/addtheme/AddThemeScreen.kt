@@ -90,7 +90,7 @@ private fun EditingContent(
                 value = state.address,
                 onValueChange = viewModel::setAddress,
                 label = "Ссылка на тему",
-                supportingText = state.hint ?: "Папка или zip на Яндекс.Диске, GitHub или файл .zip",
+                supportingText = state.hint ?: "Яндекс.Диск, GitHub, zip на Google Диске или ссылка на .zip",
             )
             AtlasSecondaryButton(text = "Вставить", onClick = viewModel::paste, modifier = Modifier.fillMaxWidth())
             AtlasPrimaryButton(

@@ -17,6 +17,7 @@ object TestNetwork {
             releasesUrl = "$base/repos/aokazantsev/DevAtlas/releases",
             yandexDownloadApiUrl = "$base${MockServerRule.YANDEX_API_PATH}",
             githubArchiveUrl = "$base$GITHUB_PATH",
+            googleDriveDownloadUrl = "$base${MockServerRule.GOOGLE_DRIVE_PATH}",
             allowCleartext = true,
         )
     }

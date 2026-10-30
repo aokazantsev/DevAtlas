@@ -13,6 +13,7 @@ import io.ktor.client.statement.bodyAsChannel
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.URLBuilder
 import io.ktor.http.contentLength
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.readAvailable
@@ -47,14 +48,15 @@ internal class KtorThemeDownloader(
 
     override suspend fun download(plan: ThemeSourcePlan, validators: CacheValidators?, target: Path): DownloadResult =
         try {
-            val url = when (val location = plan.location) {
-                is ArchiveLocation.Direct -> location.url
+            when (val location = plan.location) {
+                is ArchiveLocation.Direct -> fetch(location.url, validators, target)
                 is ArchiveLocation.YandexPublic -> when (val resolved = yandexLink(location)) {
-                    is YandexLink.Failed -> return DownloadResult.Failed(resolved.failure)
-                    is YandexLink.Found -> resolved.url
+                    is YandexLink.Failed -> DownloadResult.Failed(resolved.failure)
+                    is YandexLink.Found -> fetch(resolved.url, validators, target)
                 }
+                is ArchiveLocation.GoogleDriveFile ->
+                    fetch(googleDriveUrl(location), validators, target, pageInsteadOfFile = GOOGLE_NOT_SHARED)
             }
-            fetch(url, validators, target)
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (error: ArchiveWriteException) {
@@ -95,7 +97,20 @@ internal class KtorThemeDownloader(
         null
     }
 
-    private suspend fun fetch(url: String, validators: CacheValidators?, target: Path): DownloadResult =
+    private fun googleDriveUrl(location: ArchiveLocation.GoogleDriveFile): String =
+        URLBuilder(endpoints.googleDriveDownloadUrl).apply {
+            parameters.append("id", location.fileId)
+            parameters.append("export", "download")
+            parameters.append("confirm", "t")
+            location.resourceKey?.let { parameters.append("resourcekey", it) }
+        }.buildString()
+
+    private suspend fun fetch(
+        url: String,
+        validators: CacheValidators?,
+        target: Path,
+        pageInsteadOfFile: ThemeFailure? = null,
+    ): DownloadResult =
         client.prepareGet(url) {
             validators?.etag?.let { header(HttpHeaders.IfNoneMatch, it) }
             validators?.lastModified?.let { header(HttpHeaders.IfModifiedSince, it) }
@@ -103,10 +118,15 @@ internal class KtorThemeDownloader(
             when {
                 response.status == HttpStatusCode.NotModified && validators != null -> DownloadResult.NotModified
                 response.status != HttpStatusCode.OK -> DownloadResult.Failed(statusFailure(response.status))
+                pageInsteadOfFile != null && isHtml(response) ->
+                    DownloadResult.Failed(pageInsteadOfFile)
                 (response.contentLength() ?: 0L) > MAX_BYTES -> DownloadResult.Failed(tooLarge())
                 else -> store(response, target)
             }
         }
+
+    private fun isHtml(response: HttpResponse): Boolean =
+        response.headers[HttpHeaders.ContentType]?.trimStart()?.startsWith(HTML_TYPE, ignoreCase = true) == true
 
     private suspend fun store(response: HttpResponse, target: Path): DownloadResult {
         val sink = writing {
@@ -168,6 +188,12 @@ internal class KtorThemeDownloader(
     private companion object {
         val MAX_BYTES = ArchiveLimits.Default.maxArchiveBytes
         const val CHUNK_SIZE = 8_192
+        const val HTML_TYPE = "text/html"
         const val YANDEX_ODD_ANSWER = "Яндекс.Диск вернул непонятный ответ, попробуйте позже"
+        val GOOGLE_NOT_SHARED = ThemeFailure(
+            "Google Диск отдал страницу вместо файла: откройте доступ «Все, у кого есть ссылка», проверьте, что это zip-файл, " +
+                "а не папка, или попробуйте позже — у Google бывает лимит скачиваний",
+            ThemeHelp.PUBLISH_URL,
+        )
     }
 }

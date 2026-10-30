@@ -66,6 +66,34 @@ class MockServerRule : ExternalResource() {
         }
     }
 
+    fun serveGoogleDriveFile(fileId: String, archive: ByteArray) {
+        route(GOOGLE_DRIVE_PATH) { request ->
+            val url = request.url
+            val asked = url.queryParameter("id") == fileId &&
+                url.queryParameter("export") == "download" &&
+                url.queryParameter("confirm") == "t"
+            if (asked) {
+                MockResponse.Builder()
+                    .code(OK)
+                    .addHeader("Content-Type", "application/zip")
+                    .body(Buffer().write(archive))
+                    .build()
+            } else {
+                MockResponse.Builder().code(NOT_FOUND).build()
+            }
+        }
+    }
+
+    fun serveGoogleDriveSignIn() {
+        route(GOOGLE_DRIVE_PATH) {
+            MockResponse.Builder()
+                .code(OK)
+                .addHeader("Content-Type", "text/html; charset=utf-8")
+                .body("<html><title>Google Drive: Sign-in</title></html>")
+                .build()
+        }
+    }
+
     override fun before() {
         server.dispatcher = object : Dispatcher() {
             override fun dispatch(request: RecordedRequest): MockResponse {
@@ -87,6 +115,7 @@ class MockServerRule : ExternalResource() {
 
     companion object {
         const val YANDEX_API_PATH = "/yandex/download"
+        const val GOOGLE_DRIVE_PATH = "/gdrive/download"
         const val OK = 200
         const val NOT_MODIFIED = 304
         const val NOT_FOUND = 404
