@@ -1,9 +1,15 @@
 package ru.aokazantsev.devatlas.ui.update
 
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -12,6 +18,7 @@ import okio.Path
 import okio.Path.Companion.toPath
 import ru.aokazantsev.devatlas.files.FakeExternalApps
 import ru.aokazantsev.devatlas.testing.FakeJournal
+import ru.aokazantsev.devatlas.testing.FakeUpdateApkStorage
 import ru.aokazantsev.devatlas.testing.FakeUsageStatistics
 import ru.aokazantsev.devatlas.testing.ViewModelScopes
 import ru.aokazantsev.devatlas.update.domain.ApkDownloader
@@ -20,6 +27,7 @@ import ru.aokazantsev.devatlas.update.domain.AppUpdateChecker
 import ru.aokazantsev.devatlas.update.domain.model.ApkDownloadResult
 import ru.aokazantsev.devatlas.update.domain.model.AppRelease
 import ru.aokazantsev.devatlas.update.domain.model.AppVersion
+import ru.aokazantsev.devatlas.update.domain.model.ReleaseApk
 import ru.aokazantsev.devatlas.update.domain.model.UpdateCheck
 import ru.aokazantsev.devatlas.usage.domain.model.UsageEvent
 import kotlin.test.AfterTest
@@ -38,6 +46,8 @@ class UpdateViewModelTest {
     private var downloads = 0
     private var download = CompletableDeferred<ApkDownloadResult>()
     private val installer = FakeInstaller()
+    private val apks = FakeUpdateApkStorage()
+    private var lateProgress: ((Long, Long?) -> Unit)? = null
 
     private val checker = object : AppUpdateChecker {
         override suspend fun check(): UpdateCheck = check
@@ -50,6 +60,7 @@ class UpdateViewModelTest {
     private val downloader = object : ApkDownloader {
         override suspend fun download(release: AppRelease, onProgress: (Long, Long?) -> Unit): ApkDownloadResult {
             downloads++
+            lateProgress = onProgress
             onProgress(1L, 2L)
             return download.await()
         }
@@ -66,9 +77,18 @@ class UpdateViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel() = scopes.track(
-        UpdateViewModel(checker, downloader, installer, FakeExternalApps(), usage, FakeJournal()),
+    private fun newViewModel() = UpdateViewModel(
+        checker = checker,
+        downloader = downloader,
+        installer = installer,
+        externalApps = FakeExternalApps(),
+        usage = usage,
+        journal = FakeJournal(),
+        apks = apks,
+        scope = TestScope(UnconfinedTestDispatcher()),
     )
+
+    private fun viewModel() = scopes.track(newViewModel())
 
     private val UpdateViewModel.step: UpdateStep
         get() = assertIs<UpdateUiState.Available>(state.value).step
@@ -95,6 +115,70 @@ class UpdateViewModelTest {
         advanceUntilIdle()
 
         assertEquals(UpdateStep.Idle, viewModel.step)
+    }
+
+    @Test
+    fun lateProgressAfterCancelDoesNotOverwriteIdle() = runTest {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        viewModel.update()
+        advanceUntilIdle()
+        viewModel.cancelDownload()
+
+        lateProgress?.invoke(2L, 2L)
+
+        assertEquals(UpdateStep.Idle, viewModel.step)
+    }
+
+    @Test
+    fun newerReleaseOnRecheckDropsDownloadedFile() = runTest {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        download.complete(ApkDownloadResult.Saved(APK))
+        viewModel.update()
+        advanceUntilIdle()
+        val newer = AppRelease(AppVersion(listOf(0, 3)), bodyHtml = "", apk = null)
+        check = UpdateCheck.Available(newer, listOf(newer), hasOlderChanges = false)
+        viewModel.check()
+        advanceUntilIdle()
+
+        viewModel.update()
+        advanceUntilIdle()
+
+        assertEquals(2, downloads)
+    }
+
+    @Test
+    fun sameVersionWithAnotherChecksumIsDownloadedAgain() = runTest {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        download.complete(ApkDownloadResult.Saved(APK))
+        viewModel.update()
+        advanceUntilIdle()
+        val republished = release.copy(apk = ReleaseApk("https://example.com/a.apk", sizeBytes = 1L, sha256 = "f".repeat(64)))
+        check = UpdateCheck.Available(republished, listOf(republished), hasOlderChanges = false)
+        viewModel.check()
+        advanceUntilIdle()
+
+        viewModel.update()
+        advanceUntilIdle()
+
+        assertEquals(2, downloads)
+    }
+
+    @Test
+    fun leavingTheScreenDiscardsDownloadedFile() = runTest {
+        val store = ViewModelStore()
+        val viewModel = ViewModelProvider.create(store, viewModelFactory { initializer { newViewModel() } })[UpdateViewModel::class]
+        advanceUntilIdle()
+        download.complete(ApkDownloadResult.Saved(APK))
+        viewModel.update()
+        advanceUntilIdle()
+
+        store.clear()
+        advanceUntilIdle()
+
+        assertEquals(1, apks.discardedAll)
     }
 
     @Test
@@ -160,6 +244,7 @@ class UpdateViewModelTest {
         advanceUntilIdle()
 
         assertIs<UpdateStep.Failed>(viewModel.step)
+        assertEquals(listOf(UsageEvent.UPDATE_DOWNLOAD), usage.events)
     }
 
     @Test

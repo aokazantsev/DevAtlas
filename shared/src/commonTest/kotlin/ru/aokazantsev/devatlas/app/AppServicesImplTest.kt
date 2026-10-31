@@ -7,6 +7,7 @@ import kotlinx.coroutines.test.runTest
 import ru.aokazantsev.devatlas.crash.domain.CrashReports
 import ru.aokazantsev.devatlas.di.AppInfo
 import ru.aokazantsev.devatlas.testing.FakeJournal
+import ru.aokazantsev.devatlas.testing.FakeUpdateApkStorage
 import ru.aokazantsev.devatlas.testing.FakeUsageStatistics
 import ru.aokazantsev.devatlas.themes.FakePlatformBindings
 import ru.aokazantsev.devatlas.usage.domain.UsageScheduler
@@ -29,6 +30,7 @@ class AppServicesImplTest {
 
         override suspend fun awaitSending() = Unit
     }
+    private val updateApks = FakeUpdateApkStorage()
     private val scheduler = object : UsageScheduler {
         override fun schedule() {
             schedules++
@@ -42,6 +44,7 @@ class AppServicesImplTest {
         journal = FakeJournal(),
         appInfo = AppInfo(versionName = "0.1", isDebug = false),
         platform = FakePlatformBindings(),
+        updateApks = updateApks,
         scope = TestScope(UnconfinedTestDispatcher(testScheduler)),
     )
 
@@ -56,6 +59,7 @@ class AppServicesImplTest {
         assertEquals(1, usage.sent)
         assertEquals(1, crashSendings)
         assertEquals(1, schedules)
+        assertEquals(1, updateApks.discardedInstalled)
     }
 
     @Test

@@ -16,6 +16,7 @@ import ru.aokazantsev.devatlas.files.domain.PdfFilesImpl
 import ru.aokazantsev.devatlas.files.domain.model.DownloadedFile
 import ru.aokazantsev.devatlas.files.domain.model.PdfRequest
 import ru.aokazantsev.devatlas.files.domain.model.PdfState
+import ru.aokazantsev.devatlas.testing.FakeJournal
 import ru.aokazantsev.devatlas.testing.FakeUsageStatistics
 import ru.aokazantsev.devatlas.testing.ViewModelScopes
 import ru.aokazantsev.devatlas.themes.FakePlatformBindings
@@ -58,6 +59,7 @@ class LinksViewModelTest {
                 externalApps = apps,
                 scope = TestScope(UnconfinedTestDispatcher(testScheduler)),
                 usage = FakeUsageStatistics(),
+                journal = FakeJournal(),
             ),
             externalApps = apps,
             platform = platform,

@@ -9,6 +9,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import ru.aokazantsev.devatlas.di.NetworkEndpoints
+import ru.aokazantsev.devatlas.testing.FakeJournal
 import ru.aokazantsev.devatlas.testing.ViewModelScopes
 import ru.aokazantsev.devatlas.themes.FakeClock
 import ru.aokazantsev.devatlas.themes.FakeCurrentThemeRepository
@@ -54,7 +55,14 @@ class AddThemeViewModelTest {
     private fun viewModel() = scopes.track(
         AddThemeViewModel(
             installer = installer,
-            library = ThemeLibraryImpl(repository, FakeCurrentThemeRepository(), FakeThemeStorage(), FakeProgressRepository(), FakeClock()),
+            library = ThemeLibraryImpl(
+                repository,
+                FakeCurrentThemeRepository(),
+                FakeThemeStorage(),
+                FakeProgressRepository(),
+                FakeClock(),
+                FakeJournal(),
+            ),
             repository = repository,
             platform = platform,
             endpoints = endpoints,

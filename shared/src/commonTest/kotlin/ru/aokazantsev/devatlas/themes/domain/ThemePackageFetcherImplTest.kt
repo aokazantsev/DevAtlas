@@ -6,6 +6,7 @@ import okio.FileSystem
 import okio.IOException
 import okio.Path
 import okio.fakefilesystem.FakeFileSystem
+import ru.aokazantsev.devatlas.testing.FakeJournal
 import ru.aokazantsev.devatlas.themeformat.archive.ExtractionResult
 import ru.aokazantsev.devatlas.themeformat.archive.ThemeArchiveExtractor
 import ru.aokazantsev.devatlas.themeformat.issue.IssueCode
@@ -44,6 +45,8 @@ class ThemePackageFetcherImplTest {
     private var check = ThemeCheckResult(manifest = manifestOf("a", "A", "p1"), issues = emptyList())
     private val subFolders = mutableListOf<String?>()
 
+    private val journal = FakeJournal()
+
     private val fetcher = ThemePackageFetcherImpl(
         downloader = object : ThemeDownloader {
             override suspend fun download(plan: ThemeSourcePlan, validators: CacheValidators?, target: Path) = download()
@@ -60,6 +63,7 @@ class ThemePackageFetcherImplTest {
         storage = storage,
         reader = FakePackageReader(),
         fileSystem = FakeFileSystem(),
+        journal = journal,
     )
 
     @Test
@@ -72,6 +76,7 @@ class ThemePackageFetcherImplTest {
         assertEquals("\"e\"", prepared.etag)
         assertEquals(plan.address, prepared.source)
         assertTrue(storage.discarded.isEmpty())
+        assertEquals(listOf("theme download: ${plan.address}: ok"), journal.lines)
     }
 
     @Test

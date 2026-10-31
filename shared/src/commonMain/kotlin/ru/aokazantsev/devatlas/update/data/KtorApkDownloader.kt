@@ -44,7 +44,7 @@ internal class KtorApkDownloader(
     platform: PlatformBindings,
 ) : ApkDownloader {
 
-    private val folder = platform.dataDirectory / FOLDER
+    private val folder = platform.dataDirectory / UpdateFiles.APK_FOLDER
 
     override suspend fun download(
         release: AppRelease,
@@ -55,7 +55,7 @@ internal class KtorApkDownloader(
         if (!apk.url.startsWith(HTTPS, ignoreCase = true) && !(endpoints.allowCleartext && apk.url.startsWith(HTTP, ignoreCase = true))) {
             return@withContext ApkDownloadResult.Failed(NO_APK)
         }
-        val target = folder / "DevAtlas-${release.version}.apk"
+        val target = folder / UpdateFiles.apkName(release.version)
         try {
             writing { clearFolder() }
             client.prepareGet(apk.url) {
@@ -118,7 +118,7 @@ internal class KtorApkDownloader(
 
     private fun clearFolder() {
         if (fileSystem.exists(folder)) {
-            fileSystem.list(folder).filter { it.name.endsWith(APK_EXTENSION) }.forEach { fileSystem.delete(it) }
+            fileSystem.list(folder).filter { it.name.endsWith(UpdateFiles.APK_EXTENSION) }.forEach { fileSystem.delete(it) }
         }
         fileSystem.createDirectories(folder)
     }
@@ -137,8 +137,6 @@ internal class KtorApkDownloader(
     }
 
     private companion object {
-        const val FOLDER = "updates"
-        const val APK_EXTENSION = ".apk"
         const val HTTPS = "https://"
         const val HTTP = "http://"
         const val CHUNK_SIZE = 8_192

@@ -1,5 +1,9 @@
 package ru.aokazantsev.devatlas.journal.data
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.runTest
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
@@ -12,10 +16,12 @@ import kotlin.test.assertTrue
 class AppJournalImplTest {
 
     private val fileSystem = FakeFileSystem()
+    private var scope: CoroutineScope = CoroutineScope(Dispatchers.Unconfined)
 
     private fun journal() = AppJournalImpl(
         fileSystem = fileSystem,
         clock = FakeClock(),
+        scope = scope,
         platform = FakePlatformBindings(),
     )
 
@@ -54,6 +60,23 @@ class AppJournalImplTest {
         assertTrue(tail.encodeToByteArray().size in (MAX_TAIL - LINE_BYTES)..MAX_TAIL)
         assertTrue(tail.startsWith(FakeClock().now().toString()))
         assertTrue(tail.endsWith("299 $line\n"))
+    }
+
+    @Test
+    fun writesFromMainThreadAreDeferredButKeepOrderInTail() = runTest {
+        val idle = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+        idle.cancel()
+        scope = idle
+        val journal = journal()
+
+        journal.write("one")
+        journal.write("two")
+        journal.write("three")
+
+        assertTrue(!fileSystem.exists(CURRENT))
+        val lines = journal.tail(MAX_TAIL).lines().filter(String::isNotEmpty)
+        assertEquals(listOf("one", "two", "three"), lines.map { it.substringAfter(' ') })
+        assertEquals(3, fileSystem.read(CURRENT) { readUtf8() }.lines().count(String::isNotEmpty))
     }
 
     private companion object {

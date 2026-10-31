@@ -13,6 +13,7 @@ import ru.aokazantsev.devatlas.files.domain.model.DownloadedFile
 import ru.aokazantsev.devatlas.files.domain.model.PdfDownloadResult
 import ru.aokazantsev.devatlas.files.domain.model.PdfRequest
 import ru.aokazantsev.devatlas.files.domain.model.PdfState
+import ru.aokazantsev.devatlas.testing.FakeJournal
 import ru.aokazantsev.devatlas.testing.FakeUsageStatistics
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -37,6 +38,7 @@ class PdfFilesImplTest {
         externalApps = apps,
         scope = TestScope(UnconfinedTestDispatcher(testScheduler)),
         usage = usage,
+        journal = FakeJournal(),
     )
 
     private suspend fun known(): DownloadedFile {
@@ -140,6 +142,7 @@ class PdfFilesImplTest {
         externalApps = apps,
         scope = TestScope(UnconfinedTestDispatcher(testScheduler)),
         usage = usage,
+        journal = FakeJournal(),
     )
 
     private fun saved(uri: String) = PdfDownloadResult.Saved(DownloadedFile(request.url, uri, "guide.pdf", SIZE, 0L))

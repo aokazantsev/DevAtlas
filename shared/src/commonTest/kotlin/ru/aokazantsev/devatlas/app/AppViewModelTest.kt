@@ -24,6 +24,7 @@ import ru.aokazantsev.devatlas.settings.domain.model.ThemeMode
 import ru.aokazantsev.devatlas.startup.data.VerifiedManifestsImpl
 import ru.aokazantsev.devatlas.startup.domain.RunStartupChecksUseCase
 import ru.aokazantsev.devatlas.startup.domain.model.StartupCheckResult
+import ru.aokazantsev.devatlas.testing.FakeJournal
 import ru.aokazantsev.devatlas.testing.FakeUsageStatistics
 import ru.aokazantsev.devatlas.testing.ViewModelScopes
 import ru.aokazantsev.devatlas.themeformat.manifest.ThemeManifest
@@ -292,7 +293,7 @@ class AppViewModelTest {
         installer: ThemeInstaller = FakeInstaller(failure = null),
         readingSettings: FakeReadingSettings = FakeReadingSettings(),
     ): AppViewModel {
-        val library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock())
+        val library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock(), FakeJournal())
         return scopes.track(
             AppViewModel(
                 runStartupChecks = checks,

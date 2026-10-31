@@ -10,6 +10,7 @@ import ru.aokazantsev.devatlas.onboarding.domain.OnboardingRepository
 import ru.aokazantsev.devatlas.settings.domain.ThemeSettingsRepository
 import ru.aokazantsev.devatlas.themes.domain.CurrentThemeRepository
 import ru.aokazantsev.devatlas.themes.domain.InstalledThemeRepository
+import ru.aokazantsev.devatlas.themes.domain.model.SampleTheme
 import ru.aokazantsev.devatlas.update.domain.UpdateSettingsRepository
 import ru.aokazantsev.devatlas.usage.domain.UsageStateSource
 
@@ -36,10 +37,6 @@ internal class UsageStateSourceImpl(
         } catch (_: SQLiteException) {
         } catch (_: IllegalStateException) {
         }
-        current.currentThemeId.first()?.let { put("theme", if (it == SAMPLE_THEME_ID) "sample" else "custom") }
-    }
-
-    private companion object {
-        const val SAMPLE_THEME_ID = "devatlas-sample"
+        current.currentThemeId.first()?.let { put("theme", if (it == SampleTheme.ID) "sample" else "custom") }
     }
 }

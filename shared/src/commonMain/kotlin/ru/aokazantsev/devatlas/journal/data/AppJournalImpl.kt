@@ -4,6 +4,9 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
 import okio.Buffer
 import okio.ByteString
 import okio.FileSystem
@@ -22,21 +25,24 @@ import kotlin.time.Clock
 internal class AppJournalImpl(
     private val fileSystem: FileSystem,
     private val clock: Clock,
+    private val scope: CoroutineScope,
     platform: PlatformBindings,
 ) : AppJournal {
 
     private val folder = platform.dataDirectory / FOLDER
     private val current = folder / CURRENT_FILE
     private val previous = folder / PREVIOUS_FILE
+    private val pending = Channel<String>(Channel.UNLIMITED)
 
-    @Synchronized
     override fun write(message: String) {
         val singleLine = message.replace('\r', ' ').replace('\n', ' ').take(MAX_LINE_LENGTH)
-        append("${clock.now()} $singleLine\n")
+        pending.trySend("${clock.now()} $singleLine\n")
+        scope.launch { flush() }
     }
 
     @Synchronized
     override fun tail(maxBytes: Int): String {
+        drain()
         val joined = Buffer().write(read(previous)).write(read(current))
         if (joined.size > maxBytes) {
             joined.skip(joined.size - maxBytes)
@@ -44,6 +50,18 @@ internal class AppJournalImpl(
             if (lineEnd >= 0) joined.skip(lineEnd + 1)
         }
         return joined.readUtf8()
+    }
+
+    @Synchronized
+    private fun flush() {
+        drain()
+    }
+
+    private fun drain() {
+        while (true) {
+            val line = pending.tryReceive().getOrNull() ?: return
+            append(line)
+        }
     }
 
     private fun append(line: String) {

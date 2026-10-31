@@ -8,6 +8,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import ru.aokazantsev.devatlas.crash.data.installCrashCatcher
 
 @RunWith(AndroidJUnit4::class)
 class ReportsE2eTest {
@@ -28,6 +29,19 @@ class ReportsE2eTest {
     private fun relaunch() {
         e2e.launch()
         app.waitForContentsOf(ThemeZips.SAMPLE_TITLE)
+    }
+
+    private fun crashOnBackgroundThread() {
+        val installed = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { _, _ -> }
+        installCrashCatcher { e2e.graph.crashReports }
+        try {
+            val crashing = Thread({ throw IllegalStateException("e2e crash") }, CRASHING_THREAD)
+            crashing.start()
+            crashing.join(WAIT_MILLIS)
+        } finally {
+            Thread.setDefaultUncaughtExceptionHandler(installed)
+        }
     }
 
     private fun switchInSettings(title: String, on: Boolean) {
@@ -75,7 +89,7 @@ class ReportsE2eTest {
         e2e.launch()
         app.passOnboarding()
         switchInSettings("Отправлять отчёты о сбоях", on = true)
-        e2e.graph.crashReports.record("thread main", IllegalStateException("e2e crash"))
+        crashOnBackgroundThread()
 
         relaunch()
 
@@ -83,7 +97,7 @@ class ReportsE2eTest {
         assertEquals("DevAtlas", report.getString("app"))
         assertEquals("0.1-debug", report.getString("version"))
         assertTrue(report.getString("os").startsWith("Android "))
-        assertEquals("thread main", report.getString("source"))
+        assertEquals("thread $CRASHING_THREAD", report.getString("source"))
         assertTrue(report.getString("error").contains("IllegalStateException: e2e crash"))
         assertTrue(report.getString("log").contains("start 0.1-debug"))
     }
@@ -92,7 +106,7 @@ class ReportsE2eTest {
     fun crashReportIsDroppedWhenSendingIsOff() {
         e2e.launch()
         app.passOnboarding()
-        e2e.graph.crashReports.record("thread main", IllegalStateException("e2e crash"))
+        crashOnBackgroundThread()
 
         relaunch()
         waitForBody(TestNetwork.USAGE_PATH)
@@ -103,5 +117,6 @@ class ReportsE2eTest {
     private companion object {
         const val WAIT_MILLIS = 10_000L
         const val QUIET_MILLIS = 3_000L
+        const val CRASHING_THREAD = "e2e-crashing"
     }
 }

@@ -225,7 +225,8 @@ private fun IconSamples() {
         AtlasIcons.LightMode, AtlasIcons.DarkMode, AtlasIcons.Contrast, AtlasIcons.Palette, AtlasIcons.Add,
         AtlasIcons.Folder, AtlasIcons.Article, AtlasIcons.BookmarkAdd, AtlasIcons.BookmarkAdded, AtlasIcons.Bookmarks,
         AtlasIcons.Edit, AtlasIcons.OpenInNew, AtlasIcons.ContentCopy, AtlasIcons.Download, AtlasIcons.DeleteSweep,
-        AtlasIcons.MoreVert, AtlasIcons.PictureAsPdf,
+        AtlasIcons.MoreVert, AtlasIcons.PictureAsPdf, AtlasIcons.Share, AtlasIcons.Public, AtlasIcons.Code,
+        AtlasIcons.Policy, AtlasIcons.SystemUpdate,
     )
     FlowRow(
         modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),

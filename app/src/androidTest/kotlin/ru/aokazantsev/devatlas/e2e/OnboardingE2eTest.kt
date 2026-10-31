@@ -9,12 +9,15 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isOff
 import androidx.compose.ui.test.isOn
 import androidx.compose.ui.test.onNodeWithText
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.test.espresso.intent.Intents.intended
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasData
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.hamcrest.Matchers.allOf
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -42,6 +45,18 @@ class OnboardingE2eTest {
         app.clickText("Принимаю политику данных")
         app.waitForToggle("Принимаю политику данных", on = false)
         app.onNodeWithText("Дальше").assertIsNotEnabled()
+    }
+
+    @Test
+    fun nextButtonStaysAboveNavigationBar() {
+        val app = e2e.compose
+        app.waitForText("Добро пожаловать")
+        val decor = app.activity.window.decorView
+        val navigationBarHeight = ViewCompat.getRootWindowInsets(decor)!!.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+
+        val buttonBottom = app.onNodeWithText("Дальше").fetchSemanticsNode().boundsInWindow.bottom
+
+        assertTrue(buttonBottom <= decor.height - navigationBarHeight)
     }
 
     @Test

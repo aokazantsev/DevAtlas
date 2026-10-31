@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import okio.IOException
 import ru.aokazantsev.devatlas.di.NetworkEndpoints
+import ru.aokazantsev.devatlas.testing.FakeJournal
 import ru.aokazantsev.devatlas.testing.FakeUsageStatistics
 import ru.aokazantsev.devatlas.themes.FakeClock
 import ru.aokazantsev.devatlas.themes.FakeCurrentThemeRepository
@@ -33,6 +34,7 @@ class ThemeInstallerImplTest {
     private val clock = FakeClock(millis = 9_000L)
 
     private val usage = FakeUsageStatistics()
+    private val journal = FakeJournal()
 
     private fun installer(fetcher: ThemePackageFetcher = FakePackageFetcher()) = ThemeInstallerImpl(
         resolver = ThemeSourceResolverImpl(NetworkEndpoints.Production),
@@ -43,6 +45,7 @@ class ThemeInstallerImplTest {
         current = current,
         clock = clock,
         usage = usage,
+        journal = journal,
     )
 
     private fun installed(result: InstallResult) = assertIs<InstallResult.Installed>(result).theme
@@ -55,6 +58,7 @@ class ThemeInstallerImplTest {
         assertEquals("a", current.currentThemeId.first())
         assertEquals(2, theme.pageCount)
         assertEquals("sha", repository.find("a")?.sha256)
+        assertEquals(1, journal.lines.count { it.startsWith("theme install: ") && it.endsWith(": ok") })
     }
 
     @Test
@@ -83,6 +87,7 @@ class ThemeInstallerImplTest {
         assertNull(repository.find("a"))
         assertNull(current.currentThemeId.first())
         assertEquals(1, storage.discarded.size)
+        assertTrue(journal.lines.single().let { it.startsWith("theme install: ") && it.contains("failed: ") })
     }
 
     @Test

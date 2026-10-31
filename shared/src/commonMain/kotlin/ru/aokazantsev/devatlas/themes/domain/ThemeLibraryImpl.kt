@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okio.IOException
+import ru.aokazantsev.devatlas.journal.domain.AppJournal
 import ru.aokazantsev.devatlas.themes.domain.model.InstalledTheme
 import ru.aokazantsev.devatlas.themes.domain.model.ThemeFailure
 import ru.aokazantsev.devatlas.themes.domain.model.ThemeRemoval
@@ -23,6 +24,7 @@ internal class ThemeLibraryImpl(
     private val storage: ThemeStorage,
     private val progress: ProgressRepository,
     private val clock: Clock,
+    private val journal: AppJournal,
 ) : ThemeLibrary {
 
     override fun observeInstalled(): Flow<List<InstalledTheme>> = repository.observeAll()
@@ -54,6 +56,7 @@ internal class ThemeLibraryImpl(
             try {
                 removeNow(themeId, deleteTheme, resetProgress)
             } catch (error: SQLiteException) {
+                journal.write("theme delete: $themeId: failed: ${error.message}")
                 ThemeRemoval.Failed(ThemeFailure("Не удалось изменить базу приложения: ${error.message ?: "ошибка базы"}"))
             }
         }
@@ -63,6 +66,7 @@ internal class ThemeLibraryImpl(
         if (!deleteTheme) return ThemeRemoval.ProgressReset
         val wasCurrent = current.currentThemeId.first() == themeId
         repository.delete(themeId)
+        journal.write("theme delete: $themeId: ok")
         try {
             storage.deleteTheme(themeId)
         } catch (_: IOException) {

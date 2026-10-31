@@ -9,6 +9,7 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import okio.FileSystem
 import okio.IOException
+import ru.aokazantsev.devatlas.journal.domain.AppJournal
 import ru.aokazantsev.devatlas.themeformat.archive.ThemeArchiveExtractor
 import ru.aokazantsev.devatlas.themeformat.validation.ThemeValidator
 import ru.aokazantsev.devatlas.themes.domain.model.CacheValidators
@@ -29,9 +30,19 @@ internal class ThemePackageFetcherImpl(
     private val storage: ThemeStorage,
     private val reader: ThemePackageReader,
     private val fileSystem: FileSystem,
+    private val journal: AppJournal,
 ) : ThemePackageFetcher {
 
-    override suspend fun fetch(plan: ThemeSourcePlan, validators: CacheValidators?): FetchResult = withContext(Dispatchers.IO) {
+    override suspend fun fetch(plan: ThemeSourcePlan, validators: CacheValidators?): FetchResult =
+        fetchStaged(plan, validators).also { journal.write("theme download: ${plan.address}: ${it.describe()}") }
+
+    private fun FetchResult.describe(): String = when (this) {
+        is FetchResult.Fetched -> "ok"
+        FetchResult.NotModified -> "not modified"
+        is FetchResult.Failed -> "failed: ${failure.message}"
+    }
+
+    private suspend fun fetchStaged(plan: ThemeSourcePlan, validators: CacheValidators?): FetchResult = withContext(Dispatchers.IO) {
         val staging = try {
             storage.newStaging()
         } catch (error: IOException) {
