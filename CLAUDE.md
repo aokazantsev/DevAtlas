@@ -1,6 +1,6 @@
 # DevAtlas — правила проекта для Claude
 
-Решения прожарки и план версии 0.1 — `C:\Users\aokaz\ai-memory\dev-tools\devatlas.md`; общие правила
+Решения прожарки и план версии 0.1 — `dev-tools/devatlas.md` в личной базе знаний разработчика; общие правила
 pet-проектов — `dev-tools/pet-projects.md` там же. Здесь — устройство кода и правила работы с ним.
 
 ## Платформа
@@ -43,8 +43,8 @@ Compose и DI, цели `android` и `jvm`.
 - Адреса сети — `NetworkEndpoints` в графе: в приложении `NetworkEndpoints.Production`, в e2e — адрес
   MockWebServer. Новый сетевой адрес добавляется сюда, а не строкой в коде.
 - Реализации: интерфейс + `Impl`, `@ContributesBinding(AppScope::class)` и `@Inject` на классе.
-  Синглтоны — `@SingleIn(AppScope::class)`. Провайдеры сторонних объектов (DataStore, база) —
-  `@BindingContainer` `StorageBindings`.
+  Синглтоны — `@SingleIn(AppScope::class)`. Провайдеры сторонних объектов — `@BindingContainer`:
+  DataStore в `StorageBindings`, база в `DatabaseBindings`.
 - Проверки запуска — `@ContributesIntoSet(AppScope::class)` реализации `StartupCheck`; сплеш гоняет весь набор.
 - ViewModel — `@Inject`-конструктор, граф отдаёт функцию `() -> …ViewModel`, экран берёт её через
   `viewModel { graph.xxxViewModel() }`.
@@ -55,7 +55,7 @@ Compose и DI, цели `android` и `jvm`.
   «Цвета из обоев» (`Appearance`).
 - База — Room KMP с `BundledSQLiteDriver`, `devatlas.db`, схемы — `shared/schemas` (в git).
   До выпуска 0.1 миграций не пишем, но каждая правка схемы поднимает `version` в `DevAtlasDatabase`: debug-сборка
-  тогда пересоздаёт базу (`fallbackToDestructiveMigration` в `StorageBindings`), а правка схемы без смены версии
+  тогда пересоздаёт базу (`fallbackToDestructiveMigration` в `DatabaseBindings`), а правка схемы без смены версии
   даёт на сплеше ошибку проверки базы. После выпуска — только миграциями.
 
 ## Дизайн-система
@@ -106,10 +106,11 @@ Compose и DI, цели `android` и `jvm`.
 
 ## Сборка и проверки
 
-- Сборки на ПК разработчика — через очередь ресурсов: `python "C:/Users/aokaz/dev-config/claude/hooks/slots.py" run -- ./gradlew …`
+- Сборки на ПК разработчика — через очередь ресурсов: `python "<dev-config>/claude/hooks/slots.py" run -- ./gradlew …`
   (папка вне слотов другого проекта: ритуальной чистки нет, ждёт только чужую сборку). `adb` — через `slots.py device -- adb …`.
-- Перед коммитом: `./gradlew detekt :detekt-rules:test :shared:testAndroidHostTest :themeformat:jvmTest
-  :tools:themecheck:test :app:assembleDebug :app:connectedDebugAndroidTest` (e2e — на телефоне, обёртка сама
+- Перед коммитом: `./gradlew detekt :detekt-rules:test :designsystem:testAndroidHostTest
+  :shared:testAndroidHostTest :themeformat:jvmTest :tools:themecheck:test :app:assembleSslDebug :app:assembleNoSslDebug
+  :app:connectedSslDebugAndroidTest` (e2e — на телефоне, обёртка сама
   берёт устройство).
 - CI — GitHub Actions на push в `main`: detekt, unit-тесты, `themecheck --strict` по `sample-theme` (архив —
   артефакт), APK; отдельный job — e2e на эмуляторе API 34.
