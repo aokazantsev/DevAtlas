@@ -6,7 +6,7 @@ import ru.aokazantsev.devatlas.themeformat.code.lexer.LexerState.Companion.isIde
 
 internal class ProgramScan(private val rules: ProgramRules, private val s: LexerState) {
 
-    private var pendingHeredoc: String? = null
+    private val pendingHeredocs = ArrayDeque<String>()
 
     private val scanners: List<() -> Boolean> = listOf(
         ::heredocBody,
@@ -22,6 +22,7 @@ internal class ProgramScan(private val rules: ProgramRules, private val s: Lexer
         ::variable,
         ::annotation,
         ::symbol,
+        ::percentLiteral,
         ::regex,
         ::number,
         ::word,
@@ -35,17 +36,21 @@ internal class ProgramScan(private val rules: ProgramRules, private val s: Lexer
     }
 
     private fun heredocBody(): Boolean {
-        val terminator = pendingHeredoc ?: return false
-        if (s.char() != '\n') return false
-        pendingHeredoc = null
-        val bodyStart = s.pos + 1
-        var lineStart = bodyStart
-        while (lineStart < s.end && s.text.substring(lineStart, s.lineEnd(lineStart)).trim() != terminator) {
-            lineStart = s.lineEnd(lineStart) + 1
+        if (pendingHeredocs.isEmpty() || s.char() != '\n') return false
+        var bodyStart = s.pos + 1
+        while (pendingHeredocs.isNotEmpty()) {
+            val terminator = pendingHeredocs.removeFirst()
+            var lineStart = bodyStart
+            while (lineStart < s.end && s.text.substring(lineStart, s.lineEnd(lineStart)).trim() != terminator) {
+                lineStart = s.lineEnd(lineStart) + 1
+            }
+            s.emit(bodyStart, minOf(lineStart, s.end), CodeTokenKind.STRING)
+            s.pos = minOf(lineStart, s.end)
+            if (s.atEnd) break
+            s.emitTo(s.lineEnd(), CodeTokenKind.META)
+            bodyStart = s.pos + 1
         }
-        s.emit(bodyStart, minOf(lineStart, s.end), CodeTokenKind.STRING)
-        s.pos = minOf(lineStart, s.end)
-        if (!s.atEnd) s.emitTo(s.lineEnd(), CodeTokenKind.META)
+        pendingHeredocs.clear()
         return true
     }
 
@@ -65,7 +70,7 @@ internal class ProgramScan(private val rules: ProgramRules, private val s: Lexer
         if (quote != null) index++
         if (!isIdentifierStart(s.charAt(index))) return false
         val wordEnd = s.identifierEnd(index)
-        pendingHeredoc = s.text.substring(index, wordEnd)
+        pendingHeredocs.addLast(s.text.substring(index, wordEnd))
         s.emitTo(if (quote != null && s.charAt(wordEnd) == quote) wordEnd + 1 else wordEnd, CodeTokenKind.META)
         return true
     }
@@ -95,6 +100,7 @@ internal class ProgramScan(private val rules: ProgramRules, private val s: Lexer
 
     private fun lineComment(): Boolean {
         if (rules.lineComments.none { s.startsWith(it) }) return false
+        if (rules.hashAttributes && s.startsWith("#[")) return false
         if (rules.commentAfterSpaceOnly && s.previous()?.isWhitespace() == false) return false
         s.emitTo(lineCommentEnd(), CodeTokenKind.COMMENT)
         return true
@@ -231,6 +237,40 @@ internal class ProgramScan(private val rules: ProgramRules, private val s: Lexer
         return true
     }
 
+    private fun percentLiteral(): Boolean {
+        if (!rules.percentLiterals || s.char() != '%') return false
+        val kind = s.char(1)?.takeIf { it in PERCENT_KINDS }
+        val openOffset = if (kind != null) 2 else 1
+        val open = s.char(openOffset) ?: return false
+        if (!percentContext(kind, open)) return false
+        var index = percentEnd(open, PERCENT_BRACKETS[open] ?: open, s.pos + openOffset + 1)
+        if (kind == 'r') index = s.identifierEnd(index)
+        s.emitTo(index, CodeTokenKind.STRING)
+        return true
+    }
+
+    private fun percentContext(kind: Char?, open: Char): Boolean =
+        if (kind != null) {
+            !open.isLetterOrDigit() && !open.isWhitespace() && (s.previous()?.isWhitespace() != false || regexAllowed())
+        } else {
+            open in PERCENT_BARE && regexAllowed()
+        }
+
+    private fun percentEnd(open: Char, close: Char, bodyStart: Int): Int {
+        var depth = 1
+        var index = bodyStart
+        while (index < s.end && depth > 0) {
+            val char = s.text[index]
+            when {
+                char == '\\' -> index++
+                char == close -> depth--
+                char == open -> depth++
+            }
+            index++
+        }
+        return minOf(index, s.end)
+    }
+
     private fun regex(): Boolean {
         if (!rules.regexLiterals || s.char() != '/') return false
         if (s.char(1) == '/' || s.char(1) == '*' || !regexAllowed()) return false
@@ -271,7 +311,7 @@ internal class ProgramScan(private val rules: ProgramRules, private val s: Lexer
         val previous = s.previous()
         val fraction = char == '.' && s.char(1)?.isDigit() == true && previous != '.' && !isIdentifierPart(previous)
         if (!char.isDigit() && !fraction) return false
-        s.emitTo(s.numberEnd(s.pos), CodeTokenKind.NUMBER)
+        s.emitTo(s.numberEnd(s.pos, rules.digitQuoteSeparator), CodeTokenKind.NUMBER)
         return true
     }
 
@@ -280,6 +320,11 @@ internal class ProgramScan(private val rules: ProgramRules, private val s: Lexer
         val end = s.identifierEnd(s.pos, rules.identifierExtra)
         val word = s.text.substring(s.pos, end)
         if (prefixedString(word, end) || rawHashString(word, end)) return true
+        val suffix = s.charAt(end)?.takeIf { it in WORD_SUFFIXES }
+        if (suffix != null && word + suffix in rules.keywords) {
+            s.emitTo(end + 1, CodeTokenKind.KEYWORD)
+            return true
+        }
         val kind = classify(word)
         when {
             kind != null -> s.emitTo(end, kind)
@@ -303,7 +348,7 @@ internal class ProgramScan(private val rules: ProgramRules, private val s: Lexer
     private fun prefixedString(word: String, end: Int): Boolean {
         if (word.lowercase() !in rules.stringPrefixes) return false
         val rule = rules.strings.firstOrNull { s.startsWith(it.open, end) } ?: return false
-        scanString(rule, bodyStart = end + rule.open.length)
+        scanString(rule, bodyStart = end + rule.open.length, raw = word.lowercase() in rules.rawStringPrefixes)
         return true
     }
 
@@ -319,7 +364,8 @@ internal class ProgramScan(private val rules: ProgramRules, private val s: Lexer
         return true
     }
 
-    private fun scanString(rule: StringRule, bodyStart: Int) {
+    private fun scanString(declared: StringRule, bodyStart: Int, raw: Boolean = false) {
+        val rule = if (raw) declared.copy(escapes = false, templates = StringTemplates.NONE) else declared
         var segment = s.pos
         var index = bodyStart
         var closed = false
@@ -380,6 +426,10 @@ internal class ProgramScan(private val rules: ProgramRules, private val s: Lexer
         val REGEX_KEYWORDS = words(
             "return typeof case do else in of new delete void throw yield await when if unless elsif while until and or not",
         )
+        const val WORD_SUFFIXES = "?!"
+        const val PERCENT_KINDS = "wWiIqQrsx"
+        const val PERCENT_BARE = "([{<|!/^"
+        val PERCENT_BRACKETS = mapOf('(' to ')', '[' to ']', '{' to '}', '<' to '>')
         val RAW_STRING_PREFIXES = setOf("r", "br")
     }
 }

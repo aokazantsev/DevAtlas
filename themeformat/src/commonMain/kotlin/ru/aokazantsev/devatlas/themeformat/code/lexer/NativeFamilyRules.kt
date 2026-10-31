@@ -16,6 +16,7 @@ internal object NativeFamilyRules {
         types = cTypes,
         literals = words("true false NULL"),
         preprocessor = true,
+        digitQuoteSeparator = true,
     )
 
     val cpp = ProgramRules(
@@ -30,6 +31,7 @@ internal object NativeFamilyRules {
         strings = listOf(StringRule("R\"(", ")\"", escapes = false, multiline = true), StringRule("\""), StringRule("'")),
         stringPrefixes = setOf("u8", "u", "l"),
         preprocessor = true,
+        digitQuoteSeparator = true,
     )
 
     val objectiveC = ProgramRules(

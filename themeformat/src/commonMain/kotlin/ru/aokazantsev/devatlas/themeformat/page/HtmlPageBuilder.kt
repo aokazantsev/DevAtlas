@@ -127,7 +127,7 @@ internal class HtmlPageBuilder(private val file: String) {
             ?.let { it as? MarkupNode.Element }
             ?.takeIf { it.name == "code" }
         val language = codeElement?.attribute("class")?.value
-            ?.split(' ')
+            ?.split(WHITESPACE)
             ?.firstOrNull { it.startsWith(LANGUAGE_PREFIX) }
             ?.removePrefix(LANGUAGE_PREFIX)
             ?.takeIf { it.isNotEmpty() }
@@ -373,7 +373,8 @@ internal class HtmlPageBuilder(private val file: String) {
             !isPdf -> Unit
             attribute == null -> collector.warning(
                 IssueCode.PDF_DOWNLOAD_MISSING,
-                "У ссылки на PDF нет атрибута download: имя файла возьмётся из ответа сервера",
+                "У ссылки на PDF нет атрибута download: имя файла возьмётся из ответа сервера, адреса, " +
+                    "заголовка страницы или домена с датой",
                 element.position,
             )
             !valid -> collector.error(
