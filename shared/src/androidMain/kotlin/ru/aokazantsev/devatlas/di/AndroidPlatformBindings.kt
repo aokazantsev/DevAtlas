@@ -12,6 +12,11 @@ import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toOkioPath
 import ru.aokazantsev.devatlas.database.data.DevAtlasDatabase
+import ru.aokazantsev.devatlas.files.data.AndroidExternalApps
+import ru.aokazantsev.devatlas.files.data.MediaStorePublicFiles
+import ru.aokazantsev.devatlas.files.domain.ExternalApps
+import ru.aokazantsev.devatlas.files.domain.PublicFiles
+import java.util.TimeZone
 
 internal class AndroidPlatformBindings(context: Context) : PlatformBindings {
 
@@ -20,6 +25,10 @@ internal class AndroidPlatformBindings(context: Context) : PlatformBindings {
     override val dataDirectory: Path = appContext.filesDir.toOkioPath()
 
     override val fileSystem: FileSystem = FileSystem.SYSTEM
+
+    override val publicFiles: PublicFiles = MediaStorePublicFiles(appContext.contentResolver)
+
+    override val externalApps: ExternalApps = AndroidExternalApps(appContext)
 
     override fun databaseBuilder(): RoomDatabase.Builder<DevAtlasDatabase> =
         Room.databaseBuilder<DevAtlasDatabase>(
@@ -46,6 +55,8 @@ internal class AndroidPlatformBindings(context: Context) : PlatformBindings {
         val clipboard = appContext.getSystemService(ClipboardManager::class.java)
         return runCatching { clipboard.setPrimaryClip(ClipData.newPlainText(CLIP_LABEL, text)) }.isSuccess
     }
+
+    override fun timeZoneOffsetMillis(epochMillis: Long): Long = TimeZone.getDefault().getOffset(epochMillis).toLong()
 
     private companion object {
         const val DATABASE_NAME = "devatlas.db"

@@ -13,6 +13,8 @@ import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import ru.aokazantsev.devatlas.database.data.DevAtlasDatabase
 import ru.aokazantsev.devatlas.di.PlatformBindings
+import ru.aokazantsev.devatlas.files.domain.ExternalApps
+import ru.aokazantsev.devatlas.files.domain.PublicFiles
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -32,7 +34,12 @@ class ThemeStorageImplTest {
 
         override fun clipboardText(): String? = null
 
+        override val publicFiles: PublicFiles get() = error("не используется")
+        override val externalApps: ExternalApps get() = error("не используется")
+
         override fun copyToClipboard(text: String): Boolean = error("не используется")
+
+        override fun timeZoneOffsetMillis(epochMillis: Long): Long = 0L
     }
 
     private val storage = ThemeStorageImpl(platform, fileSystem, CoroutineScope(Dispatchers.Unconfined))

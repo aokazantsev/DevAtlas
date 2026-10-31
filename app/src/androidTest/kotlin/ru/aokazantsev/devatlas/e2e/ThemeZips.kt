@@ -17,6 +17,18 @@ object ThemeZips {
     const val REMOVED_PAGE_ID = "internal-links"
     const val CHANGED_PAGE_FILE = "pages/welcome.html"
     const val MANIFEST = "manifest.json"
+    const val LINKS_PAGE_FILE = "pages/links/external.html"
+    private const val WEB_LINKS_PAGE = """
+        <h1>Сайты и PDF</h1>
+        <p>Сайт: <a href="https://devatlas.test/web/article.html">статья на сайте</a>.</p>
+        <p>Файл: <a href="https://devatlas.test/files/guide.pdf" download="e2e-guide.pdf">руководство в PDF</a>.</p>
+        <p>Без расширения: <a href="https://devatlas.test/files/report">отчёт с сайта</a>.</p>
+        <p>Медленный: <a href="https://devatlas.test/files/slow.pdf" download="e2e-slow.pdf">большой файл</a>.</p>
+        <p>Битый: <a href="https://devatlas.test/files/missing.pdf" download="e2e-missing.pdf">пропавший файл</a>.</p>
+        <p>Нет сети: <a href="https://offline.test/page.html">сайт без сети</a>.</p>
+        <p>Без нажатия: <a href="https://devatlas.test/web/auto.html">сайт с автопереходом</a>.</p>
+        <p>Почта: <a href="mailto:hello@example.com">написать письмо</a>, <a href="tel:+70000000000">позвонить</a>.</p>
+    """
 
     fun sampleFiles(): Map<String, ByteArray> {
         val assets = InstrumentationRegistry.getInstrumentation().context.assets
@@ -70,6 +82,12 @@ object ThemeZips {
     fun withBrokenWelcomePage(): ByteArray {
         val files = sampleFiles().toMutableMap()
         files[CHANGED_PAGE_FILE] = "<html><body><p>обёртка запрещена</p></body></html>".toByteArray()
+        return zip(files)
+    }
+
+    fun withWebLinks(): ByteArray {
+        val files = sampleFiles().toMutableMap()
+        files[LINKS_PAGE_FILE] = WEB_LINKS_PAGE.trimIndent().toByteArray()
         return zip(files)
     }
 

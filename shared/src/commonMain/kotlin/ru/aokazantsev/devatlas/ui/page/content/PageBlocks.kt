@@ -16,7 +16,6 @@ import androidx.compose.ui.text.TextStyle
 import ru.aokazantsev.devatlas.designsystem.component.AtlasDivider
 import ru.aokazantsev.devatlas.designsystem.component.AtlasText
 import ru.aokazantsev.devatlas.designsystem.theme.AtlasTheme
-import ru.aokazantsev.devatlas.themeformat.page.model.LinkTarget
 import ru.aokazantsev.devatlas.themeformat.page.model.PageBlock
 import ru.aokazantsev.devatlas.ui.page.code.CodeBlock
 import ru.aokazantsev.devatlas.ui.page.diagram.DiagramFigure
@@ -26,7 +25,7 @@ import ru.aokazantsev.devatlas.ui.scroll.ScrollAnchors
 internal fun PageBlocks(
     blocks: List<PageBlock>,
     diagrams: Map<String, String>,
-    onLink: (LinkTarget) -> Unit,
+    links: PageLinks,
     onOpenDiagram: (PageBlock.Figure) -> Unit,
     onCopyCode: (String) -> Boolean,
     modifier: Modifier = Modifier,
@@ -34,7 +33,7 @@ internal fun PageBlocks(
 ) {
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.m)) {
         blocks.forEachIndexed { index, block ->
-            Box(modifier = anchors?.item(index) ?: Modifier) { PageBlockView(block, diagrams, onLink, onOpenDiagram, onCopyCode) }
+            Box(modifier = anchors?.item(index) ?: Modifier) { PageBlockView(block, diagrams, links, onOpenDiagram, onCopyCode) }
         }
     }
 }
@@ -43,18 +42,20 @@ internal fun PageBlocks(
 private fun PageBlockView(
     block: PageBlock,
     diagrams: Map<String, String>,
-    onLink: (LinkTarget) -> Unit,
+    links: PageLinks,
     onOpenDiagram: (PageBlock.Figure) -> Unit,
     onCopyCode: (String) -> Boolean,
 ) {
     when (block) {
-        is PageBlock.Heading -> AtlasText(
-            text = rememberInlineText(block.content, onLink),
+        is PageBlock.Heading -> InlineText(
+            content = block.content,
+            links = links,
             style = headingStyle(block.level),
             modifier = Modifier.semantics { heading() },
         )
-        is PageBlock.Paragraph -> AtlasText(
-            text = rememberInlineText(block.content, onLink),
+        is PageBlock.Paragraph -> InlineText(
+            content = block.content,
+            links = links,
             style = AtlasTheme.typography.bodyLarge,
         )
         is PageBlock.ListBlock -> Column(verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.s)) {
@@ -65,7 +66,7 @@ private fun PageBlockView(
                         style = AtlasTheme.typography.bodyLarge,
                         color = AtlasTheme.colors.onSurfaceVariant,
                     )
-                    PageBlocks(item, diagrams, onLink, onOpenDiagram, onCopyCode, Modifier.weight(1f))
+                    PageBlocks(item, diagrams, links, onOpenDiagram, onCopyCode, Modifier.weight(1f))
                 }
             }
         }
@@ -73,7 +74,7 @@ private fun PageBlockView(
         is PageBlock.Quote -> PageBlocks(
             blocks = block.blocks,
             diagrams = diagrams,
-            onLink = onLink,
+            links = links,
             onOpenDiagram = onOpenDiagram,
             onCopyCode = onCopyCode,
             modifier = Modifier
@@ -81,12 +82,12 @@ private fun PageBlockView(
                 .background(AtlasTheme.colors.surfaceContainerHigh)
                 .padding(AtlasTheme.spacing.m),
         )
-        is PageBlock.Table -> PageTable(rows = block.rows, onLink = onLink)
+        is PageBlock.Table -> PageTable(rows = block.rows, links = links)
         is PageBlock.Figure -> DiagramFigure(
             figure = block,
             svg = diagrams[block.source],
             onOpen = { onOpenDiagram(block) },
-            onLink = onLink,
+            links = links,
         )
         PageBlock.Divider -> AtlasDivider(modifier = Modifier.padding(vertical = AtlasTheme.spacing.s))
     }

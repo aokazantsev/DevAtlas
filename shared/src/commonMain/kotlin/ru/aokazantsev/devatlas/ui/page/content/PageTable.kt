@@ -13,14 +13,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Constraints
-import ru.aokazantsev.devatlas.designsystem.component.AtlasText
 import ru.aokazantsev.devatlas.designsystem.theme.AtlasTheme
-import ru.aokazantsev.devatlas.themeformat.page.model.LinkTarget
 import ru.aokazantsev.devatlas.themeformat.page.model.TableCell
 import ru.aokazantsev.devatlas.themeformat.page.model.TableRow
 
 @Composable
-internal fun PageTable(rows: List<TableRow>, onLink: (LinkTarget) -> Unit, modifier: Modifier = Modifier) {
+internal fun PageTable(rows: List<TableRow>, links: PageLinks, modifier: Modifier = Modifier) {
     val columns = rows.maxOfOrNull { it.cells.size } ?: 0
     if (columns == 0) return
     val columnMax = AtlasTheme.sizes.tableColumnMax
@@ -29,7 +27,7 @@ internal fun PageTable(rows: List<TableRow>, onLink: (LinkTarget) -> Unit, modif
             modifier = Modifier.clip(AtlasTheme.shapes.medium).background(AtlasTheme.colors.surfaceContainerLow),
             content = {
                 rows.forEach { row ->
-                    repeat(columns) { column -> TableCellBox(row.cells.getOrNull(column), onLink) }
+                    repeat(columns) { column -> TableCellBox(row.cells.getOrNull(column), links) }
                 }
             },
         ) { measurables, _ ->
@@ -60,14 +58,15 @@ internal fun PageTable(rows: List<TableRow>, onLink: (LinkTarget) -> Unit, modif
 }
 
 @Composable
-private fun TableCellBox(cell: TableCell?, onLink: (LinkTarget) -> Unit) {
+private fun TableCellBox(cell: TableCell?, links: PageLinks) {
     val header = cell?.header == true
     val background = if (header) AtlasTheme.colors.surfaceContainerHigh else AtlasTheme.colors.surfaceContainerLow
     Box(modifier = Modifier.fillMaxSize().background(background).padding(AtlasTheme.spacing.s)) {
         if (cell != null) {
             val style = AtlasTheme.typography.bodyMedium
-            AtlasText(
-                text = rememberInlineText(cell.content, onLink),
+            InlineText(
+                content = cell.content,
+                links = links,
                 style = if (header) style.copy(fontWeight = FontWeight.Bold) else style,
             )
         }

@@ -22,7 +22,13 @@ sealed interface Route {
     data class Page(val pageId: String, val anchor: Int = 0) : Route
 
     @Serializable
+    data class Web(val url: String) : Route
+
+    @Serializable
     data object Settings : Route
+
+    @Serializable
+    data object Downloads : Route
 
     @Serializable
     data object Themes : Route

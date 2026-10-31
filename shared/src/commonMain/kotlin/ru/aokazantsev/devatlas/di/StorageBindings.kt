@@ -15,6 +15,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
 import okio.FileSystem
+import ru.aokazantsev.devatlas.files.domain.ExternalApps
+import ru.aokazantsev.devatlas.files.domain.PublicFiles
 import ru.aokazantsev.devatlas.themeformat.archive.ThemeArchiveExtractor
 import ru.aokazantsev.devatlas.themeformat.archive.ThemeArchiveExtractorImpl
 import ru.aokazantsev.devatlas.themeformat.validation.ThemeValidator
@@ -36,6 +38,12 @@ internal object StorageBindings {
 
     @Provides
     fun provideFileSystem(platform: PlatformBindings): FileSystem = platform.fileSystem
+
+    @Provides
+    fun providePublicFiles(platform: PlatformBindings): PublicFiles = platform.publicFiles
+
+    @Provides
+    fun provideExternalApps(platform: PlatformBindings): ExternalApps = platform.externalApps
 
     @Provides
     @SingleIn(AppScope::class)

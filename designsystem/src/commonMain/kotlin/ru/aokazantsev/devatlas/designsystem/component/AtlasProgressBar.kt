@@ -8,6 +8,10 @@ import androidx.compose.ui.Modifier
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun AtlasProgressBar(progress: Float, modifier: Modifier = Modifier) {
-    LinearWavyProgressIndicator(progress = { progress }, modifier = modifier.fillMaxWidth())
+fun AtlasProgressBar(progress: Float?, modifier: Modifier = Modifier) {
+    if (progress == null) {
+        LinearWavyProgressIndicator(modifier = modifier.fillMaxWidth())
+    } else {
+        LinearWavyProgressIndicator(progress = { progress }, modifier = modifier.fillMaxWidth())
+    }
 }

@@ -27,6 +27,7 @@ fun SettingsScreen(
     showComponentCatalog: Boolean,
     onBack: () -> Unit,
     onOpenThemes: () -> Unit,
+    onOpenDownloads: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenComponentCatalog: () -> Unit,
 ) {
@@ -57,6 +58,7 @@ fun SettingsScreen(
             }
             ReadingSection(continueFromLastPoint, viewModel::setContinueFromLastPoint)
             ThemesSection(onOpenThemes)
+            FilesSection(onOpenDownloads)
             SectionTitle("Приложение")
             val rows = if (showComponentCatalog) 2 else 1
             AtlasListGroup {
@@ -110,6 +112,20 @@ private fun ReadingSection(continueFromLastPoint: Boolean?, onChange: (Boolean) 
             checked = continueFromLastPoint == true,
             onCheckedChange = onChange,
             enabled = continueFromLastPoint != null,
+        )
+    }
+}
+
+@Composable
+private fun FilesSection(onOpenDownloads: () -> Unit) {
+    SectionTitle("Файлы")
+    AtlasListGroup {
+        AtlasListRow(
+            title = "Скачанные файлы",
+            subtitle = "PDF со страниц тем и сайтов в папке Загрузки/DevAtlas",
+            leadingIcon = AtlasIcons.Download,
+            showChevron = true,
+            onClick = onOpenDownloads,
         )
     }
 }

@@ -8,6 +8,7 @@ import okio.Buffer
 import org.junit.rules.ExternalResource
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.TimeUnit
 
 class MockServerRule : ExternalResource() {
 
@@ -46,6 +47,30 @@ class MockServerRule : ExternalResource() {
             }
         }
     }
+
+    fun servePdf(path: String, bytes: ByteArray = PDF_BYTES, fileName: String? = null, throttled: Boolean = false) {
+        route(path) {
+            MockResponse.Builder()
+                .code(OK)
+                .addHeader("Content-Type", "application/pdf")
+                .apply { if (fileName != null) addHeader("Content-Disposition", "attachment; filename=\"$fileName\"") }
+                .apply { if (throttled) throttleBody(THROTTLE_BYTES, 1, TimeUnit.SECONDS) }
+                .body(Buffer().write(bytes))
+                .build()
+        }
+    }
+
+    fun serveHtml(path: String, html: String) {
+        route(path) {
+            MockResponse.Builder()
+                .code(OK)
+                .addHeader("Content-Type", "text/html; charset=utf-8")
+                .body(html)
+                .build()
+        }
+    }
+
+    fun requestCount(path: String): Int = log.count { it == path }
 
     fun serveStatus(path: String, status: Int) {
         route(path) { MockResponse.Builder().code(status).build() }
@@ -119,5 +144,7 @@ class MockServerRule : ExternalResource() {
         const val OK = 200
         const val NOT_MODIFIED = 304
         const val NOT_FOUND = 404
+        const val THROTTLE_BYTES = 1024L
+        val PDF_BYTES = "%PDF-1.4\n%DevAtlas e2e\n".toByteArray()
     }
 }

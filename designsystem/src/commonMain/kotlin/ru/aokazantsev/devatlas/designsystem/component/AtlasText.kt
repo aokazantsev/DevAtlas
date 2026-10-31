@@ -39,6 +39,7 @@ fun AtlasText(
     modifier: Modifier = Modifier,
     style: TextStyle = LocalTextStyle.current,
     color: Color = Color.Unspecified,
+    onTextLayout: (TextLayoutResult) -> Unit = {},
 ) {
-    Text(text = text, modifier = modifier, style = style, color = color)
+    Text(text = text, modifier = modifier, style = style, color = color, onTextLayout = onTextLayout)
 }

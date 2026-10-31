@@ -13,8 +13,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.platform.UriHandler
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ru.aokazantsev.devatlas.designsystem.component.AtlasError
 import ru.aokazantsev.devatlas.designsystem.component.AtlasListGroup
@@ -25,11 +23,13 @@ import ru.aokazantsev.devatlas.designsystem.component.AtlasSwitchRow
 import ru.aokazantsev.devatlas.designsystem.component.AtlasText
 import ru.aokazantsev.devatlas.designsystem.component.AtlasTopBar
 import ru.aokazantsev.devatlas.designsystem.theme.AtlasTheme
-import ru.aokazantsev.devatlas.themeformat.page.model.LinkTarget
 import ru.aokazantsev.devatlas.themeformat.page.model.PageBlock
+import ru.aokazantsev.devatlas.themeformat.page.model.PageInline
 import ru.aokazantsev.devatlas.ui.bookmarks.AddBookmarkButton
 import ru.aokazantsev.devatlas.ui.bookmarks.NewBookmarkSheet
+import ru.aokazantsev.devatlas.ui.links.LinkActions
 import ru.aokazantsev.devatlas.ui.page.content.PageBlocks
+import ru.aokazantsev.devatlas.ui.page.content.PageLinks
 import ru.aokazantsev.devatlas.ui.page.diagram.DiagramViewer
 import ru.aokazantsev.devatlas.ui.page.diagram.SvgColorTokens
 import ru.aokazantsev.devatlas.ui.page.diagram.rememberSvgPalette
@@ -42,7 +42,7 @@ import ru.aokazantsev.devatlas.ui.scroll.rememberScrollPosition
 fun PageScreen(
     viewModel: PageViewModel,
     anchor: Int,
-    onOpenPage: (String) -> Unit,
+    links: LinkActions,
     onNext: (String) -> Unit,
     onBack: () -> Unit,
 ) {
@@ -89,7 +89,7 @@ fun PageScreen(
                 onRecordPosition = viewModel::recordPosition,
                 onViewedChange = viewModel::setViewed,
                 onCopyCode = viewModel::copyCode,
-                onOpenPage = onOpenPage,
+                links = links,
                 onNext = onNext,
                 modifier = modifier,
             )
@@ -105,20 +105,16 @@ private fun PageBody(
     onRecordPosition: (Int) -> Unit,
     onViewedChange: (Boolean) -> Unit,
     onCopyCode: (String) -> Boolean,
-    onOpenPage: (String) -> Unit,
+    links: LinkActions,
     onNext: (String) -> Unit,
     modifier: Modifier,
 ) {
-    val uriHandler = LocalUriHandler.current
-    val onLink = remember(onOpenPage, uriHandler) {
-        { target: LinkTarget ->
-            when (target) {
-                is LinkTarget.Page -> onOpenPage(target.id)
-                is LinkTarget.Web -> uriHandler.openSafely(target.url)
-                is LinkTarget.Email -> uriHandler.openSafely(target.uri)
-                is LinkTarget.Phone -> uriHandler.openSafely(target.uri)
-            }
-        }
+    var menuLink by remember { mutableStateOf<PageInline.Link?>(null) }
+    val pageLinks = remember(links, state.title) {
+        PageLinks(
+            onClick = { link -> links.follow(link, state.title) },
+            onLongPress = { link -> if (link.externalUri() != null) menuLink = link },
+        )
     }
     var openedDiagram by rememberSaveable { mutableStateOf<String?>(null) }
     RestoreAnchor(position)
@@ -133,7 +129,7 @@ private fun PageBody(
         PageBlocks(
             blocks = state.content.document.blocks,
             diagrams = state.content.diagrams,
-            onLink = onLink,
+            links = pageLinks,
             onOpenDiagram = { openedDiagram = it.source },
             onCopyCode = onCopyCode,
             modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
@@ -144,6 +140,7 @@ private fun PageBody(
         }
         state.next?.let { next -> NextPageButton(next, onNext) }
     }
+    LinkMenuSheet(link = menuLink, pageTitle = state.title, actions = links) { menuLink = null }
     val diagramSource = openedDiagram ?: return
     val diagramSvg = state.content.diagrams[diagramSource] ?: return
     val palette = rememberSvgPalette()
@@ -167,13 +164,6 @@ private fun NextPageButton(next: NextPage, onNext: (String) -> Unit) {
             color = AtlasTheme.colors.onSurfaceVariant,
         )
         AtlasPrimaryButton(text = "Дальше", onClick = { onNext(next.id) }, modifier = Modifier.fillMaxWidth())
-    }
-}
-
-private fun UriHandler.openSafely(uri: String) {
-    try {
-        openUri(uri)
-    } catch (_: IllegalArgumentException) {
     }
 }
 

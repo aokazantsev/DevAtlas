@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import ru.aokazantsev.devatlas.database.data.DevAtlasDatabase
 import ru.aokazantsev.devatlas.database.data.dao.BookmarkDao
+import ru.aokazantsev.devatlas.database.data.dao.DownloadedFileDao
 import ru.aokazantsev.devatlas.database.data.dao.InstalledThemeDao
 import ru.aokazantsev.devatlas.database.data.dao.ReadingPointDao
 import ru.aokazantsev.devatlas.database.data.dao.ViewedPageDao
@@ -37,4 +38,7 @@ internal object DatabaseBindings {
 
     @Provides
     fun provideReadingPointDao(database: DevAtlasDatabase): ReadingPointDao = database.readingPointDao()
+
+    @Provides
+    fun provideDownloadedFileDao(database: DevAtlasDatabase): DownloadedFileDao = database.downloadedFileDao()
 }

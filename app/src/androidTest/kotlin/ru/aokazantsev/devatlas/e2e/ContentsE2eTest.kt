@@ -140,7 +140,7 @@ class ContentsE2eTest {
     }
 
     @Test
-    fun pageLinkOpensPageAndWebLinkGoesToSystem() {
+    fun pageLinkOpensPageOnTopAndWebLinkOpensBuiltInPage() {
         app.passOnboarding()
         app.clickText("Ссылки и файлы")
         app.clickText("Ссылки между страницами")
@@ -151,6 +151,8 @@ class ContentsE2eTest {
         app.onNodeWithContentDescription("Назад").performClick()
         app.clickLink("страницу про сайты и PDF")
         app.clickLink("документация Kotlin Multiplatform")
+        app.waitFor(hasContentDescription("Открыть в браузере"))
+        app.onNodeWithContentDescription("Открыть в браузере").performClick()
         intended(allOf(hasAction(Intent.ACTION_VIEW), hasData(KOTLIN_DOCS_URL)))
     }
 

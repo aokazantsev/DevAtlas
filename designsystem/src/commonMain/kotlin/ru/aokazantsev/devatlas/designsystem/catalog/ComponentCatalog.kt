@@ -223,7 +223,8 @@ private fun IconSamples() {
         AtlasIcons.Settings, AtlasIcons.Info, AtlasIcons.Close, AtlasIcons.Error, AtlasIcons.Refresh,
         AtlasIcons.LightMode, AtlasIcons.DarkMode, AtlasIcons.Contrast, AtlasIcons.Palette, AtlasIcons.Add,
         AtlasIcons.Folder, AtlasIcons.Article, AtlasIcons.BookmarkAdd, AtlasIcons.BookmarkAdded, AtlasIcons.Bookmarks,
-        AtlasIcons.Edit,
+        AtlasIcons.Edit, AtlasIcons.OpenInNew, AtlasIcons.ContentCopy, AtlasIcons.Download, AtlasIcons.DeleteSweep,
+        AtlasIcons.MoreVert, AtlasIcons.PictureAsPdf,
     )
     FlowRow(
         modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
@@ -368,6 +369,8 @@ private fun ProgressSamples() {
     ) {
         AtlasText(text = "Пройдено 12 из 30", style = AtlasTheme.typography.bodyMedium)
         AtlasProgressBar(progress = 0.4f)
+        AtlasText(text = "Размер неизвестен", style = AtlasTheme.typography.bodyMedium)
+        AtlasProgressBar(progress = null)
     }
 }
 

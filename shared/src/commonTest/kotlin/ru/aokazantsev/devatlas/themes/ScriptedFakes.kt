@@ -7,6 +7,8 @@ import okio.Path
 import okio.Path.Companion.toPath
 import ru.aokazantsev.devatlas.database.data.DevAtlasDatabase
 import ru.aokazantsev.devatlas.di.PlatformBindings
+import ru.aokazantsev.devatlas.files.domain.ExternalApps
+import ru.aokazantsev.devatlas.files.domain.PublicFiles
 import ru.aokazantsev.devatlas.themes.domain.ThemeInstaller
 import ru.aokazantsev.devatlas.themes.domain.ThemeUpdater
 import ru.aokazantsev.devatlas.themes.domain.model.InstallResult
@@ -60,8 +62,15 @@ class FakePlatformBindings(var clipboard: String? = null, var copySucceeds: Bool
 
     override fun clipboardText(): String? = clipboard
 
+    override val publicFiles: PublicFiles get() = error("не используется")
+    override val externalApps: ExternalApps get() = error("не используется")
+
     override fun copyToClipboard(text: String): Boolean {
         if (copySucceeds) clipboard = text
         return copySucceeds
     }
+
+    override fun timeZoneOffsetMillis(epochMillis: Long): Long = timeZoneOffset
+
+    var timeZoneOffset: Long = 0L
 }

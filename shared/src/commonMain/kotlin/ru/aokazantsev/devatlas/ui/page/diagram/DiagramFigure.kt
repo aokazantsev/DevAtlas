@@ -13,16 +13,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import ru.aokazantsev.devatlas.designsystem.component.AtlasText
 import ru.aokazantsev.devatlas.designsystem.theme.AtlasTheme
-import ru.aokazantsev.devatlas.themeformat.page.model.LinkTarget
 import ru.aokazantsev.devatlas.themeformat.page.model.PageBlock
-import ru.aokazantsev.devatlas.ui.page.content.rememberInlineText
+import ru.aokazantsev.devatlas.ui.page.content.InlineText
+import ru.aokazantsev.devatlas.ui.page.content.PageLinks
 
 @Composable
 internal fun DiagramFigure(
     figure: PageBlock.Figure,
     svg: String?,
     onOpen: () -> Unit,
-    onLink: (LinkTarget) -> Unit,
+    links: PageLinks,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.s)) {
@@ -45,8 +45,9 @@ internal fun DiagramFigure(
             )
         }
         if (figure.caption.isNotEmpty()) {
-            AtlasText(
-                text = rememberInlineText(figure.caption, onLink),
+            InlineText(
+                content = figure.caption,
+                links = links,
                 style = AtlasTheme.typography.bodySmall,
                 color = AtlasTheme.colors.onSurfaceVariant,
             )

@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -34,6 +35,10 @@ import ru.aokazantsev.devatlas.ui.addtheme.AddThemeScreen
 import ru.aokazantsev.devatlas.ui.bookmarks.BookmarksScreen
 import ru.aokazantsev.devatlas.ui.catalog.ComponentCatalogScreen
 import ru.aokazantsev.devatlas.ui.contents.ContentsScreen
+import ru.aokazantsev.devatlas.ui.downloads.DownloadsScreen
+import ru.aokazantsev.devatlas.ui.links.LinkActions
+import ru.aokazantsev.devatlas.ui.links.LinksHost
+import ru.aokazantsev.devatlas.ui.links.LinksViewModel
 import ru.aokazantsev.devatlas.ui.onboarding.OnboardingScreen
 import ru.aokazantsev.devatlas.ui.page.PageScreen
 import ru.aokazantsev.devatlas.ui.semantics.APP_ROOT_TAG
@@ -46,6 +51,7 @@ import ru.aokazantsev.devatlas.ui.splash.SplashState
 import ru.aokazantsev.devatlas.ui.themes.ManageThemeScreen
 import ru.aokazantsev.devatlas.ui.themes.ThemeDetailsScreen
 import ru.aokazantsev.devatlas.ui.themes.ThemesScreen
+import ru.aokazantsev.devatlas.ui.web.WebScreen
 
 @Composable
 fun DevAtlasApp(
@@ -84,7 +90,9 @@ fun DevAtlasApp(
         ) {
             val stack = startStack
             if (startupState == SplashState.Ready && stack != null) {
-                AppNavHost(graph = graph, navController = navController, startStack = stack)
+                val links = viewModel { graph.linksViewModel() }
+                AppNavHost(graph = graph, navController = navController, startStack = stack, links = links)
+                LinksHost(links)
             } else {
                 SplashScreen(
                     state = startupState,
@@ -98,13 +106,14 @@ fun DevAtlasApp(
 }
 
 @Composable
-private fun AppNavHost(graph: AppGraph, navController: NavHostController, startStack: List<Route>) {
+private fun AppNavHost(graph: AppGraph, navController: NavHostController, startStack: List<Route>, links: LinksViewModel) {
     var stackOpened by rememberSaveable { mutableStateOf(false) }
     NavHost(navController = navController, startDestination = startStack.first()) {
         firstRunDestinations(graph, navController)
-        contentsDestinations(graph, navController)
+        contentsDestinations(graph, navController, links)
         themeDestinations(graph, navController)
         settingsDestinations(graph, navController)
+        webDestinations(graph, navController, links)
     }
     LaunchedEffect(Unit) {
         if (stackOpened) return@LaunchedEffect
@@ -137,7 +146,7 @@ private fun NavGraphBuilder.firstRunDestinations(graph: AppGraph, navController:
     }
 }
 
-private fun NavGraphBuilder.contentsDestinations(graph: AppGraph, navController: NavHostController) {
+private fun NavGraphBuilder.contentsDestinations(graph: AppGraph, navController: NavHostController, links: LinksViewModel) {
     composable<Route.Contents> { entry ->
         ContentsScreen(
             viewModel = viewModel { graph.contentsViewModel.create(null) },
@@ -168,7 +177,7 @@ private fun NavGraphBuilder.contentsDestinations(graph: AppGraph, navController:
         PageScreen(
             viewModel = viewModel(key = page.pageId) { graph.pageViewModel.create(page.pageId) },
             anchor = page.anchor,
-            onOpenPage = { id -> entry.whenResumed { navController.navigate(Route.Page(id)) } },
+            links = rememberLinkActions(entry, navController, links),
             onNext = { id ->
                 entry.whenResumed { navController.navigate(Route.Page(id)) { popUpTo(page) { inclusive = true } } }
             },
@@ -219,8 +228,15 @@ private fun NavGraphBuilder.settingsDestinations(graph: AppGraph, navController:
             showComponentCatalog = graph.appInfo.isDebug,
             onBack = { entry.whenResumed { navController.popBackStack() } },
             onOpenThemes = { entry.whenResumed { navController.navigate(Route.Themes) } },
+            onOpenDownloads = { entry.whenResumed { navController.navigate(Route.Downloads) } },
             onOpenAbout = { entry.whenResumed { navController.navigate(Route.About) } },
             onOpenComponentCatalog = { entry.whenResumed { navController.navigate(Route.ComponentCatalog) } },
+        )
+    }
+    composable<Route.Downloads> { entry ->
+        DownloadsScreen(
+            viewModel = viewModel { graph.downloadsViewModel() },
+            onBack = { entry.whenResumed { navController.popBackStack() } },
         )
     }
     composable<Route.About> { entry ->
@@ -233,6 +249,32 @@ private fun NavGraphBuilder.settingsDestinations(graph: AppGraph, navController:
         ComponentCatalogScreen(onBack = { entry.whenResumed { navController.popBackStack() } })
     }
 }
+
+private fun NavGraphBuilder.webDestinations(graph: AppGraph, navController: NavHostController, links: LinksViewModel) {
+    composable<Route.Web> { entry ->
+        val url = entry.toRoute<Route.Web>().url
+        WebScreen(
+            url = url,
+            startUrl = graph.endpoints.webUrl(url),
+            links = rememberLinkActions(entry, navController, links),
+            onBack = { entry.whenResumed { navController.popBackStack() } },
+            onNothingShown = { if (navController.currentBackStackEntry == entry) navController.popBackStack() },
+        )
+    }
+}
+
+@Composable
+private fun rememberLinkActions(entry: NavBackStackEntry, navController: NavHostController, links: LinksViewModel): LinkActions =
+    remember(entry, navController, links) {
+        LinkActions(
+            openPage = { id -> entry.whenResumed { navController.navigate(Route.Page(id)) } },
+            openWeb = { url -> entry.whenResumed { navController.navigate(Route.Web(url)) } },
+            openPdf = links::openPdf,
+            redownloadPdf = links::redownloadPdf,
+            openExternal = links::openExternal,
+            copyLink = links::copyLink,
+        )
+    }
 
 private fun NavHostController.resetTo(route: Route) {
     navigate(route) { popUpTo(graph.id) { inclusive = true } }
