@@ -21,11 +21,7 @@ fun DevAtlasComposeRule.withFontScale(scale: String, block: () -> Unit) {
     }
 }
 
-private fun DevAtlasComposeRule.activityFontScale(): Float {
-    var scale = 0f
-    activityRule.scenario.onActivity { scale = it.resources.configuration.fontScale }
-    return scale
-}
+private fun activityFontScale(): Float = onResumedActivity { it.resources.configuration.fontScale } ?: 0f
 
 private fun shell(command: String): String =
     ParcelFileDescriptor.AutoCloseInputStream(

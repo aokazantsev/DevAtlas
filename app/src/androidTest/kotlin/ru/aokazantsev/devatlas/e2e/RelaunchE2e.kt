@@ -48,7 +48,7 @@ class RelaunchE2e {
 
     fun rotate(orientation: Int) {
         wakeScreen()
-        scenario?.onActivity { it.requestedOrientation = orientation }
+        requestOrientation(orientation)
     }
 
     fun close() {

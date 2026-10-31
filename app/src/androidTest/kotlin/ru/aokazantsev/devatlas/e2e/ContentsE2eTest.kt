@@ -158,7 +158,7 @@ class ContentsE2eTest {
     }
 
     private fun rotate(orientation: Int) {
-        app.activityRule.scenario.onActivity { it.requestedOrientation = orientation }
+        requestOrientation(orientation)
     }
 
     @OptIn(ExperimentalTestApi::class)
