@@ -21,6 +21,10 @@ class MockServerRule : ExternalResource() {
     private val log = CopyOnWriteArrayList<String>()
     private val headerLog = CopyOnWriteArrayList<Pair<String, okhttp3.Headers>>()
 
+    private val bodyLog = CopyOnWriteArrayList<Pair<String, String>>()
+
+    fun requestBodies(path: String): List<String> = bodyLog.filter { it.first == path }.map { it.second }
+
     fun requestHeaders(path: String): List<okhttp3.Headers> = headerLog.filter { it.first == path }.map { it.second }
 
     val requestedPaths: List<String>
@@ -127,6 +131,7 @@ class MockServerRule : ExternalResource() {
             val path = request.url.encodedPath
             log += path
             headerLog += path to request.headers
+            bodyLog += path to (request.body?.utf8() ?: "")
             return routes[path]?.invoke(request) ?: MockResponse.Builder().code(NOT_FOUND).build()
         }
     }

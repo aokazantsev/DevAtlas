@@ -6,4 +6,6 @@ interface ExternalApps {
     fun openFile(uri: String, mimeType: String): Boolean
 
     fun shareFile(uri: String, mimeType: String): Boolean
+
+    fun shareText(text: String): Boolean
 }

@@ -23,6 +23,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val graph = application.graph
+        graph.appServices.start(freshLaunch = savedInstanceState == null)
         setContent {
             DevAtlasApp(
                 graph = graph,

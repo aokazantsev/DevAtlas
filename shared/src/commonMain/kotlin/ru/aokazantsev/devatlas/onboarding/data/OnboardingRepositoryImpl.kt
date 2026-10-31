@@ -48,6 +48,20 @@ internal class OnboardingRepositoryImpl(
         }
     }
 
+    override suspend fun setCrashReports(enabled: Boolean) {
+        try {
+            dataStore.edit { it[CRASH_REPORTS_KEY] = enabled }
+        } catch (_: IOException) {
+        }
+    }
+
+    override suspend fun setUsageStatistics(enabled: Boolean) {
+        try {
+            dataStore.edit { it[USAGE_STATISTICS_KEY] = enabled }
+        } catch (_: IOException) {
+        }
+    }
+
     private companion object {
         val POLICY_VERSION_KEY = intPreferencesKey("policy_version")
         val CRASH_REPORTS_KEY = booleanPreferencesKey("crash_reports")

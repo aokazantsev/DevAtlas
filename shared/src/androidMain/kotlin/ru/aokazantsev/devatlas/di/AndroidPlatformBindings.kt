@@ -3,6 +3,7 @@ package ru.aokazantsev.devatlas.di
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.os.Build
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import io.ktor.client.HttpClient
@@ -16,6 +17,10 @@ import ru.aokazantsev.devatlas.files.data.AndroidExternalApps
 import ru.aokazantsev.devatlas.files.data.MediaStorePublicFiles
 import ru.aokazantsev.devatlas.files.domain.ExternalApps
 import ru.aokazantsev.devatlas.files.domain.PublicFiles
+import ru.aokazantsev.devatlas.update.data.AndroidAppInstaller
+import ru.aokazantsev.devatlas.update.domain.AppInstaller
+import ru.aokazantsev.devatlas.usage.data.WorkManagerUsageScheduler
+import ru.aokazantsev.devatlas.usage.domain.UsageScheduler
 import java.util.TimeZone
 
 internal class AndroidPlatformBindings(context: Context) : PlatformBindings {
@@ -29,6 +34,15 @@ internal class AndroidPlatformBindings(context: Context) : PlatformBindings {
     override val publicFiles: PublicFiles = MediaStorePublicFiles(appContext.contentResolver)
 
     override val externalApps: ExternalApps = AndroidExternalApps(appContext)
+
+    override val appInstaller: AppInstaller = AndroidAppInstaller(appContext)
+
+    override val usageScheduler: UsageScheduler = WorkManagerUsageScheduler(appContext)
+
+    override val device: DeviceInfo = DeviceInfo(
+        model = if (Build.MODEL.startsWith(Build.MANUFACTURER, ignoreCase = true)) Build.MODEL else "${Build.MANUFACTURER} ${Build.MODEL}",
+        androidVersion = Build.VERSION.RELEASE,
+    )
 
     override fun databaseBuilder(): RoomDatabase.Builder<DevAtlasDatabase> =
         Room.databaseBuilder<DevAtlasDatabase>(

@@ -14,6 +14,8 @@ import kotlinx.coroutines.launch
 import ru.aokazantsev.devatlas.themes.domain.ThemeInstaller
 import ru.aokazantsev.devatlas.themes.domain.ThemeLibrary
 import ru.aokazantsev.devatlas.themes.domain.ThemeUpdater
+import ru.aokazantsev.devatlas.usage.domain.UsageStatistics
+import ru.aokazantsev.devatlas.usage.domain.model.UsageEvent
 
 @AssistedInject
 class ThemeDetailsViewModel(
@@ -21,6 +23,7 @@ class ThemeDetailsViewModel(
     private val library: ThemeLibrary,
     updater: ThemeUpdater,
     installer: ThemeInstaller,
+    private val usage: UsageStatistics,
 ) : ViewModel() {
 
     val update = ThemeUpdateController(themeId, updater, installer, viewModelScope)
@@ -34,6 +37,7 @@ class ThemeDetailsViewModel(
     fun apply(onApplied: () -> Unit) {
         viewModelScope.launch {
             library.apply(themeId)
+            usage.hit(UsageEvent.THEME_SWITCH)
             onApplied()
         }
     }

@@ -336,6 +336,10 @@ class AppViewModelTest {
         override suspend fun isPolicyAccepted(): Boolean = consent.value.policyAccepted
 
         override suspend fun accept(crashReports: Boolean, usageStatistics: Boolean) = Unit
+
+        override suspend fun setCrashReports(enabled: Boolean) = Unit
+
+        override suspend fun setUsageStatistics(enabled: Boolean) = Unit
     }
 
     private class FakeInstaller(private val failure: ThemeFailure?) : ThemeInstaller {

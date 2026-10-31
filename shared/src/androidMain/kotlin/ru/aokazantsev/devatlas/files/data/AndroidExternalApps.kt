@@ -28,6 +28,13 @@ internal class AndroidExternalApps(private val context: Context) : ExternalApps 
         return start(Intent.createChooser(send, null))
     }
 
+    override fun shareText(text: String): Boolean {
+        val send = Intent(Intent.ACTION_SEND)
+            .setType(TEXT_TYPE)
+            .putExtra(Intent.EXTRA_TEXT, text)
+        return start(Intent.createChooser(send, null))
+    }
+
     private fun start(intent: Intent): Boolean = try {
         context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         true
@@ -39,5 +46,6 @@ internal class AndroidExternalApps(private val context: Context) : ExternalApps 
 
     private companion object {
         const val MAX_URI_LENGTH = 64 * 1024
+        const val TEXT_TYPE = "text/plain"
     }
 }

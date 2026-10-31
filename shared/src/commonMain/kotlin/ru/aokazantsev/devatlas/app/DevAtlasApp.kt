@@ -28,6 +28,7 @@ import androidx.navigation.toRoute
 import ru.aokazantsev.devatlas.designsystem.theme.AtlasTheme
 import ru.aokazantsev.devatlas.di.AppGraph
 import ru.aokazantsev.devatlas.navigation.Route
+import ru.aokazantsev.devatlas.onboarding.domain.model.Consent
 import ru.aokazantsev.devatlas.settings.domain.model.ThemeMode
 import ru.aokazantsev.devatlas.themes.domain.model.ThemeRemoval
 import ru.aokazantsev.devatlas.ui.about.AboutScreen
@@ -51,6 +52,8 @@ import ru.aokazantsev.devatlas.ui.splash.SplashState
 import ru.aokazantsev.devatlas.ui.themes.ManageThemeScreen
 import ru.aokazantsev.devatlas.ui.themes.ThemeDetailsScreen
 import ru.aokazantsev.devatlas.ui.themes.ThemesScreen
+import ru.aokazantsev.devatlas.ui.update.UpdateNoticeHost
+import ru.aokazantsev.devatlas.ui.update.UpdateScreen
 import ru.aokazantsev.devatlas.ui.web.WebScreen
 
 @Composable
@@ -114,6 +117,12 @@ private fun AppNavHost(graph: AppGraph, navController: NavHostController, startS
         themeDestinations(graph, navController)
         settingsDestinations(graph, navController)
         webDestinations(graph, navController, links)
+    }
+    if (startStack.first() != Route.Onboarding) {
+        UpdateNoticeHost(
+            viewModel = viewModel { graph.updateNoticeViewModel() },
+            onOpenUpdate = { navController.navigate(Route.Update) },
+        )
     }
     LaunchedEffect(Unit) {
         if (stackOpened) return@LaunchedEffect
@@ -241,7 +250,15 @@ private fun NavGraphBuilder.settingsDestinations(graph: AppGraph, navController:
     }
     composable<Route.About> { entry ->
         AboutScreen(
-            versionName = graph.appInfo.versionName,
+            viewModel = viewModel { graph.aboutViewModel() },
+            onBack = { entry.whenResumed { navController.popBackStack() } },
+            onCheckUpdate = { entry.whenResumed { navController.navigate(Route.Update) } },
+            onOpenPolicy = { entry.whenResumed { navController.navigate(Route.Web(Consent.POLICY_URL)) } },
+        )
+    }
+    composable<Route.Update> { entry ->
+        UpdateScreen(
+            viewModel = viewModel { graph.updateViewModel() },
             onBack = { entry.whenResumed { navController.popBackStack() } },
         )
     }
@@ -268,7 +285,12 @@ private fun rememberLinkActions(entry: NavBackStackEntry, navController: NavHost
     remember(entry, navController, links) {
         LinkActions(
             openPage = { id -> entry.whenResumed { navController.navigate(Route.Page(id)) } },
-            openWeb = { url -> entry.whenResumed { navController.navigate(Route.Web(url)) } },
+            openWeb = { url ->
+                entry.whenResumed {
+                    links.openedWeb()
+                    navController.navigate(Route.Web(url))
+                }
+            },
             openPdf = links::openPdf,
             redownloadPdf = links::redownloadPdf,
             openExternal = links::openExternal,

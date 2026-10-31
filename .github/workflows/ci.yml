@@ -32,12 +32,12 @@ jobs:
         run: ./gradlew :tools:themecheck:run --args="sample-theme --strict --zip build/sample-theme.zip" --console=plain
 
       - name: Build APKs
-        run: ./gradlew :app:assembleDebug :app:assembleRelease --console=plain
+        run: ./gradlew :app:assembleSslDebug :app:assembleNoSslDebug :app:assembleSslRelease --console=plain
 
       - uses: actions/upload-artifact@v4
         with:
           name: devatlas-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/noSsl/debug/*.apk
           retention-days: 14
 
       - uses: actions/upload-artifact@v4
@@ -66,7 +66,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Build test APKs
-        run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --console=plain
+        run: ./gradlew :app:assembleSslDebug :app:assembleSslDebugAndroidTest --console=plain
 
       - name: E2E on emulator
         uses: reactivecircus/android-emulator-runner@v2
@@ -76,7 +76,7 @@ jobs:
           arch: x86_64
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: ./gradlew :app:connectedDebugAndroidTest --console=plain
+          script: ./gradlew :app:connectedSslDebugAndroidTest --console=plain
 
       - uses: actions/upload-artifact@v4
         if: failure()

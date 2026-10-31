@@ -12,9 +12,12 @@ import okio.Path
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import ru.aokazantsev.devatlas.database.data.DevAtlasDatabase
+import ru.aokazantsev.devatlas.di.DeviceInfo
 import ru.aokazantsev.devatlas.di.PlatformBindings
 import ru.aokazantsev.devatlas.files.domain.ExternalApps
 import ru.aokazantsev.devatlas.files.domain.PublicFiles
+import ru.aokazantsev.devatlas.update.domain.AppInstaller
+import ru.aokazantsev.devatlas.usage.domain.UsageScheduler
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -36,6 +39,9 @@ class ThemeStorageImplTest {
 
         override val publicFiles: PublicFiles get() = error("не используется")
         override val externalApps: ExternalApps get() = error("не используется")
+        override val appInstaller: AppInstaller get() = error("не используется")
+        override val usageScheduler: UsageScheduler get() = error("не используется")
+        override val device: DeviceInfo = DeviceInfo(model = "Pixel 8", androidVersion = "14")
 
         override fun copyToClipboard(text: String): Boolean = error("не используется")
 

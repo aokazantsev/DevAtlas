@@ -22,8 +22,11 @@ import ru.aokazantsev.devatlas.reading.domain.model.ReadingPoint
 import ru.aokazantsev.devatlas.reading.domain.model.ScreenTarget
 import ru.aokazantsev.devatlas.themes.domain.ProgressRepository
 import ru.aokazantsev.devatlas.ui.bookmarks.BookmarkNames
+import ru.aokazantsev.devatlas.usage.domain.UsageStatistics
+import ru.aokazantsev.devatlas.usage.domain.model.UsageEvent
 
 @AssistedInject
+@Suppress("LongParameterList")
 class PageViewModel(
     @Assisted private val pageId: String,
     observeContents: ObserveContentsUseCase,
@@ -32,6 +35,7 @@ class PageViewModel(
     private val platform: PlatformBindings,
     private val bookmarks: BookmarkRepository,
     private val readingPoints: ReadingPointRepository,
+    private val usage: UsageStatistics,
 ) : ViewModel() {
 
     private val target = ScreenTarget.Page(pageId)
@@ -48,9 +52,14 @@ class PageViewModel(
         viewModelScope.launch {
             try {
                 progress.setViewed(ready.themeId, pageId, viewed)
+                if (viewed) usage.hit(UsageEvent.PAGE_MARK_SEEN)
             } catch (_: SQLiteException) {
             }
         }
+    }
+
+    fun openedDiagram() {
+        usage.hit(UsageEvent.DIAGRAM_FULLSCREEN)
     }
 
     fun copyCode(code: String): Boolean = platform.copyToClipboard(code)

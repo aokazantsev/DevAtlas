@@ -72,6 +72,7 @@ class FakeExternalApps(var opens: Boolean = true, var shares: Boolean = true) : 
     val openedUris = mutableListOf<String>()
     val openedFiles = mutableListOf<String>()
     val sharedFiles = mutableListOf<String>()
+    val sharedTexts = mutableListOf<String>()
 
     override fun openUri(uri: String): Boolean {
         openedUris += uri
@@ -85,6 +86,11 @@ class FakeExternalApps(var opens: Boolean = true, var shares: Boolean = true) : 
 
     override fun shareFile(uri: String, mimeType: String): Boolean {
         sharedFiles += uri
+        return shares
+    }
+
+    override fun shareText(text: String): Boolean {
+        sharedTexts += text
         return shares
     }
 }

@@ -29,6 +29,16 @@ android {
         }
     }
 
+    flavorDimensions += "ssl"
+    productFlavors {
+        create("ssl") {
+            dimension = "ssl"
+        }
+        create("noSsl") {
+            dimension = "ssl"
+        }
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true
@@ -66,6 +76,11 @@ val syncSampleThemeAssets = tasks.register<SyncSampleThemeAssets>("syncSampleThe
 }
 
 androidComponents {
+    beforeVariants { variant ->
+        if (variant.productFlavors.contains("ssl" to "noSsl") && variant.buildType == "release") {
+            variant.enable = false
+        }
+    }
     onVariants { variant ->
         variant.androidTest?.sources?.assets?.addGeneratedSourceDirectory(syncSampleThemeAssets, SyncSampleThemeAssets::output)
     }

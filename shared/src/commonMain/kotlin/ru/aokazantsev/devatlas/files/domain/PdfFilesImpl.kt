@@ -22,6 +22,8 @@ import ru.aokazantsev.devatlas.files.domain.model.DownloadedFile
 import ru.aokazantsev.devatlas.files.domain.model.PdfDownloadResult
 import ru.aokazantsev.devatlas.files.domain.model.PdfRequest
 import ru.aokazantsev.devatlas.files.domain.model.PdfState
+import ru.aokazantsev.devatlas.usage.domain.UsageStatistics
+import ru.aokazantsev.devatlas.usage.domain.model.UsageEvent
 
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
@@ -32,6 +34,7 @@ internal class PdfFilesImpl(
     private val publicFiles: PublicFiles,
     private val externalApps: ExternalApps,
     private val scope: CoroutineScope,
+    private val usage: UsageStatistics,
 ) : PdfFiles {
 
     private val owned = MutableStateFlow(OwnedPdfState(owner = null, state = PdfState.Idle))
@@ -69,6 +72,7 @@ internal class PdfFilesImpl(
                 null
             }
             if (!redownload && known != null && publicFiles.isReadable(known.contentUri)) {
+                usage.hit(UsageEvent.PDF_OPEN)
                 update(show(known))
                 return@launch
             }
@@ -86,6 +90,7 @@ internal class PdfFilesImpl(
                         }
                     }
                     ensureActive()
+                    usage.hit(UsageEvent.PDF_DOWNLOAD)
                     update(show(result.file))
                 }
             }

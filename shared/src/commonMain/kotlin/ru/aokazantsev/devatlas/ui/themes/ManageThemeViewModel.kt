@@ -18,6 +18,8 @@ import ru.aokazantsev.devatlas.themes.domain.ThemeInstaller
 import ru.aokazantsev.devatlas.themes.domain.ThemeLibrary
 import ru.aokazantsev.devatlas.themes.domain.ThemeUpdater
 import ru.aokazantsev.devatlas.themes.domain.model.ThemeRemoval
+import ru.aokazantsev.devatlas.usage.domain.UsageStatistics
+import ru.aokazantsev.devatlas.usage.domain.model.UsageEvent
 
 @AssistedInject
 class ManageThemeViewModel(
@@ -25,6 +27,7 @@ class ManageThemeViewModel(
     private val library: ThemeLibrary,
     updater: ThemeUpdater,
     installer: ThemeInstaller,
+    private val usage: UsageStatistics,
 ) : ViewModel() {
 
     val update = ThemeUpdateController(themeId, updater, installer, viewModelScope)
@@ -102,6 +105,10 @@ class ManageThemeViewModel(
         mutableState.update { it.copy(busy = true, confirm = null) }
         viewModelScope.launch {
             val outcome = library.remove(themeId, deleteTheme = confirm.deleteTheme, resetProgress = confirm.resetProgress)
+            if (outcome !is ThemeRemoval.Failed) {
+                if (confirm.resetProgress) usage.hit(UsageEvent.PROGRESS_RESET)
+                if (confirm.deleteTheme) usage.hit(UsageEvent.THEME_DELETE)
+            }
             when (outcome) {
                 ThemeRemoval.ProgressReset ->
                     mutableState.update { it.copy(busy = false, deleteTheme = false, resetProgress = false, notice = "Прогресс сброшен") }

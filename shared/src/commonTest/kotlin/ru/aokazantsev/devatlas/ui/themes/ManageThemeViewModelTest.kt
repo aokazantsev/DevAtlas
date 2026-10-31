@@ -8,6 +8,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import ru.aokazantsev.devatlas.testing.FakeUsageStatistics
 import ru.aokazantsev.devatlas.testing.ViewModelScopes
 import ru.aokazantsev.devatlas.themes.FakeClock
 import ru.aokazantsev.devatlas.themes.FakeCurrentThemeRepository
@@ -58,6 +59,7 @@ class ManageThemeViewModelTest {
                 library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock()),
                 updater = updater,
                 installer = ScriptedInstaller(),
+                usage = FakeUsageStatistics(),
             ),
         )
     }

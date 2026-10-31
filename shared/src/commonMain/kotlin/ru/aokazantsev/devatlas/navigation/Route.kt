@@ -43,5 +43,8 @@ sealed interface Route {
     data object About : Route
 
     @Serializable
+    data object Update : Route
+
+    @Serializable
     data object ComponentCatalog : Route
 }

@@ -7,14 +7,15 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import ru.aokazantsev.devatlas.contents.domain.ObserveContentsUseCaseImpl
 import ru.aokazantsev.devatlas.contents.FakePageRepository
+import ru.aokazantsev.devatlas.contents.domain.ObserveContentsUseCaseImpl
 import ru.aokazantsev.devatlas.contents.domain.model.PageContent
 import ru.aokazantsev.devatlas.reading.FakeBookmarkRepository
 import ru.aokazantsev.devatlas.reading.FakeReadingPointRepository
 import ru.aokazantsev.devatlas.reading.domain.model.Bookmark
 import ru.aokazantsev.devatlas.reading.domain.model.ReadingPoint
 import ru.aokazantsev.devatlas.reading.domain.model.ScreenTarget
+import ru.aokazantsev.devatlas.testing.FakeUsageStatistics
 import ru.aokazantsev.devatlas.testing.ViewModelScopes
 import ru.aokazantsev.devatlas.themeformat.manifest.ThemeManifest
 import ru.aokazantsev.devatlas.themeformat.manifest.ThemeNode
@@ -91,6 +92,7 @@ class PageViewModelTest {
                 platform,
                 bookmarks,
                 readingPoints,
+                FakeUsageStatistics(),
             ),
         )
     }

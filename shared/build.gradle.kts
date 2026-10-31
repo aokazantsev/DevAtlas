@@ -40,6 +40,7 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidsvg)
+            implementation(libs.androidx.work.runtime)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

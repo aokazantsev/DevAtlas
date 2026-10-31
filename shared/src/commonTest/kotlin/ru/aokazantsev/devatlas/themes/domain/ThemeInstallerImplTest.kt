@@ -1,16 +1,17 @@
 package ru.aokazantsev.devatlas.themes.domain
 
+import androidx.sqlite.SQLiteException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import okio.IOException
 import ru.aokazantsev.devatlas.di.NetworkEndpoints
+import ru.aokazantsev.devatlas.testing.FakeUsageStatistics
 import ru.aokazantsev.devatlas.themes.FakeClock
 import ru.aokazantsev.devatlas.themes.FakeCurrentThemeRepository
 import ru.aokazantsev.devatlas.themes.FakeInstalledThemeRepository
 import ru.aokazantsev.devatlas.themes.FakePackageFetcher
 import ru.aokazantsev.devatlas.themes.FakeProgressRepository
 import ru.aokazantsev.devatlas.themes.FakeThemeStorage
-import androidx.sqlite.SQLiteException
-import okio.IOException
 import ru.aokazantsev.devatlas.themes.domain.model.FetchResult
 import ru.aokazantsev.devatlas.themes.domain.model.InstallResult
 import ru.aokazantsev.devatlas.themes.domain.model.PrepareResult
@@ -31,6 +32,8 @@ class ThemeInstallerImplTest {
     private val current = FakeCurrentThemeRepository()
     private val clock = FakeClock(millis = 9_000L)
 
+    private val usage = FakeUsageStatistics()
+
     private fun installer(fetcher: ThemePackageFetcher = FakePackageFetcher()) = ThemeInstallerImpl(
         resolver = ThemeSourceResolverImpl(NetworkEndpoints.Production),
         fetcher = fetcher,
@@ -39,6 +42,7 @@ class ThemeInstallerImplTest {
         progress = progress,
         current = current,
         clock = clock,
+        usage = usage,
     )
 
     private fun installed(result: InstallResult) = assertIs<InstallResult.Installed>(result).theme

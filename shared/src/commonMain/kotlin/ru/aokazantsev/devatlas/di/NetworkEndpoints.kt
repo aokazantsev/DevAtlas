@@ -3,6 +3,8 @@ package ru.aokazantsev.devatlas.di
 data class NetworkEndpoints(
     val sampleThemeUrl: String,
     val releasesUrl: String,
+    val crashReportUrl: String,
+    val usageUrl: String,
     val yandexDownloadApiUrl: String = "https://cloud-api.yandex.net/v1/disk/public/resources/download",
     val githubArchiveUrl: String = "https://codeload.github.com",
     val googleDriveDownloadUrl: String = "https://drive.usercontent.google.com/download",
@@ -18,6 +20,8 @@ data class NetworkEndpoints(
         val Production = NetworkEndpoints(
             sampleThemeUrl = "https://aokazantsev.ru/pets/devatlas/sample-theme.zip",
             releasesUrl = "https://api.github.com/repos/aokazantsev/DevAtlas/releases",
+            crashReportUrl = "https://aokazantsev.ru/pets/devatlas/crash-report",
+            usageUrl = "https://aokazantsev.ru/pets/devatlas/usage",
         )
     }
 }

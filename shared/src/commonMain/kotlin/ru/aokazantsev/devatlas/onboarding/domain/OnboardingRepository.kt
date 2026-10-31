@@ -9,4 +9,8 @@ interface OnboardingRepository {
     suspend fun isPolicyAccepted(): Boolean
 
     suspend fun accept(crashReports: Boolean, usageStatistics: Boolean)
+
+    suspend fun setCrashReports(enabled: Boolean)
+
+    suspend fun setUsageStatistics(enabled: Boolean)
 }

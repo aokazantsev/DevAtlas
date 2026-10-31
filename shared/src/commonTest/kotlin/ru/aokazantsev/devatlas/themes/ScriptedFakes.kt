@@ -6,6 +6,7 @@ import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
 import ru.aokazantsev.devatlas.database.data.DevAtlasDatabase
+import ru.aokazantsev.devatlas.di.DeviceInfo
 import ru.aokazantsev.devatlas.di.PlatformBindings
 import ru.aokazantsev.devatlas.files.domain.ExternalApps
 import ru.aokazantsev.devatlas.files.domain.PublicFiles
@@ -16,6 +17,8 @@ import ru.aokazantsev.devatlas.themes.domain.model.PrepareResult
 import ru.aokazantsev.devatlas.themes.domain.model.PreparedTheme
 import ru.aokazantsev.devatlas.themes.domain.model.ThemeFailure
 import ru.aokazantsev.devatlas.themes.domain.model.UpdateCheck
+import ru.aokazantsev.devatlas.update.domain.AppInstaller
+import ru.aokazantsev.devatlas.usage.domain.UsageScheduler
 
 class ScriptedInstaller(
     var prepareResult: PrepareResult = PrepareResult.Failed(ThemeFailure("не настроено")),
@@ -64,6 +67,9 @@ class FakePlatformBindings(var clipboard: String? = null, var copySucceeds: Bool
 
     override val publicFiles: PublicFiles get() = error("не используется")
     override val externalApps: ExternalApps get() = error("не используется")
+    override val appInstaller: AppInstaller get() = error("не используется")
+    override val usageScheduler: UsageScheduler get() = error("не используется")
+    override val device: DeviceInfo = DeviceInfo(model = "Pixel 8", androidVersion = "14")
 
     override fun copyToClipboard(text: String): Boolean {
         if (copySucceeds) clipboard = text

@@ -16,10 +16,13 @@ import ru.aokazantsev.devatlas.themes.domain.model.PreparedTheme
 import ru.aokazantsev.devatlas.themes.domain.model.SourceResolution
 import ru.aokazantsev.devatlas.themes.domain.model.ThemeFailure
 import ru.aokazantsev.devatlas.themes.domain.model.ThemeHelp
+import ru.aokazantsev.devatlas.usage.domain.UsageStatistics
+import ru.aokazantsev.devatlas.usage.domain.model.UsageEvent
 import kotlin.time.Clock
 
 @ContributesBinding(AppScope::class)
 @Inject
+@Suppress("LongParameterList")
 internal class ThemeInstallerImpl(
     private val resolver: ThemeSourceResolver,
     private val fetcher: ThemePackageFetcher,
@@ -28,6 +31,7 @@ internal class ThemeInstallerImpl(
     private val progress: ProgressRepository,
     private val current: CurrentThemeRepository,
     private val clock: Clock,
+    private val usage: UsageStatistics,
 ) : ThemeInstaller {
 
     override suspend fun prepare(address: String): PrepareResult {
@@ -67,6 +71,7 @@ internal class ThemeInstallerImpl(
             throw error
         }
         storage.discard(prepared.staging)
+        usage.hit(if (previous == null) UsageEvent.THEME_DOWNLOAD else UsageEvent.THEME_UPDATE)
         return theme
     }
 

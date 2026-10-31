@@ -15,6 +15,7 @@ import ru.aokazantsev.devatlas.files.FakePublicFiles
 import ru.aokazantsev.devatlas.files.ScriptedPdfDownloader
 import ru.aokazantsev.devatlas.files.domain.PdfFilesImpl
 import ru.aokazantsev.devatlas.files.domain.model.DownloadedFile
+import ru.aokazantsev.devatlas.testing.FakeUsageStatistics
 import ru.aokazantsev.devatlas.testing.ViewModelScopes
 import ru.aokazantsev.devatlas.themes.FakePlatformBindings
 import kotlin.test.AfterTest
@@ -55,6 +56,7 @@ class DownloadsViewModelTest {
                 publicFiles = publicFiles,
                 externalApps = apps,
                 scope = TestScope(UnconfinedTestDispatcher(testScheduler)),
+                usage = FakeUsageStatistics(),
             ),
             platform = FakePlatformBindings().apply { timeZoneOffset = THREE_HOURS },
         ),

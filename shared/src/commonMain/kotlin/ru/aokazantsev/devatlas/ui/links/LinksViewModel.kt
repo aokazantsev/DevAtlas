@@ -10,12 +10,15 @@ import ru.aokazantsev.devatlas.files.domain.ExternalApps
 import ru.aokazantsev.devatlas.files.domain.PdfFiles
 import ru.aokazantsev.devatlas.files.domain.model.PdfRequest
 import ru.aokazantsev.devatlas.files.domain.model.PdfState
+import ru.aokazantsev.devatlas.usage.domain.UsageStatistics
+import ru.aokazantsev.devatlas.usage.domain.model.UsageEvent
 
 @Inject
 class LinksViewModel(
     private val pdfFiles: PdfFiles,
     private val externalApps: ExternalApps,
     private val platform: PlatformBindings,
+    private val usage: UsageStatistics,
 ) : ViewModel() {
 
     val pdfState: StateFlow<PdfState> = pdfFiles.state
@@ -23,6 +26,10 @@ class LinksViewModel(
     private val mutableNotice = MutableStateFlow<String?>(null)
 
     val notice: StateFlow<String?> = mutableNotice.asStateFlow()
+
+    fun openedWeb() {
+        usage.hit(UsageEvent.LINK_WEBVIEW)
+    }
 
     fun openPdf(request: PdfRequest) {
         pdfFiles.open(request)

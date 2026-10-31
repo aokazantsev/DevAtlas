@@ -7,6 +7,8 @@ import okio.Path
 import ru.aokazantsev.devatlas.database.data.DevAtlasDatabase
 import ru.aokazantsev.devatlas.files.domain.ExternalApps
 import ru.aokazantsev.devatlas.files.domain.PublicFiles
+import ru.aokazantsev.devatlas.update.domain.AppInstaller
+import ru.aokazantsev.devatlas.usage.domain.UsageScheduler
 
 interface PlatformBindings {
     val dataDirectory: Path
@@ -16,6 +18,12 @@ interface PlatformBindings {
     val publicFiles: PublicFiles
 
     val externalApps: ExternalApps
+
+    val appInstaller: AppInstaller
+
+    val usageScheduler: UsageScheduler
+
+    val device: DeviceInfo
 
     fun databaseBuilder(): RoomDatabase.Builder<DevAtlasDatabase>
 

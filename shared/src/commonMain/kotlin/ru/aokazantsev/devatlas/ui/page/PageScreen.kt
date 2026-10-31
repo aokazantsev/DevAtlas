@@ -89,6 +89,7 @@ fun PageScreen(
                 onRecordPosition = viewModel::recordPosition,
                 onViewedChange = viewModel::setViewed,
                 onCopyCode = viewModel::copyCode,
+                onDiagramOpened = viewModel::openedDiagram,
                 links = links,
                 onNext = onNext,
                 modifier = modifier,
@@ -105,6 +106,7 @@ private fun PageBody(
     onRecordPosition: (Int) -> Unit,
     onViewedChange: (Boolean) -> Unit,
     onCopyCode: (String) -> Boolean,
+    onDiagramOpened: () -> Unit,
     links: LinkActions,
     onNext: (String) -> Unit,
     modifier: Modifier,
@@ -130,7 +132,10 @@ private fun PageBody(
             blocks = state.content.document.blocks,
             diagrams = state.content.diagrams,
             links = pageLinks,
-            onOpenDiagram = { openedDiagram = it.source },
+            onOpenDiagram = {
+                openedDiagram = it.source
+                onDiagramOpened()
+            },
             onCopyCode = onCopyCode,
             modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
             anchors = position.anchors,
