@@ -1,6 +1,17 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
+}
+
+val releaseSigning: Properties? = run {
+    val local = Properties()
+    rootProject.file("local.properties").takeIf { it.isFile }?.reader(Charsets.UTF_8)?.use(local::load)
+    val path = providers.environmentVariable("DEVATLAS_SIGNING").orNull ?: local.getProperty("devatlas.signing")
+    path?.let(::file)?.takeIf { it.isFile }?.let { signingFile ->
+        Properties().apply { signingFile.reader(Charsets.UTF_8).use(::load) }
+    }
 }
 
 android {
@@ -17,6 +28,17 @@ android {
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
     }
 
+    signingConfigs {
+        releaseSigning?.let { signing ->
+            create("release") {
+                storeFile = file(signing.getProperty("storeFile"))
+                storePassword = signing.getProperty("storePassword")
+                keyAlias = signing.getProperty("keyAlias")
+                keyPassword = signing.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
@@ -26,6 +48,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 
