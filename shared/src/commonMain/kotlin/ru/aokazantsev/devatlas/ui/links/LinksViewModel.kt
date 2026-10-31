@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import ru.aokazantsev.devatlas.di.PlatformBindings
 import ru.aokazantsev.devatlas.files.domain.ExternalApps
 import ru.aokazantsev.devatlas.files.domain.PdfFiles
+import ru.aokazantsev.devatlas.files.domain.model.DownloadedFile
 import ru.aokazantsev.devatlas.files.domain.model.PdfRequest
 import ru.aokazantsev.devatlas.files.domain.model.PdfState
 import ru.aokazantsev.devatlas.usage.domain.UsageStatistics
@@ -44,6 +45,10 @@ class LinksViewModel(
         if (failed.redownload) pdfFiles.redownload(failed.request) else pdfFiles.open(failed.request)
     }
 
+    fun openSavedPdf(file: DownloadedFile) {
+        pdfFiles.openSaved(file)
+    }
+
     fun cancelPdf() {
         pdfFiles.cancel()
     }
@@ -58,7 +63,11 @@ class LinksViewModel(
         }
     }
 
-    fun copyLink(url: String): Boolean = platform.copyToClipboard(url)
+    fun copyLink(url: String): Boolean {
+        val copied = platform.copyToClipboard(url)
+        if (copied && !platform.clipboardConfirmsCopy) platform.showCopiedHint()
+        return copied
+    }
 
     fun dismissNotice() {
         mutableNotice.value = null

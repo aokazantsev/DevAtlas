@@ -43,6 +43,15 @@ fun ComposeTestRule.longClickLink(linkText: String) {
     node.performTouchInput { longClick(box.center) }
 }
 
+fun ComposeTestRule.performCopyAction(linkText: String) {
+    val paragraph = hasText(linkText, substring = true) and hasAnyAncestor(hasScrollAction())
+    waitFor(paragraph)
+    val node = onNode(paragraph).performScrollTo().fetchSemanticsNode()
+    val copyActions = node.config[SemanticsActions.CustomActions].filter { it.label.startsWith("Копировать ссылку") }
+    val action = if (copyActions.size == 1) copyActions.single() else copyActions.first { linkText in it.label }
+    runOnUiThread { check(action.action()) { "Действие «${action.label}» не выполнилось" } }
+}
+
 fun ComposeTestRule.waitForIntents(matcher: Matcher<Intent>, count: Int) {
     waitUntil(INTENT_TIMEOUT_MILLIS) { Intents.getIntents().count(matcher::matches) >= count }
     val actual = Intents.getIntents().count(matcher::matches)

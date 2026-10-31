@@ -105,6 +105,34 @@ class PdfFilesImplTest {
         assertEquals(PdfState.NoViewer("guide.pdf"), files.state.value)
     }
 
+    @Test
+    fun downloadFinishedInBackgroundWaitsForReturnInsteadOfOpening() = runTest {
+        apps.foreground = false
+        val files = files()
+
+        files.redownload(request)
+
+        val ready = assertIs<PdfState.Ready>(files.state.value)
+        assertTrue(apps.openedFiles.isEmpty())
+        apps.foreground = true
+        files.openSaved(ready.file)
+        assertEquals(listOf(ready.file.contentUri), apps.openedFiles)
+        assertEquals(PdfState.Idle, files.state.value)
+    }
+
+    @Test
+    fun savedFileWithoutViewerAfterReturnIsReported() = runTest {
+        apps.foreground = false
+        val files = files()
+        files.redownload(request)
+        val ready = assertIs<PdfState.Ready>(files.state.value)
+        apps.opens = false
+
+        files.openSaved(ready.file)
+
+        assertEquals(PdfState.NoViewer(ready.file.name), files.state.value)
+    }
+
     private fun TestScope.gatedFiles(gated: GatedPdfDownloader) = PdfFilesImpl(
         downloader = gated,
         repository = repository,

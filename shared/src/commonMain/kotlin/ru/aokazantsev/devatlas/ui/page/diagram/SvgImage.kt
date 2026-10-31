@@ -4,9 +4,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
 @Composable
-expect fun SvgImage(
+internal expect fun SvgImage(
     svg: String,
+    palette: SvgPalette,
     contentDescription: String?,
     modifier: Modifier = Modifier,
+    loading: @Composable () -> Unit,
     fallback: @Composable () -> Unit,
 )

@@ -27,6 +27,7 @@ import ru.aokazantsev.devatlas.designsystem.component.AtlasTopBar
 import ru.aokazantsev.devatlas.designsystem.theme.AtlasTheme
 import ru.aokazantsev.devatlas.themeformat.page.model.LinkTarget
 import ru.aokazantsev.devatlas.ui.format.formatSize
+import ru.aokazantsev.devatlas.ui.page.code.CodeCopy
 import ru.aokazantsev.devatlas.ui.page.content.PageBlocks
 import ru.aokazantsev.devatlas.ui.page.content.PageLinks
 
@@ -98,7 +99,7 @@ private fun Available(state: UpdateUiState.Available, viewModel: UpdateViewModel
                     diagrams = emptyMap(),
                     links = links,
                     onOpenDiagram = {},
-                    onCopyCode = { false },
+                    codeCopy = CodeCopy(copy = { false }, systemConfirms = false),
                 )
             }
         }

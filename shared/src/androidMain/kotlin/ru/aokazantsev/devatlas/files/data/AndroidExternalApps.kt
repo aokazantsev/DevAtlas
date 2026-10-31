@@ -1,5 +1,6 @@
 package ru.aokazantsev.devatlas.files.data
 
+import android.app.ActivityManager
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.Context
@@ -33,6 +34,12 @@ internal class AndroidExternalApps(private val context: Context) : ExternalApps 
             .setType(TEXT_TYPE)
             .putExtra(Intent.EXTRA_TEXT, text)
         return start(Intent.createChooser(send, null))
+    }
+
+    override fun isAppInForeground(): Boolean {
+        val state = ActivityManager.RunningAppProcessInfo()
+        ActivityManager.getMyMemoryState(state)
+        return state.importance <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE
     }
 
     private fun start(intent: Intent): Boolean = try {

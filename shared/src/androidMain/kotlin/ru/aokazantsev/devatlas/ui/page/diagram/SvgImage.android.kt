@@ -4,7 +4,8 @@ import android.graphics.RectF
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
@@ -16,15 +17,29 @@ import com.caverock.androidsvg.PreserveAspectRatio
 import com.caverock.androidsvg.RenderOptions
 import com.caverock.androidsvg.SVG
 import com.caverock.androidsvg.SVGParseException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
-actual fun SvgImage(
+internal actual fun SvgImage(
     svg: String,
+    palette: SvgPalette,
     contentDescription: String?,
     modifier: Modifier,
+    loading: @Composable () -> Unit,
     fallback: @Composable () -> Unit,
 ) {
-    val document = remember(svg) { parse(svg) }
+    val parsed by produceState<ParsedSvg?>(initialValue = null, svg, palette) {
+        value = withContext(Dispatchers.Default) {
+            ParsedSvg(parse(SvgColorTokens.resolve(svg, palette.roles, palette.textColor)))
+        }
+    }
+    val ready = parsed
+    if (ready == null) {
+        loading()
+        return
+    }
+    val document = ready.document
     if (document == null) {
         fallback()
         return

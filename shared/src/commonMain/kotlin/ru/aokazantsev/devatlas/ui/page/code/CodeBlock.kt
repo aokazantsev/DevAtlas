@@ -19,6 +19,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import kotlinx.coroutines.delay
 import ru.aokazantsev.devatlas.designsystem.component.AtlasText
 import ru.aokazantsev.devatlas.designsystem.component.AtlasTextButton
@@ -28,7 +30,7 @@ import ru.aokazantsev.devatlas.themeformat.code.CodeLanguage
 const val CODE_BLOCK_TAG = "code_block"
 
 @Composable
-fun CodeBlock(code: String, language: String?, onCopy: (String) -> Boolean, modifier: Modifier = Modifier) {
+fun CodeBlock(code: String, language: String?, copy: CodeCopy, modifier: Modifier = Modifier, inQuote: Boolean = false) {
     val resolved = remember(language) { language?.let(CodeLanguage::resolve) }
     val palette = rememberCodePalette()
     val text = remember(code, resolved, palette) { highlightedCode(code, resolved, palette) }
@@ -36,10 +38,10 @@ fun CodeBlock(code: String, language: String?, onCopy: (String) -> Boolean, modi
         modifier = modifier
             .fillMaxWidth()
             .clip(AtlasTheme.shapes.medium)
-            .background(AtlasTheme.colors.surfaceContainerHigh)
+            .background(if (inQuote) AtlasTheme.colors.surfaceContainerHighest else AtlasTheme.colors.surfaceContainerHigh)
             .testTag(CODE_BLOCK_TAG),
     ) {
-        CodeHeader(label = resolved?.title ?: language.orEmpty(), onCopy = { onCopy(code) })
+        CodeHeader(label = resolved?.title ?: language.orEmpty(), systemConfirms = copy.systemConfirms, onCopy = { copy.copy(code) })
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -52,7 +54,7 @@ fun CodeBlock(code: String, language: String?, onCopy: (String) -> Boolean, modi
 }
 
 @Composable
-private fun CodeHeader(label: String, onCopy: () -> Boolean) {
+private fun CodeHeader(label: String, systemConfirms: Boolean, onCopy: () -> Boolean) {
     var feedback by remember { mutableStateOf<String?>(null) }
     var presses by remember { mutableIntStateOf(0) }
     LaunchedEffect(presses) {
@@ -75,9 +77,14 @@ private fun CodeHeader(label: String, onCopy: () -> Boolean) {
         AtlasTextButton(
             text = feedback ?: "Копировать",
             onClick = {
-                feedback = if (onCopy()) "Скопировано" else "Не скопировано"
+                feedback = when {
+                    !onCopy() -> "Не скопировано"
+                    systemConfirms -> null
+                    else -> "Скопировано"
+                }
                 presses++
             },
+            modifier = Modifier.semantics { contentDescription = feedback ?: "Копировать код" },
         )
     }
 }

@@ -1,9 +1,11 @@
 package ru.aokazantsev.devatlas.e2e
 
 import android.content.ClipboardManager
+import android.os.Build
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performClick
@@ -11,7 +13,6 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.text.SpanStyle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -71,13 +72,25 @@ class CodeE2eTest {
 
         app.onNode(copy).performScrollTo().performClick()
 
-        app.waitForText("Скопировано")
-        assertEquals(KOTLIN_BLOCK, clipboardText())
-        app.waitForGone("Скопировано")
+        app.waitUntil(COPY_WAIT_MILLIS) { clipboardText() == KOTLIN_BLOCK }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            app.waitForText("Скопировано")
+            app.waitForGone("Скопировано")
+        } else {
+            app.assertNoText("Скопировано")
+        }
         app.waitFor(copy)
     }
 
+    @Test
+    fun copyButtonHasMeaningfulDescriptionForAccessibility() {
+        openCodePage()
+
+        app.waitFor(hasContentDescription("Копировать код") and hasAnyAncestor(hasTestTag(CODE_BLOCK_TAG)))
+    }
+
     private companion object {
+        const val COPY_WAIT_MILLIS = 5_000L
         const val KOTLIN_CODE = "fun Greeting(name: String)"
         const val KOTLIN_BLOCK = "@Composable\nfun Greeting(name: String) {\n    Text(text = \"Привет, \$name!\")\n}"
     }

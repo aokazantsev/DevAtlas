@@ -7,6 +7,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
@@ -34,18 +37,30 @@ internal fun InlineText(
 ) {
     val inline = rememberInlineContent(content, links.onClick)
     var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
-    val longPress = if (inline.links.isEmpty()) {
+    val copyActions = remember(inline, links.onCopy) { copyActions(inline.links, links.onCopy) }
+    val linkModifier = if (inline.links.isEmpty()) {
         Modifier
     } else {
-        Modifier.linkLongPress(inline, { layout }, links.onLongPress)
+        Modifier
+            .linkLongPress(inline, { layout }, links.onLongPress)
+            .semantics { customActions = copyActions }
     }
     AtlasText(
         text = inline.text,
-        modifier = modifier.then(longPress),
+        modifier = modifier.then(linkModifier),
         style = style,
         color = color,
         onTextLayout = { layout = it },
     )
+}
+
+private fun copyActions(links: List<PageInline.Link>, onCopy: ((PageInline.Link) -> Boolean)?): List<CustomAccessibilityAction> {
+    if (onCopy == null) return emptyList()
+    val copyable = links.filter { it.externalUri() != null }
+    return copyable.map { link ->
+        val label = if (copyable.size == 1) "Копировать ссылку" else "Копировать ссылку: ${link.plainText()}"
+        CustomAccessibilityAction(label) { onCopy(link) }
+    }
 }
 
 @Composable

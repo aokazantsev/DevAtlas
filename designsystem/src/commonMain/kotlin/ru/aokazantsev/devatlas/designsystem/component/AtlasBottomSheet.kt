@@ -19,15 +19,17 @@ fun AtlasBottomSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     title: String? = null,
+    dismissible: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val spacing = AtlasTheme.spacing
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (dismissible) onDismiss() },
         modifier = modifier,
         sheetState = rememberBottomSheetState(
             initialValue = SheetValue.Hidden,
             enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+            confirmValueChange = { dismissible || it != SheetValue.Hidden },
         ),
     ) {
         Column(

@@ -37,6 +37,7 @@ import ru.aokazantsev.devatlas.designsystem.component.AtlasIconButton
 import ru.aokazantsev.devatlas.designsystem.component.AtlasListGroup
 import ru.aokazantsev.devatlas.designsystem.component.AtlasListRow
 import ru.aokazantsev.devatlas.designsystem.component.AtlasLoading
+import ru.aokazantsev.devatlas.designsystem.component.AtlasLoadingIndicator
 import ru.aokazantsev.devatlas.designsystem.component.AtlasPrimaryButton
 import ru.aokazantsev.devatlas.designsystem.component.AtlasProgressBar
 import ru.aokazantsev.devatlas.designsystem.component.AtlasReorderableGroup
@@ -442,6 +443,7 @@ private fun StateSamples() {
     Box(modifier = Modifier.fillMaxWidth().height(160.dp)) {
         AtlasLoading(text = "Загружаю тему")
     }
+    AtlasLoadingIndicator(modifier = Modifier.fillMaxWidth())
     Box(modifier = Modifier.fillMaxWidth().height(240.dp)) {
         AtlasError(message = "Не удалось загрузить тему", actionText = "Повторить")
     }

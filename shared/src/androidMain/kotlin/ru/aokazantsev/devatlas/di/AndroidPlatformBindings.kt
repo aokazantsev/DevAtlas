@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
+import android.widget.Toast
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import io.ktor.client.HttpClient
@@ -44,6 +45,8 @@ internal class AndroidPlatformBindings(context: Context) : PlatformBindings {
         androidVersion = Build.VERSION.RELEASE,
     )
 
+    override val clipboardConfirmsCopy: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+
     override fun databaseBuilder(): RoomDatabase.Builder<DevAtlasDatabase> =
         Room.databaseBuilder<DevAtlasDatabase>(
             context = appContext,
@@ -68,6 +71,10 @@ internal class AndroidPlatformBindings(context: Context) : PlatformBindings {
     override fun copyToClipboard(text: String): Boolean {
         val clipboard = appContext.getSystemService(ClipboardManager::class.java)
         return runCatching { clipboard.setPrimaryClip(ClipData.newPlainText(CLIP_LABEL, text)) }.isSuccess
+    }
+
+    override fun showCopiedHint() {
+        Toast.makeText(appContext, "Скопировано", Toast.LENGTH_SHORT).show()
     }
 
     override fun timeZoneOffsetMillis(epochMillis: Long): Long = TimeZone.getDefault().getOffset(epochMillis).toLong()

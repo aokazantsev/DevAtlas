@@ -49,6 +49,11 @@ internal class PdfFilesImpl(
         start(request, redownload = true)
     }
 
+    override fun openSaved(file: DownloadedFile) {
+        val next = if (externalApps.openFile(file.contentUri, PDF_TYPE)) PdfState.Idle else PdfState.NoViewer(file.name)
+        owned.update { it.copy(state = next) }
+    }
+
     override fun cancel() {
         val owner = owned.value.owner
         owned.update { OwnedPdfState(owner = null, state = PdfState.Idle) }
@@ -99,8 +104,11 @@ internal class PdfFilesImpl(
         started.start()
     }
 
-    private fun show(file: DownloadedFile): PdfState =
-        if (externalApps.openFile(file.contentUri, PDF_TYPE)) PdfState.Idle else PdfState.NoViewer(file.name)
+    private fun show(file: DownloadedFile): PdfState = when {
+        !externalApps.isAppInForeground() -> PdfState.Ready(file)
+        externalApps.openFile(file.contentUri, PDF_TYPE) -> PdfState.Idle
+        else -> PdfState.NoViewer(file.name)
+    }
 
     private companion object {
         const val PDF_TYPE = "application/pdf"

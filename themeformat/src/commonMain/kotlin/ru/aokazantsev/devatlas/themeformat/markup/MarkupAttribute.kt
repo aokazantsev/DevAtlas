@@ -4,4 +4,5 @@ data class MarkupAttribute(
     val name: String,
     val value: String?,
     val position: SourcePosition,
+    val valueRange: IntRange? = null,
 )

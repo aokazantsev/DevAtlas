@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import ru.aokazantsev.devatlas.designsystem.component.AtlasIconButton
+import ru.aokazantsev.devatlas.designsystem.component.AtlasLoadingIndicator
 import ru.aokazantsev.devatlas.designsystem.icon.AtlasIcons
 import ru.aokazantsev.devatlas.designsystem.theme.AtlasTheme
 
@@ -34,6 +35,7 @@ const val DIAGRAM_VIEWER_TAG = "diagram_viewer"
 
 @Composable
 internal fun DiagramViewer(svg: String, contentDescription: String?, onClose: () -> Unit) {
+    val palette = rememberSvgPalette()
     Dialog(
         onDismissRequest = onClose,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
@@ -67,6 +69,7 @@ internal fun DiagramViewer(svg: String, contentDescription: String?, onClose: ()
         ) {
             SvgImage(
                 svg = svg,
+                palette = palette,
                 contentDescription = contentDescription,
                 modifier = Modifier
                     .onSizeChanged { diagram = it }
@@ -76,20 +79,25 @@ internal fun DiagramViewer(svg: String, contentDescription: String?, onClose: ()
                         translationX = offset.x
                         translationY = offset.y
                     },
+                loading = { AtlasLoadingIndicator() },
                 fallback = { DiagramUnavailable() },
             )
-            AtlasIconButton(
-                icon = AtlasIcons.Close,
-                contentDescription = "Закрыть",
-                onClick = onClose,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .windowInsetsPadding(WindowInsets.safeDrawing)
-                    .padding(AtlasTheme.spacing.s)
-                    .background(AtlasTheme.colors.surfaceContainerHigh, AtlasTheme.shapes.full),
-            )
+            ViewerCloseButton(onClose = onClose, modifier = Modifier.align(Alignment.TopStart))
         }
     }
+}
+
+@Composable
+private fun ViewerCloseButton(onClose: () -> Unit, modifier: Modifier) {
+    AtlasIconButton(
+        icon = AtlasIcons.Close,
+        contentDescription = "Закрыть",
+        onClick = onClose,
+        modifier = modifier
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .padding(AtlasTheme.spacing.s)
+            .background(AtlasTheme.colors.surfaceContainerHigh, AtlasTheme.shapes.full),
+    )
 }
 
 internal fun Offset.zoomedAt(centroid: Offset, viewport: IntSize, factor: Float): Offset {

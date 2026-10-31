@@ -43,7 +43,11 @@ class ThemeStorageImplTest {
         override val usageScheduler: UsageScheduler get() = error("не используется")
         override val device: DeviceInfo = DeviceInfo(model = "Pixel 8", androidVersion = "14")
 
+        override val clipboardConfirmsCopy: Boolean = true
+
         override fun copyToClipboard(text: String): Boolean = error("не используется")
+
+        override fun showCopiedHint() = error("не используется")
 
         override fun timeZoneOffsetMillis(epochMillis: Long): Long = 0L
     }

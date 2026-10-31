@@ -24,15 +24,14 @@ import ru.aokazantsev.devatlas.designsystem.component.AtlasText
 import ru.aokazantsev.devatlas.designsystem.component.AtlasTopBar
 import ru.aokazantsev.devatlas.designsystem.theme.AtlasTheme
 import ru.aokazantsev.devatlas.themeformat.page.model.PageBlock
-import ru.aokazantsev.devatlas.themeformat.page.model.PageInline
 import ru.aokazantsev.devatlas.ui.bookmarks.AddBookmarkButton
 import ru.aokazantsev.devatlas.ui.bookmarks.NewBookmarkSheet
 import ru.aokazantsev.devatlas.ui.links.LinkActions
 import ru.aokazantsev.devatlas.ui.page.content.PageBlocks
+import ru.aokazantsev.devatlas.ui.page.code.CodeCopy
 import ru.aokazantsev.devatlas.ui.page.content.PageLinks
+import ru.aokazantsev.devatlas.ui.page.content.externalUri
 import ru.aokazantsev.devatlas.ui.page.diagram.DiagramViewer
-import ru.aokazantsev.devatlas.ui.page.diagram.SvgColorTokens
-import ru.aokazantsev.devatlas.ui.page.diagram.rememberSvgPalette
 import ru.aokazantsev.devatlas.ui.scroll.RecordPosition
 import ru.aokazantsev.devatlas.ui.scroll.RestoreAnchor
 import ru.aokazantsev.devatlas.ui.scroll.ScrollPosition
@@ -55,6 +54,7 @@ fun PageScreen(
     val position = rememberScrollPosition(anchor)
     var bookmarkAnchor by rememberSaveable { mutableStateOf<Int?>(null) }
     val ready = state as? PageState.Ready
+    val codeCopy = remember(viewModel) { CodeCopy(copy = viewModel::copyCode, systemConfirms = viewModel.systemConfirmsCopy) }
     AtlasScaffold(
         topBar = {
             AtlasTopBar(
@@ -88,7 +88,7 @@ fun PageScreen(
                 position = position,
                 onRecordPosition = viewModel::recordPosition,
                 onViewedChange = viewModel::setViewed,
-                onCopyCode = viewModel::copyCode,
+                codeCopy = codeCopy,
                 onDiagramOpened = viewModel::openedDiagram,
                 links = links,
                 onNext = onNext,
@@ -105,17 +105,18 @@ private fun PageBody(
     position: ScrollPosition,
     onRecordPosition: (Int) -> Unit,
     onViewedChange: (Boolean) -> Unit,
-    onCopyCode: (String) -> Boolean,
+    codeCopy: CodeCopy,
     onDiagramOpened: () -> Unit,
     links: LinkActions,
     onNext: (String) -> Unit,
     modifier: Modifier,
 ) {
-    var menuLink by remember { mutableStateOf<PageInline.Link?>(null) }
+    var menu by rememberSaveable(stateSaver = LinkMenuModel.NullableSaver) { mutableStateOf<LinkMenuModel?>(null) }
     val pageLinks = remember(links, state.title) {
         PageLinks(
             onClick = { link -> links.follow(link, state.title) },
-            onLongPress = { link -> if (link.externalUri() != null) menuLink = link },
+            onLongPress = { link -> link.menuModel()?.let { menu = it } },
+            onCopy = { link -> link.externalUri()?.let(links.copyLink) ?: false },
         )
     }
     var openedDiagram by rememberSaveable { mutableStateOf<String?>(null) }
@@ -136,7 +137,7 @@ private fun PageBody(
                 openedDiagram = it.source
                 onDiagramOpened()
             },
-            onCopyCode = onCopyCode,
+            codeCopy = codeCopy,
             modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
             anchors = position.anchors,
         )
@@ -145,13 +146,11 @@ private fun PageBody(
         }
         state.next?.let { next -> NextPageButton(next, onNext) }
     }
-    LinkMenuSheet(link = menuLink, pageTitle = state.title, actions = links) { menuLink = null }
+    LinkMenuSheet(menu = menu, pageTitle = state.title, actions = links) { menu = null }
     val diagramSource = openedDiagram ?: return
     val diagramSvg = state.content.diagrams[diagramSource] ?: return
-    val palette = rememberSvgPalette()
-    val themed = remember(diagramSvg, palette) { SvgColorTokens.resolve(diagramSvg, palette.roles, palette.textColor) }
     DiagramViewer(
-        svg = themed,
+        svg = diagramSvg,
         contentDescription = state.content.document.blocks.figureAlt(diagramSource),
         onClose = { openedDiagram = null },
     )

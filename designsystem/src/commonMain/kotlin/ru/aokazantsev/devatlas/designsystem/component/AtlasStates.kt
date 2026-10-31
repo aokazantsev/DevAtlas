@@ -1,6 +1,7 @@
 package ru.aokazantsev.devatlas.designsystem.component
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -22,6 +23,14 @@ fun AtlasLoading(modifier: Modifier = Modifier, text: String? = null) {
         if (text != null) {
             AtlasText(text = text, color = AtlasTheme.colors.onSurfaceVariant, textAlign = TextAlign.Center)
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun AtlasLoadingIndicator(modifier: Modifier = Modifier) {
+    Box(modifier = modifier.padding(AtlasTheme.spacing.xl), contentAlignment = Alignment.Center) {
+        LoadingIndicator(modifier = Modifier.size(AtlasTheme.sizes.loader))
     }
 }
 
