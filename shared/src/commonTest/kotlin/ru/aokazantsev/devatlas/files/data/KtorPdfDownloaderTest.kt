@@ -12,6 +12,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.utils.io.ByteChannel
 import io.ktor.utils.io.writeFully
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
@@ -222,7 +223,7 @@ class KtorPdfDownloaderTest {
     fun signatureSplitAcrossChunksIsAccepted() = runTest {
         val progress = mutableListOf<Long>()
         val body = ByteChannel(autoFlush = true)
-        launch {
+        launch(Dispatchers.Default) {
             body.writeFully(pdfBytes, 0, SPLIT_AT)
             delay(CHUNK_PAUSE_MILLIS)
             body.writeFully(pdfBytes, SPLIT_AT, pdfBytes.size)
