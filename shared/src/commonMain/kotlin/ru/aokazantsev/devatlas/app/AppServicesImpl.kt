@@ -10,6 +10,7 @@ import ru.aokazantsev.devatlas.crash.domain.CrashReports
 import ru.aokazantsev.devatlas.di.AppInfo
 import ru.aokazantsev.devatlas.di.PlatformBindings
 import ru.aokazantsev.devatlas.journal.domain.AppJournal
+import ru.aokazantsev.devatlas.update.domain.UpdateApkStorage
 import ru.aokazantsev.devatlas.usage.domain.UsageScheduler
 import ru.aokazantsev.devatlas.usage.domain.UsageStatistics
 import ru.aokazantsev.devatlas.usage.domain.model.UsageEvent
@@ -17,6 +18,7 @@ import ru.aokazantsev.devatlas.usage.domain.model.UsageEvent
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 @Inject
+@Suppress("LongParameterList")
 internal class AppServicesImpl(
     private val crashReports: CrashReports,
     private val usage: UsageStatistics,
@@ -24,6 +26,7 @@ internal class AppServicesImpl(
     private val journal: AppJournal,
     private val appInfo: AppInfo,
     private val platform: PlatformBindings,
+    private val updateApks: UpdateApkStorage,
     private val scope: CoroutineScope,
 ) : AppServices {
 
@@ -36,6 +39,7 @@ internal class AppServicesImpl(
         usage.hit(UsageEvent.APP_START)
         scheduler.schedule()
         scope.launch {
+            updateApks.discardInstalled()
             crashReports.sendPending()
             usage.send()
         }

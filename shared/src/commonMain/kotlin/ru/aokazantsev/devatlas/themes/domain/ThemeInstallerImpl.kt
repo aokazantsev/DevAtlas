@@ -8,6 +8,7 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okio.IOException
+import ru.aokazantsev.devatlas.journal.domain.AppJournal
 import ru.aokazantsev.devatlas.themes.domain.model.FetchResult
 import ru.aokazantsev.devatlas.themes.domain.model.InstallResult
 import ru.aokazantsev.devatlas.themes.domain.model.InstalledTheme
@@ -32,6 +33,7 @@ internal class ThemeInstallerImpl(
     private val current: CurrentThemeRepository,
     private val clock: Clock,
     private val usage: UsageStatistics,
+    private val journal: AppJournal,
 ) : ThemeInstaller {
 
     override suspend fun prepare(address: String): PrepareResult {
@@ -51,11 +53,16 @@ internal class ThemeInstallerImpl(
             InstallResult.Installed(commit(prepared))
         } catch (error: IOException) {
             storage.discard(prepared.staging)
-            InstallResult.Failed(ThemeFailure("Не удалось записать тему на телефон: ${error.message ?: "ошибка записи"}"))
+            failed(prepared, ThemeFailure("Не удалось записать тему на телефон: ${error.message ?: "ошибка записи"}"))
         } catch (error: SQLiteException) {
             storage.discard(prepared.staging)
-            InstallResult.Failed(ThemeFailure("Не удалось сохранить тему в базе приложения: ${error.message ?: "ошибка базы"}"))
+            failed(prepared, ThemeFailure("Не удалось сохранить тему в базе приложения: ${error.message ?: "ошибка базы"}"))
         }
+    }
+
+    private fun failed(prepared: PreparedTheme, failure: ThemeFailure): InstallResult.Failed {
+        journal.write("theme install: ${prepared.source}: failed: ${failure.message}")
+        return InstallResult.Failed(failure)
     }
 
     private suspend fun commit(prepared: PreparedTheme): InstalledTheme {
@@ -72,6 +79,7 @@ internal class ThemeInstallerImpl(
         }
         storage.discard(prepared.staging)
         usage.hit(if (previous == null) UsageEvent.THEME_DOWNLOAD else UsageEvent.THEME_UPDATE)
+        journal.write("theme ${if (previous == null) "install" else "update"}: ${prepared.source}: ok")
         return theme
     }
 

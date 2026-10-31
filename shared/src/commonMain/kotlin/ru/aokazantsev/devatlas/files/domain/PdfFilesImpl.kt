@@ -22,6 +22,7 @@ import ru.aokazantsev.devatlas.files.domain.model.DownloadedFile
 import ru.aokazantsev.devatlas.files.domain.model.PdfDownloadResult
 import ru.aokazantsev.devatlas.files.domain.model.PdfRequest
 import ru.aokazantsev.devatlas.files.domain.model.PdfState
+import ru.aokazantsev.devatlas.journal.domain.AppJournal
 import ru.aokazantsev.devatlas.usage.domain.UsageStatistics
 import ru.aokazantsev.devatlas.usage.domain.model.UsageEvent
 
@@ -35,6 +36,7 @@ internal class PdfFilesImpl(
     private val externalApps: ExternalApps,
     private val scope: CoroutineScope,
     private val usage: UsageStatistics,
+    private val journal: AppJournal,
 ) : PdfFiles {
 
     private val owned = MutableStateFlow(OwnedPdfState(owner = null, state = PdfState.Idle))
@@ -73,6 +75,7 @@ internal class PdfFilesImpl(
             }
             if (!redownload && known != null && publicFiles.isReadable(known.contentUri)) {
                 usage.hit(UsageEvent.PDF_OPEN)
+                journal.write("pdf open: ${request.url}: ok")
                 update(show(known))
                 return@launch
             }
@@ -81,7 +84,10 @@ internal class PdfFilesImpl(
                 update(PdfState.Downloading(received, total))
             }
             when (result) {
-                is PdfDownloadResult.Failed -> update(PdfState.Failed(result.message, request, redownload))
+                is PdfDownloadResult.Failed -> {
+                    journal.write("pdf download: ${request.url}: failed: ${result.message}")
+                    update(PdfState.Failed(result.message, request, redownload))
+                }
                 is PdfDownloadResult.Saved -> {
                     withContext(NonCancellable) {
                         try {
@@ -91,6 +97,7 @@ internal class PdfFilesImpl(
                     }
                     ensureActive()
                     usage.hit(UsageEvent.PDF_DOWNLOAD)
+                    journal.write("pdf download: ${request.url}: ok")
                     update(show(result.file))
                 }
             }

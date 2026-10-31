@@ -8,6 +8,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.test.runTest
 import okio.IOException
+import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import ru.aokazantsev.devatlas.di.AppInfo
 import ru.aokazantsev.devatlas.di.NetworkEndpoints
@@ -15,8 +16,10 @@ import ru.aokazantsev.devatlas.themes.FakePlatformBindings
 import ru.aokazantsev.devatlas.update.domain.model.ReleasesResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class KtorReleasesRepositoryTest {
 
@@ -45,6 +48,14 @@ class KtorReleasesRepositoryTest {
         assertEquals("30", request.url.parameters["per_page"])
         assertEquals("application/vnd.github.html+json", request.headers[HttpHeaders.Accept])
         assertEquals("2022-11-28", request.headers["X-GitHub-Api-Version"])
+    }
+
+    @Test
+    fun cacheIsStoredOutsideFolderOpenedToInstaller() = runTest {
+        repository.load()
+
+        assertTrue(fileSystem.exists("/data/update-cache/releases.json".toPath()))
+        assertFalse(fileSystem.exists("/data/updates".toPath()))
     }
 
     @Test

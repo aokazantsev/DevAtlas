@@ -34,7 +34,7 @@ internal class KtorReleasesRepository(
     platform: PlatformBindings,
 ) : ReleasesRepository {
 
-    private val folder = platform.dataDirectory / FOLDER
+    private val folder = platform.dataDirectory / UpdateFiles.CACHE_FOLDER
     private val cache = folder / CACHE_FILE
 
     override suspend fun load(): ReleasesResult = withContext(Dispatchers.IO) {
@@ -79,7 +79,6 @@ internal class KtorReleasesRepository(
     }
 
     private companion object {
-        const val FOLDER = "updates"
         const val CACHE_FILE = "releases.json"
         const val HTML_JSON = "application/vnd.github.html+json"
         const val API_VERSION_HEADER = "X-GitHub-Api-Version"

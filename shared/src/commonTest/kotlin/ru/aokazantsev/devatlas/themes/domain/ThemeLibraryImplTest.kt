@@ -2,6 +2,7 @@ package ru.aokazantsev.devatlas.themes.domain
 
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import ru.aokazantsev.devatlas.testing.FakeJournal
 import ru.aokazantsev.devatlas.themes.FakeClock
 import ru.aokazantsev.devatlas.themes.FakeCurrentThemeRepository
 import ru.aokazantsev.devatlas.themes.FakeInstalledThemeRepository
@@ -21,7 +22,7 @@ class ThemeLibraryImplTest {
     private val storage = FakeThemeStorage()
     private val progress = FakeProgressRepository()
     private val clock = FakeClock(millis = 5_000L)
-    private val library = ThemeLibraryImpl(repository, current, storage, progress, clock)
+    private val library = ThemeLibraryImpl(repository, current, storage, progress, clock, FakeJournal())
 
     private suspend fun install(vararg themes: String) = themes.forEachIndexed { index, id ->
         repository.save(installedOf(id, lastUsedAt = index.toLong()))
