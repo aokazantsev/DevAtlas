@@ -62,6 +62,8 @@ class PageViewModel(
         usage.hit(UsageEvent.DIAGRAM_FULLSCREEN)
     }
 
+    val systemConfirmsCopy: Boolean get() = platform.clipboardConfirmsCopy
+
     fun copyCode(code: String): Boolean = platform.copyToClipboard(code)
 
     fun recordPosition(anchor: Int) {

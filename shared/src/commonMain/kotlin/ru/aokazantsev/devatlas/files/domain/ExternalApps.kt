@@ -8,4 +8,6 @@ interface ExternalApps {
     fun shareFile(uri: String, mimeType: String): Boolean
 
     fun shareText(text: String): Boolean
+
+    fun isAppInForeground(): Boolean
 }

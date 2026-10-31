@@ -113,6 +113,22 @@ class LinksViewModelTest {
         assertEquals(request.url, platform.clipboard)
     }
 
+    @Test
+    fun copyLinkShowsOwnHintOnlyWhereSystemDoesNot() = runTest {
+        val viewModel = viewModel()
+
+        viewModel.copyLink(request.url)
+        assertEquals(0, platform.copiedHints)
+
+        platform.clipboardConfirmsCopy = false
+        viewModel.copyLink(request.url)
+        assertEquals(1, platform.copiedHints)
+
+        platform.copySucceeds = false
+        viewModel.copyLink(request.url)
+        assertEquals(1, platform.copiedHints)
+    }
+
     private companion object {
         const val SIZE = 10L
     }

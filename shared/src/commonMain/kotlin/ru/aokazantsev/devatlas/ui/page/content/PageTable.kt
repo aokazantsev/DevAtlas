@@ -60,7 +60,8 @@ internal fun PageTable(rows: List<TableRow>, links: PageLinks, modifier: Modifie
 @Composable
 private fun TableCellBox(cell: TableCell?, links: PageLinks) {
     val header = cell?.header == true
-    val background = if (header) AtlasTheme.colors.surfaceContainerHigh else AtlasTheme.colors.surfaceContainerLow
+    val headerColor = if (LocalInQuote.current) AtlasTheme.colors.surfaceContainerHighest else AtlasTheme.colors.surfaceContainerHigh
+    val background = if (header) headerColor else AtlasTheme.colors.surfaceContainerLow
     Box(modifier = Modifier.fillMaxSize().background(background).padding(AtlasTheme.spacing.s)) {
         if (cell != null) {
             val style = AtlasTheme.typography.bodyMedium

@@ -20,7 +20,7 @@ fun LinksHost(viewModel: LinksViewModel) {
     val notice by viewModel.notice.collectAsStateWithLifecycle()
     when (val shown = pdf) {
         PdfState.Idle -> Unit
-        is PdfState.Downloading -> AtlasBottomSheet(title = "Скачиваю PDF", onDismiss = viewModel::cancelPdf) {
+        is PdfState.Downloading -> AtlasBottomSheet(title = "Скачиваю PDF", onDismiss = viewModel::cancelPdf, dismissible = false) {
             val total = shown.totalBytes?.takeIf { it > 0L }
             AtlasProgressBar(progress = total?.let { (shown.receivedBytes.toFloat() / it).coerceIn(0f, 1f) })
             val received = formatSize(shown.receivedBytes)
@@ -33,6 +33,11 @@ fun LinksHost(viewModel: LinksViewModel) {
         is PdfState.Failed -> AtlasBottomSheet(title = "PDF не скачался", onDismiss = viewModel::dismissPdf) {
             AtlasText(text = shown.message)
             AtlasPrimaryButton(text = "Повторить", onClick = { viewModel.retryPdf(shown) }, modifier = Modifier.fillMaxWidth())
+            AtlasSecondaryButton(text = "Закрыть", onClick = viewModel::dismissPdf, modifier = Modifier.fillMaxWidth())
+        }
+        is PdfState.Ready -> AtlasBottomSheet(title = "PDF скачан", onDismiss = viewModel::dismissPdf) {
+            AtlasText(text = "Файл «${shown.file.name}» сохранён в Загрузки/DevAtlas.")
+            AtlasPrimaryButton(text = "Открыть", onClick = { viewModel.openSavedPdf(shown.file) }, modifier = Modifier.fillMaxWidth())
             AtlasSecondaryButton(text = "Закрыть", onClick = viewModel::dismissPdf, modifier = Modifier.fillMaxWidth())
         }
         is PdfState.NoViewer -> AtlasBottomSheet(title = "Нет программы для PDF", onDismiss = viewModel::dismissPdf) {

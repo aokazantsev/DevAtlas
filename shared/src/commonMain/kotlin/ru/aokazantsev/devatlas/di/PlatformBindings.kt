@@ -25,6 +25,8 @@ interface PlatformBindings {
 
     val device: DeviceInfo
 
+    val clipboardConfirmsCopy: Boolean
+
     fun databaseBuilder(): RoomDatabase.Builder<DevAtlasDatabase>
 
     fun httpClient(): HttpClient
@@ -32,6 +34,8 @@ interface PlatformBindings {
     fun clipboardText(): String?
 
     fun copyToClipboard(text: String): Boolean
+
+    fun showCopiedHint()
 
     fun timeZoneOffsetMillis(epochMillis: Long): Long
 }

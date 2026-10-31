@@ -8,13 +8,12 @@ import ru.aokazantsev.devatlas.designsystem.component.AtlasPrimaryButton
 import ru.aokazantsev.devatlas.designsystem.component.AtlasSecondaryButton
 import ru.aokazantsev.devatlas.designsystem.component.AtlasText
 import ru.aokazantsev.devatlas.designsystem.theme.AtlasTheme
-import ru.aokazantsev.devatlas.themeformat.page.model.PageInline
 import ru.aokazantsev.devatlas.ui.links.LinkActions
 
 @Composable
-internal fun LinkMenuSheet(link: PageInline.Link?, pageTitle: String, actions: LinkActions, onDismiss: () -> Unit) {
-    val uri = link?.externalUri() ?: return
-    val pdf = link.pdfRequest(pageTitle)
+internal fun LinkMenuSheet(menu: LinkMenuModel?, pageTitle: String, actions: LinkActions, onDismiss: () -> Unit) {
+    val uri = menu?.uri ?: return
+    val pdf = menu.pdfRequest(pageTitle)
     AtlasBottomSheet(title = "Ссылка", onDismiss = onDismiss) {
         AtlasText(
             text = uri,

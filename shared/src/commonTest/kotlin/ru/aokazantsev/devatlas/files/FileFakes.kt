@@ -68,7 +68,7 @@ class FakePublicFiles : PublicFiles {
     override fun delete(uri: String): Boolean = files.remove(uri) != null
 }
 
-class FakeExternalApps(var opens: Boolean = true, var shares: Boolean = true) : ExternalApps {
+class FakeExternalApps(var opens: Boolean = true, var shares: Boolean = true, var foreground: Boolean = true) : ExternalApps {
     val openedUris = mutableListOf<String>()
     val openedFiles = mutableListOf<String>()
     val sharedFiles = mutableListOf<String>()
@@ -93,6 +93,8 @@ class FakeExternalApps(var opens: Boolean = true, var shares: Boolean = true) : 
         sharedTexts += text
         return shares
     }
+
+    override fun isAppInForeground(): Boolean = foreground
 }
 
 class FakeDownloadedFileRepository : DownloadedFileRepository {

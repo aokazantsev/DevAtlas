@@ -12,6 +12,7 @@ internal class MarkupTokenizer(
     private val text = StringBuilder()
     private var textStart = 0
     private var stopped = false
+    private var lastValueRange: IntRange? = null
 
     fun tokenize(): Pair<List<MarkupToken>, List<MarkupProblem>> {
         while (index < source.length && !stopped) {
@@ -113,16 +114,18 @@ internal class MarkupTokenizer(
         val name = normalize(source.substring(nameStart, index))
         skipWhitespace()
         var value: String? = null
+        var valueRange: IntRange? = null
         var quoted = false
         if (peek(0) == '=') {
             index++
             skipWhitespace()
             quoted = peek(0) == '"' || peek(0) == '\''
             value = readAttributeValue(start)
+            valueRange = lastValueRange
         }
         val duplicate = !names.add(name)
         if (caseSensitive) checkXmlAttribute(name, value, quoted, duplicate, start)
-        if (!duplicate) attributes += MarkupAttribute(name, value?.let(Entities::decode), position(start))
+        if (!duplicate) attributes += MarkupAttribute(name, value?.let(Entities::decode), position(start), valueRange)
     }
 
     private fun checkXmlAttribute(name: String, value: String?, quoted: Boolean, duplicate: Boolean, at: Int) {
@@ -153,15 +156,18 @@ internal class MarkupTokenizer(
             if (end < 0) {
                 problem(MarkupProblemKind.SYNTAX, "Кавычка значения атрибута не закрыта", attributeStart)
                 val value = source.substring(index + 1)
+                lastValueRange = index + 1 until source.length
                 index = source.length
                 return value
             }
             val value = source.substring(index + 1, end)
+            lastValueRange = index + 1 until end
             index = end + 1
             return value
         }
         val valueStart = index
         while (index < source.length && !source[index].isWhitespace() && source[index] !in "<>") index++
+        lastValueRange = valueStart until index
         return source.substring(valueStart, index)
     }
 
@@ -172,7 +178,7 @@ internal class MarkupTokenizer(
             problem(MarkupProblemKind.SYNTAX, "Тег <$name> не закрыт: если это текст, а не тег, пишите &lt;$name&gt;", start)
             return
         }
-        if (end > start) tokens += MarkupToken.Text(source.substring(start, end), position(start))
+        if (end > start) tokens += MarkupToken.Text(source.substring(start, end), position(start), start until end)
         index = end
     }
 

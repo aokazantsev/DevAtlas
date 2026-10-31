@@ -7,10 +7,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
+import ru.aokazantsev.devatlas.designsystem.component.AtlasLoadingIndicator
 import ru.aokazantsev.devatlas.designsystem.component.AtlasText
 import ru.aokazantsev.devatlas.designsystem.theme.AtlasTheme
 import ru.aokazantsev.devatlas.themeformat.page.model.PageBlock
@@ -27,20 +27,21 @@ internal fun DiagramFigure(
 ) {
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.s)) {
         val palette = rememberSvgPalette()
-        val themed = remember(svg, palette) { svg?.let { SvgColorTokens.resolve(it, palette.roles, palette.textColor) } }
         val frame = Modifier
             .fillMaxWidth()
             .clip(AtlasTheme.shapes.medium)
             .background(AtlasTheme.colors.surface)
-        if (themed == null) {
+        if (svg == null) {
             DiagramUnavailable(frame)
         } else {
             SvgImage(
-                svg = themed,
+                svg = svg,
+                palette = palette,
                 contentDescription = figure.alt ?: "Схема",
                 modifier = frame
                     .clickable(onClickLabel = "Открыть на весь экран", role = Role.Button, onClick = onOpen)
                     .padding(AtlasTheme.spacing.s),
+                loading = { AtlasLoadingIndicator(frame) },
                 fallback = { DiagramUnavailable(frame) },
             )
         }

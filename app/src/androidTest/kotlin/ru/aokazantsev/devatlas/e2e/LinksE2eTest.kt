@@ -4,6 +4,9 @@ import android.content.Intent
 import android.os.SystemClock
 import android.webkit.WebView
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import androidx.test.espresso.Espresso
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
@@ -110,6 +113,43 @@ class LinksE2eTest {
         app.openDownloads()
         app.waitForText(WebSite.GUIDE_NAME)
         app.assertNoText("e2e-guide (1).pdf")
+    }
+
+    @Test
+    fun linkHasCopyActionForAccessibility() {
+        openLinksPage()
+
+        app.performCopyAction("руководство в PDF")
+
+        app.waitUntil(WAIT_MILLIS) { clipboardText() == WebSite.GUIDE_URL }
+    }
+
+    @Test
+    fun linkMenuSurvivesRotation() {
+        openLinksPage()
+        app.longClickLink("руководство в PDF")
+        app.waitForText("Копировать ссылку")
+
+        app.activityRule.scenario.recreate()
+
+        app.waitForText("Копировать ссылку")
+        app.clickText("Копировать ссылку")
+        app.waitUntil(WAIT_MILLIS) { clipboardText() == WebSite.GUIDE_URL }
+    }
+
+    @Test
+    fun downloadSheetIgnoresSwipeDownAndBack() {
+        openLinksPage()
+        app.clickLink("большой файл")
+        app.waitForText("Скачиваю PDF")
+
+        app.onNodeWithText("Скачиваю PDF").performTouchInput { swipeDown() }
+        Espresso.pressBackUnconditionally()
+        app.waitForIdle()
+
+        app.waitForText("Скачиваю PDF")
+        app.clickText("Отмена")
+        app.waitForGone("Скачиваю PDF")
     }
 
     @Test
