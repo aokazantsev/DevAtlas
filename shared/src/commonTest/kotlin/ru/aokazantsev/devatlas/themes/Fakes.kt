@@ -32,9 +32,13 @@ class FakeInstalledThemeRepository : InstalledThemeRepository {
     var saveFailure: SQLiteException? = null
     var databaseFailure: Exception? = null
     var findFailure: SQLiteException? = null
+    var observeFailure: SQLiteException? = null
     val themes = MutableStateFlow<List<InstalledTheme>>(emptyList())
 
-    override fun observeAll(): Flow<List<InstalledTheme>> = themes.map { list -> list.sortedByDescending { it.lastUsedAt } }
+    override fun observeAll(): Flow<List<InstalledTheme>> = themes.map { list ->
+        observeFailure?.let { throw it }
+        list.sortedByDescending { it.lastUsedAt }
+    }
 
     override suspend fun all(): List<InstalledTheme> {
         databaseFailure?.let { throw it }

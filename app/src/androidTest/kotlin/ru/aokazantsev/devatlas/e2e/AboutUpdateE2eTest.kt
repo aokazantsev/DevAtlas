@@ -5,6 +5,7 @@ import android.os.Build
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.provider.Settings
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.test.espresso.intent.Intents.intended
@@ -110,6 +111,38 @@ class AboutUpdateE2eTest {
     }
 
     @Test
+    fun releaseNotesCodeHasNoCopyButton() {
+        Releases.serve(e2e.server, extraNotesHtml = "<pre><code>$NOTES_CODE</code></pre>")
+        e2e.launch()
+        app.passOnboarding()
+        openUpdate()
+
+        app.waitForText("Доступна версия ${Releases.NEW_VERSION}")
+        app.waitForTextContaining(NOTES_CODE)
+
+        app.assertNoText("Копировать")
+        check(app.onAllNodes(hasContentDescription("Копировать", substring = true)).fetchSemanticsNodes().isEmpty()) {
+            "У кода в описании выпуска не должно быть кнопки «Копировать»"
+        }
+    }
+
+    @Test
+    fun releaseWithoutChecksumOffersReleasesPage() {
+        Releases.serve(e2e.server, sha256 = null)
+        e2e.launch()
+        app.passOnboarding()
+        openUpdate()
+        app.waitForText("Доступна версия ${Releases.NEW_VERSION}")
+
+        app.clickText("Обновить")
+
+        app.waitForText("Открыть страницу выпусков")
+        app.assertNoText("Повторить")
+        app.clickText("Открыть страницу выпусков")
+        intended(allOf(hasAction(Intent.ACTION_VIEW), hasData(AppLinks.RELEASES_PAGE_URL)))
+    }
+
+    @Test
     fun latestVersionAndGitHubErrorAreExplained() {
         Releases.serve(e2e.server, versions = listOf("0.1"))
         e2e.launch()
@@ -191,5 +224,6 @@ class AboutUpdateE2eTest {
         const val HISTORY_PAGE = 30
         const val QUIET_MILLIS = 3_000L
         const val SERVER_ERROR = 500
+        const val NOTES_CODE = "devatlas --version"
     }
 }

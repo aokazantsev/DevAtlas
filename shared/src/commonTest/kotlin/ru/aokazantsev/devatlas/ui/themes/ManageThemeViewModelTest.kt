@@ -237,4 +237,37 @@ class ManageThemeViewModelTest {
 
         assertNull(viewModel.state.value.notice)
     }
+
+    @Test
+    fun databaseFailureInThemesStreamShowsNotice() = runTest(dispatcher) {
+        repository.observeFailure = androidx.sqlite.SQLiteException("база повреждена")
+
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        val notice = assertNotNull(viewModel.state.value.notice)
+        assertEquals(true, notice.startsWith("Не удалось прочитать базу приложения"))
+        assertEquals(false, viewModel.state.value.loaded)
+    }
+
+    @Test
+    fun progressResetClearsSavedOptions() = runTest(dispatcher) {
+        progress.viewed["a"] = mutableSetOf("p1")
+        val savedState = SavedStateHandle()
+        val viewModel = viewModel(savedState = savedState)
+        advanceUntilIdle()
+        viewModel.setResetProgress(true)
+        viewModel.requestRemoval()
+        advanceUntilIdle()
+
+        viewModel.confirmRemoval()
+        advanceUntilIdle()
+
+        assertEquals(false, savedState.get<Boolean>("resetProgress"))
+        assertEquals(false, savedState.get<Boolean>("deleteTheme"))
+        val restored = viewModel(savedState = SavedStateHandle(savedState.keys().associateWith { savedState.get<Any>(it) }))
+        advanceUntilIdle()
+        assertEquals(false, restored.state.value.resetProgress)
+        assertEquals(false, restored.state.value.deleteTheme)
+    }
 }

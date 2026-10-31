@@ -177,4 +177,21 @@ class ThemeStorageImplTest {
 
         ThemeStorageImpl(platform, lockedDisk, CoroutineScope(Dispatchers.Unconfined)).clearStaging()
     }
+
+    @Test
+    fun restoreFailureDoesNotBreakStart() = runTest {
+        storage.commit(stageContent("old"), "a")
+        val interrupted = stageContent("new")
+        val backup = interrupted.directory / "previous" / "a"
+        fileSystem.createDirectories(interrupted.directory / "previous")
+        fileSystem.atomicMove(storage.themeDirectory("a"), backup)
+        val lockedDisk = object : ForwardingFileSystem(fileSystem) {
+            override fun atomicMove(source: Path, target: Path) = throw IOException("файл занят")
+        }
+
+        ThemeStorageImpl(platform, lockedDisk, CoroutineScope(Dispatchers.Unconfined)).clearStaging()
+
+        assertEquals("old", fileSystem.read(backup / "manifest.json") { readUtf8() })
+        assertFalse(fileSystem.exists(storage.themeDirectory("a")))
+    }
 }

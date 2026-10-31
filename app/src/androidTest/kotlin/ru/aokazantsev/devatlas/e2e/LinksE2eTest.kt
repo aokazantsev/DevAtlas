@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.lifecycle.Lifecycle
 import androidx.test.espresso.Espresso
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions
@@ -134,6 +135,18 @@ class LinksE2eTest {
         app.waitForText(WebSite.ARTICLE_TITLE)
         app.waitForText(WebSite.HOST)
         waitForHeading("Статья")
+    }
+
+    @Test
+    fun webViewIsPausedInBackgroundAndResumed() {
+        openSitePage(WebSite.VISIBILITY_PATH, WebSite.VISIBILITY_TITLE)
+        waitForHeading("start")
+
+        app.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
+        app.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+
+        app.waitForText(WebSite.VISIBILITY_TITLE)
+        waitForHeading("start hidden visible")
     }
 
     @Test

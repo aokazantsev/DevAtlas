@@ -10,6 +10,10 @@ import io.ktor.client.request.HttpResponseData
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import io.ktor.utils.io.ByteChannel
+import io.ktor.utils.io.writeFully
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import ru.aokazantsev.devatlas.di.NetworkEndpoints
 import ru.aokazantsev.devatlas.files.FakePublicFiles
@@ -202,8 +206,45 @@ class KtorPdfDownloaderTest {
         assertTrue(requests.isEmpty())
     }
 
+    @Test
+    fun emptyBodyIsNotPdf() = runTest {
+        val loader = downloader {
+            respond(ByteArray(0), HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/pdf"))
+        }
+
+        val result = loader.download(PdfRequest("https://example.com/a.pdf"), null) { _, _ -> }
+
+        assertTrue(assertIs<PdfDownloadResult.Failed>(result).message.startsWith("По ссылке не PDF"))
+        assertTrue(publicFiles.files.isEmpty())
+    }
+
+    @Test
+    fun signatureSplitAcrossChunksIsAccepted() = runTest {
+        val progress = mutableListOf<Long>()
+        val body = ByteChannel(autoFlush = true)
+        launch {
+            body.writeFully(pdfBytes, 0, SPLIT_AT)
+            delay(CHUNK_PAUSE_MILLIS)
+            body.writeFully(pdfBytes, SPLIT_AT, pdfBytes.size)
+            body.flushAndClose()
+        }
+        val loader = downloader {
+            respond(body, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/pdf"))
+        }
+
+        val result = loader.download(PdfRequest("https://example.com/a.pdf", fileName = "guide.pdf"), null) { received, _ ->
+            progress += received
+        }
+
+        val saved = assertIs<PdfDownloadResult.Saved>(result).file
+        assertTrue(SPLIT_AT.toLong() in progress)
+        assertEquals(pdfBytes.decodeToString(), publicFiles.published().getValue(saved.contentUri).content.readUtf8())
+    }
+
     private companion object {
         const val NOW = 1_761_868_800_000L
         const val TOO_LARGE_BYTES = 100L * 1024 * 1024 + 1
+        const val SPLIT_AT = 3
+        const val CHUNK_PAUSE_MILLIS = 50L
     }
 }

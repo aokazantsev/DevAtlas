@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import ru.aokazantsev.devatlas.designsystem.component.AtlasBottomSheet
+import ru.aokazantsev.devatlas.designsystem.component.AtlasCheckboxRow
 import ru.aokazantsev.devatlas.designsystem.component.AtlasChoiceGroup
 import ru.aokazantsev.devatlas.designsystem.component.AtlasChoiceOption
 import ru.aokazantsev.devatlas.designsystem.component.AtlasConfirmDialog
@@ -344,6 +345,18 @@ private fun ToggleSamples() {
     AtlasListGroup {
         AtlasSwitchRow(title = "Просмотрено", checked = checked, index = 0, count = 2, onCheckedChange = { checked = it })
         AtlasSwitchRow(title = "Выключено", subtitle = "Подпись переключателя", checked = false, index = 1, count = 2, onCheckedChange = {})
+    }
+    var deleteTheme by remember { mutableStateOf(true) }
+    AtlasListGroup {
+        AtlasCheckboxRow(title = "Удалить тему", checked = deleteTheme, index = 0, count = 2, onCheckedChange = { deleteTheme = it })
+        AtlasCheckboxRow(
+            title = "Сбросить прогресс",
+            subtitle = "Отметки, закладки и место чтения",
+            checked = false,
+            index = 1,
+            count = 2,
+            onCheckedChange = {},
+        )
     }
 }
 

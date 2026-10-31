@@ -116,25 +116,61 @@ class ScrollAnchorE2eTest {
         check(recordedAnchor() == anchor) { "Точка чтения сдвинулась после повторного захода: ${recordedAnchor()} вместо $anchor" }
     }
 
-    @Test
-    fun rotationKeepsBlockAndOffsetInsideItAtTop() {
-        openTallPage()
-        scrollPastDiagrams()
-        app.waitForScrolled()
-        scrollBy(paragraphShift(SCROLL_TARGET) + OFFSET_PX)
-        val offset = -paragraphShift(SCROLL_TARGET)
-        check(abs(offset - OFFSET_PX) <= TOLERANCE_PX) { "Абзац не встал на $OFFSET_PX px выше верха экрана: $offset" }
-        val width = app.onRoot().fetchSemanticsNode().size.width
+    private fun rootWidth(): Int? = runCatching { app.onRoot().fetchSemanticsNode().size.width }.getOrNull()
 
-        e2e.rotate(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
+    private fun fromPortraitToLandscape(inPortrait: () -> Unit, inLandscape: () -> Unit) {
+        e2e.rotate(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
         try {
             app.waitUntil(WAIT_MILLIS) {
-                runCatching { app.onRoot().fetchSemanticsNode().size.width != width }.getOrDefault(false)
+                runCatching { app.onRoot().fetchSemanticsNode().size.run { width < height } }.getOrDefault(false)
             }
-            waitForParagraphAt(SCROLL_TARGET, offset)
+            inPortrait()
+            val width = rootWidth()
+            e2e.rotate(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
+            app.waitUntil(WAIT_MILLIS) { rootWidth().let { it != null && it != width } }
+            inLandscape()
         } finally {
             e2e.rotate(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
         }
+    }
+
+    @Test
+    fun rotationKeepsBlockAndOffsetInsideItAtTop() {
+        openTallPage()
+        var offset = 0f
+        fromPortraitToLandscape(
+            inPortrait = {
+                scrollPastDiagrams()
+                app.waitForScrolled()
+                scrollBy(paragraphShift(SCROLL_TARGET) + OFFSET_PX)
+                offset = -paragraphShift(SCROLL_TARGET)
+                check(abs(offset - OFFSET_PX) <= TOLERANCE_PX) { "Абзац не встал на $OFFSET_PX px выше верха экрана: $offset" }
+            },
+            inLandscape = { waitForParagraphAt(SCROLL_TARGET, offset) },
+        )
+    }
+
+    @Test
+    fun rotationWithOffsetBeyondShrunkBlockStopsAtNextBlock() {
+        openTallPage()
+        var offset = 0f
+        fromPortraitToLandscape(
+            inPortrait = {
+                scrollPastDiagrams()
+                app.waitForScrolled()
+                val deepOffset = paragraphShift(SCROLL_TARGET + 1) - paragraphShift(SCROLL_TARGET) - NEAR_END_PX
+                scrollBy(paragraphShift(SCROLL_TARGET) + deepOffset)
+                offset = -paragraphShift(SCROLL_TARGET)
+                check(abs(offset - deepOffset) <= TOLERANCE_PX) { "Абзац не встал на $deepOffset px выше верха экрана: $offset" }
+            },
+            inLandscape = {
+                waitForParagraphAt(SCROLL_TARGET + 1, offset = 0f)
+                val landscapeHeight = paragraphShift(SCROLL_TARGET + 1) - paragraphShift(SCROLL_TARGET)
+                check(landscapeHeight < offset) {
+                    "В альбомной абзац $landscapeHeight px не короче смещения $offset px: проверка ничего не проверяет"
+                }
+            },
+        )
     }
 
     @Test
@@ -171,5 +207,6 @@ class ScrollAnchorE2eTest {
         const val SETTLE_MILLIS = 1_000L
         const val TOLERANCE_PX = 3f
         const val OFFSET_PX = 40f
+        const val NEAR_END_PX = 10f
     }
 }

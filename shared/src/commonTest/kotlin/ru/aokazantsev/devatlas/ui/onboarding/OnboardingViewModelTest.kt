@@ -13,12 +13,14 @@ import ru.aokazantsev.devatlas.onboarding.data.OnboardingRepositoryImpl
 import ru.aokazantsev.devatlas.onboarding.domain.model.Consent
 import ru.aokazantsev.devatlas.settings.data.FailingPreferencesDataStore
 import ru.aokazantsev.devatlas.settings.data.InMemoryPreferencesDataStore
+import ru.aokazantsev.devatlas.settings.data.SwitchablePreferencesDataStore
 import ru.aokazantsev.devatlas.testing.ViewModelScopes
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class OnboardingViewModelTest {
@@ -91,5 +93,25 @@ class OnboardingViewModelTest {
         assertEquals(false, Consent(policyVersion = 0, crashReports = false, usageStatistics = true).policyAccepted)
         assertEquals(true, Consent(Consent.CURRENT_POLICY_VERSION, crashReports = false, usageStatistics = true).policyAccepted)
         assertEquals(false, Consent(Consent.CURRENT_POLICY_VERSION + 1, crashReports = false, usageStatistics = true).policyAccepted)
+    }
+
+    @Test
+    fun retryAfterFailedSaveSucceeds() = runTest(dispatcher) {
+        val store = SwitchablePreferencesDataStore(IOException("disk"))
+        val retryRepository = OnboardingRepositoryImpl(store)
+        val viewModel = scopes.track(OnboardingViewModel(retryRepository))
+        var done = false
+        viewModel.setPolicyAccepted(true)
+        viewModel.next { done = true }
+        advanceUntilIdle()
+        assertNotNull(viewModel.state.value.failure)
+
+        store.failure = null
+        viewModel.next { done = true }
+        advanceUntilIdle()
+
+        assertEquals(true, done)
+        assertNull(viewModel.state.value.failure)
+        assertEquals(true, retryRepository.isPolicyAccepted())
     }
 }

@@ -42,6 +42,8 @@ object WebSite {
     const val ORDINARY_TAP_TITLE = "Страница со ссылкой на обычную страницу"
     const val UNTITLED_PATH = "/web/untitled.html"
     const val UNTITLED_HEADING = "Страница без заголовка"
+    const val VISIBILITY_PATH = "/web/visibility.html"
+    const val VISIBILITY_TITLE = "Страница следит за видимостью"
     const val SLOW_HEADERS_SECONDS = 8L
     const val GUIDE_NAME = "e2e-guide.pdf"
     const val GUIDE_FILE_NAME = "guide.pdf"
@@ -122,6 +124,13 @@ object WebSite {
         serveTapPage(server, ORDINARY_TAP_PATH, ORDINARY_TAP_TITLE, AUTO_PDF_PATH)
         server.serveRedirect(PDF_REDIRECT_PATH, GUIDE_PATH)
         server.serveRedirect(ATTACHMENT_REDIRECT_PATH, ATTACHMENT_PATH)
+        server.serveHtml(
+            VISIBILITY_PATH,
+            "<html><head><meta name=\"viewport\" content=\"width=device-width\"><title>$VISIBILITY_TITLE</title></head><body>" +
+                "<h1 id=\"log\">start</h1><script>document.addEventListener('visibilitychange', function() {" +
+                " var log = document.getElementById('log'); log.textContent = log.textContent + ' ' + document.visibilityState })" +
+                "</script></body></html>",
+        )
         server.serveHtml(
             UNTITLED_PATH,
             "<html><head><meta name=\"viewport\" content=\"width=device-width\"></head><body><h1>$UNTITLED_HEADING</h1></body></html>",

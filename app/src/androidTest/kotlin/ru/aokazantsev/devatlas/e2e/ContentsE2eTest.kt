@@ -1,13 +1,20 @@
 package ru.aokazantsev.devatlas.e2e
 
 import android.content.Intent
+import android.content.pm.ActivityInfo
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.pinch
 import androidx.test.espresso.Espresso
 import androidx.test.espresso.intent.Intents.intended
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
@@ -22,6 +29,7 @@ import ru.aokazantsev.devatlas.DevAtlasApplication
 import ru.aokazantsev.devatlas.database.data.entity.ViewedPageEntity
 import ru.aokazantsev.devatlas.ui.page.diagram.DIAGRAM_VIEWER_TAG
 import java.io.File
+import kotlin.math.abs
 
 @RunWith(AndroidJUnit4::class)
 class ContentsE2eTest {
@@ -139,6 +147,62 @@ class ContentsE2eTest {
         app.waitForText("Одна и та же схема в любой теме приложения.")
     }
 
+    private val viewer = hasTestTag(DIAGRAM_VIEWER_TAG)
+
+    private fun viewerNode(): SemanticsNode = app.onNode(viewer).fetchSemanticsNode()
+
+    private fun viewedDiagramScale(): Float {
+        val viewerCenter = viewerNode().boundsInRoot.center
+        val diagram = app.onNode(hasContentDescription(DIAGRAM_ALT) and hasAnyAncestor(viewer)).fetchSemanticsNode()
+        return (viewerCenter.x - diagram.positionInRoot.x) / (diagram.size.width / 2f)
+    }
+
+    private fun rotate(orientation: Int) {
+        app.activityRule.scenario.onActivity { it.requestedOrientation = orientation }
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun zoomedDiagramSurvivesRotation() {
+        app.passOnboarding()
+        rotate(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
+        try {
+            app.waitUntil(WAIT_MILLIS) { app.onRoot().fetchSemanticsNode().size.run { width < height } }
+            zoomDiagramAndRotate()
+        } finally {
+            rotate(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
+        }
+    }
+
+    private fun zoomDiagramAndRotate() {
+        app.clickText("Схемы")
+        app.clickText("Как устроены схемы")
+        val diagram = hasContentDescription(DIAGRAM_ALT)
+        app.waitFor(diagram)
+        app.onNode(diagram).performScrollTo().performClick()
+        app.waitFor(viewer)
+        app.waitUntil(WAIT_MILLIS) { runCatching { abs(viewedDiagramScale() - 1f) < SCALE_TOLERANCE }.getOrDefault(false) }
+
+        app.onNode(viewer).performTouchInput {
+            pinch(
+                start0 = center - Offset(PINCH_START_PX, 0f),
+                end0 = center - Offset(PINCH_END_PX, 0f),
+                start1 = center + Offset(PINCH_START_PX, 0f),
+                end1 = center + Offset(PINCH_END_PX, 0f),
+            )
+        }
+        app.waitForIdle()
+        val zoomed = viewedDiagramScale()
+        check(zoomed >= MIN_ZOOMED_SCALE) { "Схема не увеличилась щипком: масштаб $zoomed" }
+        val width = viewerNode().size.width
+
+        rotate(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
+        app.waitUntil(WAIT_MILLIS) { runCatching { viewerNode().size.width != width }.getOrDefault(false) }
+        app.waitForIdle()
+        val rotated = viewedDiagramScale()
+        check(abs(rotated - zoomed) < SCALE_TOLERANCE) { "После поворота масштаб схемы $rotated вместо $zoomed" }
+    }
+
     @Test
     fun pageLinkOpensPageOnTopAndWebLinkOpensBuiltInPage() {
         app.passOnboarding()
@@ -214,6 +278,11 @@ class ContentsE2eTest {
         const val BROKEN_SVG_WITH_VIEWBOX = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 300\"><rect"
         const val EMPTY_LISTS_PAGE = "<p>До пустых списков.</p><ul></ul><ol></ol><p>После пустых списков.</p>"
         const val WAIT_MILLIS = 10_000L
+        const val DIAGRAM_ALT = "Три блока в цветах primary, secondary и tertiary"
+        const val PINCH_START_PX = 60f
+        const val PINCH_END_PX = 300f
+        const val MIN_ZOOMED_SCALE = 2f
+        const val SCALE_TOLERANCE = 0.1f
         const val KOTLIN_DOCS_URL = "https://kotlinlang.org/docs/multiplatform.html"
     }
 }
