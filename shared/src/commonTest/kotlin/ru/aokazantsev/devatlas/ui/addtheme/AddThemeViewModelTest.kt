@@ -1,5 +1,7 @@
 package ru.aokazantsev.devatlas.ui.addtheme
 
+import androidx.lifecycle.SavedStateHandle
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -9,6 +11,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import ru.aokazantsev.devatlas.di.NetworkEndpoints
+import ru.aokazantsev.devatlas.startup.data.VerifiedManifestsImpl
 import ru.aokazantsev.devatlas.testing.FakeJournal
 import ru.aokazantsev.devatlas.testing.ViewModelScopes
 import ru.aokazantsev.devatlas.themes.FakeClock
@@ -18,7 +21,9 @@ import ru.aokazantsev.devatlas.themes.FakePlatformBindings
 import ru.aokazantsev.devatlas.themes.FakeProgressRepository
 import ru.aokazantsev.devatlas.themes.FakeThemeStorage
 import ru.aokazantsev.devatlas.themes.ScriptedInstaller
+import ru.aokazantsev.devatlas.themes.domain.InstalledThemeRepository
 import ru.aokazantsev.devatlas.themes.domain.ThemeLibraryImpl
+import ru.aokazantsev.devatlas.themes.domain.model.InstalledTheme
 import ru.aokazantsev.devatlas.themes.domain.model.PrepareResult
 import ru.aokazantsev.devatlas.themes.domain.model.ThemeFailure
 import ru.aokazantsev.devatlas.themes.installedOf
@@ -52,22 +57,74 @@ class AddThemeViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel() = scopes.track(
+    private fun viewModel(
+        savedState: SavedStateHandle = SavedStateHandle(),
+        repository: InstalledThemeRepository = this.repository,
+    ) = scopes.track(
         AddThemeViewModel(
+            savedState = savedState,
             installer = installer,
             library = ThemeLibraryImpl(
-                repository,
+                this.repository,
                 FakeCurrentThemeRepository(),
                 FakeThemeStorage(),
                 FakeProgressRepository(),
                 FakeClock(),
                 FakeJournal(),
+                VerifiedManifestsImpl(),
             ),
             repository = repository,
             platform = platform,
             endpoints = endpoints,
         ),
     )
+
+    @Test
+    fun typedAddressSurvivesProcessDeath() {
+        val savedState = SavedStateHandle()
+        viewModel(savedState).setAddress("https://example.com/a.zip")
+
+        val restored = viewModel(SavedStateHandle(savedState.keys().associateWith { savedState.get<Any>(it) }))
+
+        assertEquals(AddThemeState.Editing(address = "https://example.com/a.zip", hint = null), restored.state.value)
+    }
+
+    @Test
+    fun databaseFailureAfterDownloadDiscardsItAndShowsError() = runTest(dispatcher) {
+        val prepared = preparedOf("a", "sha", "p1")
+        installer.prepareResult = PrepareResult.Ready(prepared)
+        repository.findFailure = androidx.sqlite.SQLiteException("база занята")
+        val viewModel = viewModel()
+
+        viewModel.load("https://example.com/a.zip")
+        advanceUntilIdle()
+
+        assertTrue(assertIs<AddThemeState.Failed>(viewModel.state.value).failure.message.contains("базу"))
+        assertEquals(listOf(prepared), installer.discarded)
+    }
+
+    @Test
+    fun loadingAgainAfterDownloadDiscardsAbandonedOne() = runTest(dispatcher) {
+        val prepared = preparedOf("a", "sha", "p1")
+        installer.prepareResult = PrepareResult.Ready(prepared)
+        val gate = CompletableDeferred<Unit>()
+        val slowRepository = object : InstalledThemeRepository by repository {
+            override suspend fun find(themeId: String): InstalledTheme? {
+                gate.await()
+                return repository.find(themeId)
+            }
+        }
+        val viewModel = viewModel(repository = slowRepository)
+
+        viewModel.load("https://example.com/a.zip")
+        advanceUntilIdle()
+        installer.prepareResult = PrepareResult.Failed(ThemeFailure("нет сети"))
+        viewModel.load("https://example.com/b.zip")
+        advanceUntilIdle()
+
+        assertEquals(listOf(prepared), installer.discarded)
+        assertIs<AddThemeState.Failed>(viewModel.state.value)
+    }
 
     @Test
     fun pasteTakesClipboardTextTrimmed() {

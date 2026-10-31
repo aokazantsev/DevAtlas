@@ -17,8 +17,7 @@ class OnboardingRepositoryImplTest {
     fun acceptedConsentIsReadBack() = runTest {
         val repository = OnboardingRepositoryImpl(InMemoryPreferencesDataStore())
 
-        repository.accept(crashReports = true, usageStatistics = false)
-
+        assertTrue(repository.accept(crashReports = true, usageStatistics = false))
         assertTrue(repository.isPolicyAccepted())
         assertEquals(Consent(Consent.CURRENT_POLICY_VERSION, crashReports = true, usageStatistics = false), repository.consent.first())
     }
@@ -32,7 +31,11 @@ class OnboardingRepositoryImplTest {
     }
 
     @Test
-    fun writeIoErrorIsSwallowed() = runTest {
-        OnboardingRepositoryImpl(FailingPreferencesDataStore(IOException("disk"))).accept(crashReports = false, usageStatistics = true)
+    fun writeIoErrorIsReportedAsNotSaved() = runTest {
+        val repository = OnboardingRepositoryImpl(FailingPreferencesDataStore(IOException("disk")))
+
+        val saved = repository.accept(crashReports = false, usageStatistics = true)
+
+        assertFalse(saved)
     }
 }

@@ -37,7 +37,9 @@ internal class CssLexer : CodeLexer {
             if (!s.startsWith("/*")) return false
             var index = s.pos + 2
             while (index < s.end && !s.startsWith("*/", index)) index++
+            val leadsPrelude = s.skipWhitespace(preludeStart) == s.pos
             s.emitTo(minOf(index + 2, s.end), CodeTokenKind.COMMENT)
+            if (leadsPrelude) preludeStart = s.pos
             return true
         }
 

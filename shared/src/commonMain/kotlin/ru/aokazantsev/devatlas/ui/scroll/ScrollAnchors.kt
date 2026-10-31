@@ -20,6 +20,11 @@ class ScrollAnchors {
         return container.localPositionOf(item, Offset.Zero).y.roundToInt()
     }
 
+    fun heightOf(index: Int): Int? {
+        val top = topOf(index) ?: return null
+        return topOf(index + 1)?.minus(top)
+    }
+
     fun topAtOrBefore(index: Int): Int? = (index downTo 0).firstNotNullOfOrNull(::topOf)
 
     fun firstVisible(scrollOffset: Int): Int? {

@@ -24,7 +24,8 @@ class WebHostTest {
     }
 
     @Test
-    fun urlWithoutSchemeHasNoHost() {
-        assertEquals("", WebHost.of("mailto:a@b.c"))
+    fun urlWithoutHostIsShownWhole() {
+        assertEquals("mailto:a@b.c", WebHost.of("mailto:a@b.c"))
+        assertEquals("about:blank", WebHost.of("about:blank"))
     }
 }

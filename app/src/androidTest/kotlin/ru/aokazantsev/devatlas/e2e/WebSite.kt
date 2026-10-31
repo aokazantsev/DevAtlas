@@ -111,7 +111,7 @@ object WebSite {
         server.servePdf(REPORT_PATH, fileName = REPORT_NAME)
         server.servePdf(ATTACHMENT_PATH, fileName = ATTACHMENT_NAME)
         server.servePdf(SLOW_ATTACHMENT_PATH, fileName = SLOW_ATTACHMENT_NAME, headersDelaySeconds = SLOW_HEADERS_SECONDS)
-        server.servePdf(SLOW_PATH, bytes = ByteArray(SLOW_SIZE), throttled = true)
+        server.servePdf(SLOW_PATH, bytes = MockServerRule.PDF_BYTES.copyOf(SLOW_SIZE), throttled = true)
     }
 
     fun servedUrl(path: String): String = "${checkNotNull(TestNetwork.baseUrl).trimEnd('/')}$path"

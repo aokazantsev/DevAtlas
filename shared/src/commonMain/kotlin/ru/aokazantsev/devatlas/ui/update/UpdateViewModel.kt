@@ -88,7 +88,7 @@ class UpdateViewModel(
             when (result) {
                 is ApkDownloadResult.Failed -> {
                     journal.write("update download: failed: ${result.message}")
-                    setStep(UpdateStep.Failed(result.message), owner = self)
+                    setStep(UpdateStep.Failed(result.message, result.retryable), owner = self)
                 }
                 is ApkDownloadResult.Saved -> {
                     journal.write("update download: ${available.release.version} saved, sha256 verified")

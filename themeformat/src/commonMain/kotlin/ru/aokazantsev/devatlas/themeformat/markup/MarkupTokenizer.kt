@@ -178,7 +178,7 @@ internal class MarkupTokenizer(
             problem(MarkupProblemKind.SYNTAX, "Тег <$name> не закрыт: если это текст, а не тег, пишите &lt;$name&gt;", start)
             return
         }
-        if (end > start) tokens += MarkupToken.Text(source.substring(start, end), position(start), start until end)
+        if (end > start) tokens += MarkupToken.Text(source.substring(start, end), position(start))
         index = end
     }
 

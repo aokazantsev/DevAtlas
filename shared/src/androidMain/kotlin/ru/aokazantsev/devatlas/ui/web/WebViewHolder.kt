@@ -15,9 +15,11 @@ internal class WebViewHolder(var saved: Bundle?) {
         bundle.putBoolean(PAGE_SHOWN_KEY, pageShown)
     }
 
+    fun pdfAllowed(url: String): Boolean = !pageShown || activation.consume(url)
+
     fun releaseAfterRenderGone(view: WebView) {
         saved = runCatching { Bundle().also { view.saveState(it) } }.getOrNull()
-        if (webView === view) webView = null
+        webView = null
     }
 
     private companion object {

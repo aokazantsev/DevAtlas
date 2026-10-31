@@ -1,6 +1,7 @@
 package ru.aokazantsev.devatlas.e2e
 
 import android.content.Intent
+import android.os.Build
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.provider.Settings
@@ -60,7 +61,12 @@ class AboutUpdateE2eTest {
         intended(allOf(hasAction(Intent.ACTION_VIEW), hasData(AppLinks.GITHUB_URL)))
 
         app.onNodeWithContentDescription("Копировать ссылку: Сайт проекта").performClick()
-        app.waitForText("Ссылка скопирована")
+        app.waitUntil(QUIET_MILLIS) { clipboardText() == AppLinks.SITE_URL }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            app.assertNoText("Ссылка скопирована")
+        } else {
+            app.waitForText("Ссылка скопирована")
+        }
 
         app.clickText("Поделиться приложением")
         intended(hasAction(Intent.ACTION_CHOOSER))

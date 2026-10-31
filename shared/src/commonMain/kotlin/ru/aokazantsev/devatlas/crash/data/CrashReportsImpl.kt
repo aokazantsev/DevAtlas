@@ -51,7 +51,9 @@ internal class CrashReportsImpl(
         )
         try {
             fileSystem.createDirectories(folder)
-            fileSystem.write(pending) { writeUtf8(Json.encodeToString(report)) }
+            val temporary = folder / "$PENDING_FILE.tmp"
+            fileSystem.write(temporary) { writeUtf8(Json.encodeToString(report)) }
+            fileSystem.atomicMove(temporary, pending)
         } catch (_: IOException) {
         }
     }

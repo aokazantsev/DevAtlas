@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import ru.aokazantsev.devatlas.designsystem.theme.AtlasTheme
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -57,7 +58,8 @@ fun <T> AtlasChoiceGroup(
                 }
                 AtlasText(
                     text = option.title,
-                    maxLines = 1,
+                    maxLines = if (iconsFit) 1 else 2,
+                    textAlign = TextAlign.Center,
                     onTextLayout = { if (it.hasVisualOverflow) iconsFit = false },
                 )
             }

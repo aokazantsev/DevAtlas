@@ -19,7 +19,7 @@ class HighlightedCodeTest {
     )
 
     private fun colorsOf(code: String, language: CodeLanguage?): Map<String, Color> =
-        highlightedCode(code, language, palette).spanStyles.associate { code.substring(it.start, it.end) to it.item.color }
+        highlightedCode(code, codeSpans(code, language), palette).spanStyles.associate { code.substring(it.start, it.end) to it.item.color }
 
     @Test
     fun tokensGetRoleColors() {
@@ -40,14 +40,14 @@ class HighlightedCodeTest {
         val html = colorsOf("<p class=\"a\">", CodeLanguage.HTML)
         assertEquals(Color.Red, html["<p"])
         assertEquals(Color.Yellow, html["class"])
-        val heading = highlightedCode("# T", CodeLanguage.MARKDOWN, palette).spanStyles.single().item
+        val heading = highlightedCode("# T", codeSpans("# T", CodeLanguage.MARKDOWN), palette).spanStyles.single().item
         assertEquals(FontWeight.SemiBold, heading.fontWeight)
         assertEquals(Color.Red, heading.color)
     }
 
     @Test
     fun commentsAreItalic() {
-        val style = highlightedCode("# note", CodeLanguage.PYTHON, palette).spanStyles.single().item
+        val style = highlightedCode("# note", codeSpans("# note", CodeLanguage.PYTHON), palette).spanStyles.single().item
         assertEquals(FontStyle.Italic, style.fontStyle)
     }
 
@@ -55,7 +55,7 @@ class HighlightedCodeTest {
     fun unknownLanguageAndPlainTextKeepTextWithoutStyles() {
         val code = "val a = 1"
         listOf(null, CodeLanguage.TEXT).forEach { language ->
-            val text = highlightedCode(code, language, palette)
+            val text = highlightedCode(code, codeSpans(code, language), palette)
             assertEquals(code, text.text)
             assertTrue(text.spanStyles.isEmpty())
         }

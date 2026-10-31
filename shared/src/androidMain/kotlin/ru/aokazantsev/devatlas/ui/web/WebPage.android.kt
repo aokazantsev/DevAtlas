@@ -7,12 +7,15 @@ import android.webkit.WebChromeClient
 import android.webkit.WebView
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.key
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import ru.aokazantsev.devatlas.files.domain.PdfFileNames
 import ru.aokazantsev.devatlas.files.domain.model.PdfRequest
 
@@ -28,20 +31,30 @@ actual fun WebPage(
     val holder = rememberSaveable(saver = WebViewHolderSaver) { WebViewHolder(saved = null) }
     val callbacks = rememberUpdatedState(WebCallbacks(onPdf, onExternal, onNothingShown))
     BackHandler(enabled = state.canGoBack) { state.goBack() }
-    if (!state.renderGone) {
-        key(state.webViewGeneration) {
-            AndroidView(
-                factory = { context -> createWebView(context, startUrl, state, holder, callbacks::value) },
-                modifier = modifier,
-                onRelease = { webView ->
-                    if (holder.webView === webView) {
-                        holder.webView = null
-                        state.navigator = null
-                    }
-                    webView.destroy()
-                },
-            )
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle, holder) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE) {
+                holder.webView?.onPause()
+            } else if (event == Lifecycle.Event.ON_RESUME) {
+                holder.webView?.onResume()
+            }
         }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    if (!state.renderGone) {
+        AndroidView(
+            factory = { context -> createWebView(context, startUrl, state, holder, callbacks::value) },
+            modifier = modifier,
+            onRelease = { webView ->
+                if (holder.webView === webView) {
+                    holder.webView = null
+                    state.navigator = null
+                }
+                webView.destroy()
+            },
+        )
     }
 }
 
@@ -90,7 +103,7 @@ private fun WebView.configure(state: WebPageState, holder: WebViewHolder, callba
             PdfFileNames.isPdfUrl(url)
         val web = url.startsWith("https://", ignoreCase = true) || url.startsWith("http://", ignoreCase = true)
         when {
-            isPdf -> if (!holder.pageShown || holder.activation.consume(url)) {
+            isPdf -> if (holder.pdfAllowed(url)) {
                 callbacks().onPdf(PdfRequest(url = url, title = state.title, contentDisposition = contentDisposition))
             }
             web && !holder.pageShown -> callbacks().onExternal(url)

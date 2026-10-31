@@ -1,7 +1,9 @@
 package ru.aokazantsev.devatlas.themes.domain
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import ru.aokazantsev.devatlas.di.NetworkEndpoints
+import ru.aokazantsev.devatlas.testing.FakeJournal
 import ru.aokazantsev.devatlas.themes.FakeInstalledThemeRepository
 import ru.aokazantsev.devatlas.themes.FakePackageFetcher
 import ru.aokazantsev.devatlas.themes.FakePackageReader
@@ -17,6 +19,7 @@ import ru.aokazantsev.devatlas.themes.manifestOf
 import ru.aokazantsev.devatlas.themes.preparedOf
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -26,6 +29,7 @@ class ThemeUpdaterImplTest {
     private val storage = FakeThemeStorage()
     private val reader = FakePackageReader()
     private val repository = FakeInstalledThemeRepository()
+    private val journal = FakeJournal()
 
     private fun updater(fetcher: FakePackageFetcher) = ThemeUpdaterImpl(
         resolver = ThemeSourceResolverImpl(NetworkEndpoints.Production),
@@ -33,6 +37,7 @@ class ThemeUpdaterImplTest {
         storage = storage,
         reader = reader,
         repository = repository,
+        journal = journal,
     )
 
     @Test
@@ -67,6 +72,54 @@ class ThemeUpdaterImplTest {
         val failed = assertIs<UpdateCheck.Failed>(result)
         assertTrue(failed.failure.message.contains("другая тема"))
         assertEquals(1, storage.discarded.size)
+        assertTrue(journal.lines.single().contains("another theme b"))
+    }
+
+    @Test
+    fun sameHashWithNewValidatorsRemembersThem() = runTest {
+        repository.save(installedOf("a", sha256 = "same"))
+        val prepared = preparedOf("a", "same", "p1").copy(etag = "etag-new", lastModified = "Sat, 31 Oct 2026 10:00:00 GMT")
+
+        val result = updater(FakePackageFetcher(FetchResult.Fetched(prepared))).check("a")
+
+        assertEquals(UpdateCheck.NoChanges, result)
+        val saved = repository.find("a")
+        assertEquals("etag-new", saved?.etag)
+        assertEquals("Sat, 31 Oct 2026 10:00:00 GMT", saved?.lastModified)
+    }
+
+    @Test
+    fun failureToRememberValidatorsStillMeansNoChanges() = runTest {
+        repository.save(installedOf("a", sha256 = "same"))
+        repository.saveFailure = androidx.sqlite.SQLiteException("база занята")
+        val prepared = preparedOf("a", "same", "p1").copy(etag = "etag-new")
+
+        val result = updater(FakePackageFetcher(FetchResult.Fetched(prepared))).check("a")
+
+        assertEquals(UpdateCheck.NoChanges, result)
+        assertEquals("etag-a", repository.find("a")?.etag)
+    }
+
+    @Test
+    fun databaseFailureOnFindIsReported() = runTest {
+        repository.findFailure = androidx.sqlite.SQLiteException("база занята")
+        val fetcher = FakePackageFetcher()
+
+        val result = updater(fetcher).check("a")
+
+        assertTrue(assertIs<UpdateCheck.Failed>(result).failure.message.contains("базу"))
+        assertTrue(fetcher.requests.isEmpty())
+    }
+
+    @Test
+    fun cancellationWhileSummarizingDiscardsDownload() = runTest {
+        repository.save(installedOf("a", sha256 = "old"))
+        val prepared = preparedOf("a", "new", "p1")
+        reader.cancelOnHashes = true
+
+        assertFailsWith<CancellationException> { updater(FakePackageFetcher(FetchResult.Fetched(prepared))).check("a") }
+
+        assertEquals(listOf(prepared.staging), storage.discarded.toList())
     }
 
     @Test
@@ -129,6 +182,7 @@ class ThemeUpdaterImplTest {
 
         assertTrue(assertIs<UpdateCheck.Failed>(result).failure.message.contains("Google"))
         assertTrue(fetcher.requests.isEmpty())
+        assertTrue(journal.lines.single().contains("rejected"))
     }
 
     @Test

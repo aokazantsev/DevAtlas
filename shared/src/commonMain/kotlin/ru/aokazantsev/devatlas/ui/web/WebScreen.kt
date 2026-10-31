@@ -58,19 +58,22 @@ fun WebScreen(url: String, startUrl: String, links: LinkActions, onBack: () -> U
                 modifier = Modifier.fillMaxSize(),
             )
             state.progress?.let { progress -> AtlasProgressBar(progress = progress, modifier = Modifier.align(Alignment.TopCenter)) }
-            if (state.failed || state.renderGone) {
-                AtlasError(
-                    message = if (state.renderGone) {
-                        "Страница закрылась: браузеру не хватило памяти или он упал"
-                    } else {
-                        "Страница не открылась: нет сети или сайт недоступен"
-                    },
-                    actionText = "Повторить",
-                    onAction = state::reload,
-                    extraActions = { AtlasTextButton(text = "Открыть в браузере", onClick = { links.openExternal(shownUrl) }) },
-                    modifier = Modifier.background(AtlasTheme.colors.surfaceContainer),
-                )
-            }
+            if (state.failed || state.renderGone) WebError(state, onOpenExternal = { links.openExternal(shownUrl) })
         }
     }
+}
+
+@Composable
+private fun WebError(state: WebPageState, onOpenExternal: () -> Unit) {
+    AtlasError(
+        message = if (state.renderGone) {
+            "Страница закрылась: браузеру не хватило памяти или он упал"
+        } else {
+            "Страница не открылась: нет сети или сайт недоступен"
+        },
+        actionText = "Повторить",
+        onAction = state::reload,
+        extraActions = { AtlasTextButton(text = "Открыть в браузере", onClick = onOpenExternal) },
+        modifier = Modifier.background(AtlasTheme.colors.surfaceContainer),
+    )
 }

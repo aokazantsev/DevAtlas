@@ -19,4 +19,8 @@ internal class VerifiedManifestsImpl : VerifiedManifests {
     }
 
     override fun find(themeId: String): ThemeManifest? = manifests[themeId]
+
+    override fun forget(themeId: String) {
+        manifests = manifests - themeId
+    }
 }

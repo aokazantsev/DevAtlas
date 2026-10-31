@@ -50,10 +50,10 @@ internal class KtorApkDownloader(
         release: AppRelease,
         onProgress: (receivedBytes: Long, totalBytes: Long?) -> Unit,
     ): ApkDownloadResult = withContext(Dispatchers.IO) {
-        val apk = release.apk ?: return@withContext ApkDownloadResult.Failed(NO_APK)
-        val expected = apk.sha256 ?: return@withContext ApkDownloadResult.Failed(NO_CHECKSUM)
+        val apk = release.apk ?: return@withContext ApkDownloadResult.Failed(NO_APK, retryable = false)
+        val expected = apk.sha256 ?: return@withContext ApkDownloadResult.Failed(NO_CHECKSUM, retryable = false)
         if (!apk.url.startsWith(HTTPS, ignoreCase = true) && !(endpoints.allowCleartext && apk.url.startsWith(HTTP, ignoreCase = true))) {
-            return@withContext ApkDownloadResult.Failed(NO_APK)
+            return@withContext ApkDownloadResult.Failed(NO_APK, retryable = false)
         }
         val target = folder / UpdateFiles.apkName(release.version)
         try {
@@ -83,7 +83,7 @@ internal class KtorApkDownloader(
     ): ApkDownloadResult {
         if (response.status != HttpStatusCode.OK) return ApkDownloadResult.Failed("GitHub ответил ошибкой ${response.status.value}")
         val total = response.contentLength() ?: apk.sizeBytes.takeIf { it > 0 }
-        if (total != null && total > MAX_BYTES) return ApkDownloadResult.Failed(TOO_LARGE)
+        if (total != null && total > MAX_BYTES) return ApkDownloadResult.Failed(TOO_LARGE, retryable = false)
         val hashing = writing { HashingSink.sha256(fileSystem.sink(target)) }
         val sink = hashing.buffer()
         val received = try {
@@ -98,7 +98,7 @@ internal class KtorApkDownloader(
         }
         if (failure == null) return ApkDownloadResult.Saved(target)
         deleteQuietly(target)
-        return ApkDownloadResult.Failed(failure)
+        return ApkDownloadResult.Failed(failure, retryable = failure != TOO_LARGE)
     }
 
     private suspend fun copy(response: HttpResponse, sink: BufferedSink, total: Long?, onProgress: (Long, Long?) -> Unit): Long {

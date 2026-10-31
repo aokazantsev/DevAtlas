@@ -242,6 +242,18 @@ class UpdateViewModelTest {
     }
 
     @Test
+    fun finalDownloadFailureIsNotRetryable() = runTest {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        download.complete(ApkDownloadResult.Failed("нет APK", retryable = false))
+
+        viewModel.update()
+        advanceUntilIdle()
+
+        assertEquals(UpdateStep.Failed("нет APK", retryable = false), viewModel.step)
+    }
+
+    @Test
     fun withoutPermissionAsksAndInstallsAfterReturn() = runTest {
         installer.allowed = false
         val viewModel = viewModel()

@@ -13,6 +13,7 @@ import ru.aokazantsev.devatlas.reading.FakeReadingPointRepository
 import ru.aokazantsev.devatlas.reading.domain.model.Bookmark
 import ru.aokazantsev.devatlas.reading.domain.model.ReadingPoint
 import ru.aokazantsev.devatlas.reading.domain.model.ScreenTarget
+import ru.aokazantsev.devatlas.startup.data.VerifiedManifestsImpl
 import ru.aokazantsev.devatlas.testing.FakeJournal
 import ru.aokazantsev.devatlas.testing.ViewModelScopes
 import ru.aokazantsev.devatlas.themeformat.manifest.ThemeManifest
@@ -75,7 +76,7 @@ class ContentsViewModelTest {
     }
 
     private fun viewModel(sectionId: String? = null): ContentsViewModel {
-        val library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock(), FakeJournal())
+        val library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock(), FakeJournal(), VerifiedManifestsImpl())
         val contents = ObserveContentsUseCaseImpl(library, storage, reader, progress, bookmarks)
         return scopes.track(ContentsViewModel(sectionId, contents, bookmarks, readingPoints))
     }

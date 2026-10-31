@@ -2,7 +2,6 @@ package ru.aokazantsev.devatlas.ui.web
 
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
@@ -26,9 +25,6 @@ class WebPageState {
     var canGoBack by mutableStateOf(false)
         internal set
 
-    var webViewGeneration by mutableIntStateOf(0)
-        private set
-
     internal var navigator: WebNavigator? = null
 
     fun goBack() {
@@ -39,7 +35,6 @@ class WebPageState {
         failed = false
         if (renderGone) {
             renderGone = false
-            webViewGeneration++
         } else {
             navigator?.reload()
         }

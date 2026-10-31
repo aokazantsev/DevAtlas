@@ -31,8 +31,7 @@ data class SvgViewport(val left: Float, val top: Float, val width: Float, val he
             val root = rootTag(svg) ?: return null
             if (root.name.substringAfter(':') != "svg") return null
             val viewport = viewBox(root.attribute("viewBox")) ?: sizeBox(root)
-            val ratio = viewport.width / viewport.height
-            return viewport.takeIf { ratio.isFinite() && ratio > 0f }
+            return viewport.takeIf { it.ratio.isFinite() && it.ratio > 0f }
         }
 
         private fun viewBox(value: String?): SvgViewport? {

@@ -48,7 +48,7 @@ internal actual fun SvgImage(
     }
     val document = ready.document
     if (document == null) {
-        fallback(sized)
+        fallback(Modifier.aspectRatio(viewport.ratio.coerceAtLeast(1f)))
         return
     }
     Canvas(

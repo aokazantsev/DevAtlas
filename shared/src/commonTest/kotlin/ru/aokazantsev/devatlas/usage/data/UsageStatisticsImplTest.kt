@@ -184,6 +184,20 @@ class UsageStatisticsImplTest {
     }
 
     @Test
+    fun dayCountedBeforeMovingWestIsKept() = runTest {
+        onboarding.accept(crashReports = false, usageStatistics = true)
+        val statistics = statistics()
+        platform.timeZoneOffset = 3 * HOUR
+        clock.millis = DAY_START + 22 * HOUR
+        statistics.hit(UsageEvent.APP_START)
+        platform.timeZoneOffset = -5 * HOUR
+
+        statistics.send()
+
+        assertEquals(listOf("2026-11-01"), bodies.map { it.getValue("day").jsonPrimitive.content })
+    }
+
+    @Test
     fun rejectedPacketIsNotRepeated() = runTest {
         onboarding.accept(crashReports = false, usageStatistics = true)
         val statistics = statistics()

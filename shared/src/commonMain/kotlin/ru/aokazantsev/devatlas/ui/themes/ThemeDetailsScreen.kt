@@ -61,6 +61,7 @@ fun ThemeDetailsScreen(
                         modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
                         verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.s),
                     ) {
+                        shown.applyFailure?.let { AtlasText(text = it, color = AtlasTheme.colors.error) }
                         if (shown.isCurrent) {
                             AtlasText(text = "Это текущая тема", color = AtlasTheme.colors.primary)
                         } else {

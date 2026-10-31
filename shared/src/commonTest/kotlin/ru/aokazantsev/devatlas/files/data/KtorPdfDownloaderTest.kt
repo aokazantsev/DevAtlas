@@ -116,6 +116,19 @@ class KtorPdfDownloaderTest {
     }
 
     @Test
+    fun bodyWithoutPdfSignatureIsRefusedAndOldFileKept() = runTest {
+        val old = publicFiles.add("guide.pdf")
+        val loader = downloader {
+            respond("PK not a pdf", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/pdf"))
+        }
+
+        val result = loader.download(PdfRequest("https://example.com/a.pdf", fileName = "guide.pdf"), old) { _, _ -> }
+
+        assertTrue(assertIs<PdfDownloadResult.Failed>(result).message.startsWith("По ссылке не PDF"))
+        assertEquals(setOf(old), publicFiles.files.keys)
+    }
+
+    @Test
     fun storageFailureIsReportedAsSaveError() = runTest {
         publicFiles.failCreate = true
         val loader = downloader { pdfResponse(this) }

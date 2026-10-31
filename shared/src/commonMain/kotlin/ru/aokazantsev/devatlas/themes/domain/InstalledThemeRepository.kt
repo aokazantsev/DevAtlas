@@ -15,4 +15,6 @@ interface InstalledThemeRepository {
     suspend fun delete(themeId: String)
 
     suspend fun touch(themeId: String, now: Long)
+
+    suspend fun updateValidators(themeId: String, sha256: String, etag: String?, lastModified: String?)
 }

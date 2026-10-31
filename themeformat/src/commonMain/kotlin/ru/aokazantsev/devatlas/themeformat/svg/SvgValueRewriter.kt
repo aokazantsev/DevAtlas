@@ -21,21 +21,6 @@ object SvgValueRewriter {
         return result.toString()
     }
 
-    private fun valueRanges(tokens: List<MarkupToken>): List<IntRange> {
-        val ranges = mutableListOf<IntRange>()
-        var rawTextOwner: String? = null
-        tokens.forEach { token ->
-            when (token) {
-                is MarkupToken.StartTag -> {
-                    token.attributes.mapNotNullTo(ranges) { it.valueRange }
-                    rawTextOwner = token.name.takeIf { !token.selfClosing && it in MarkupDialect.Xml.rawTextElements }
-                }
-                is MarkupToken.EndTag -> rawTextOwner = null
-                is MarkupToken.Text -> if (rawTextOwner == STYLE) token.rawRange?.let(ranges::add)
-            }
-        }
-        return ranges
-    }
-
-    private const val STYLE = "style"
+    private fun valueRanges(tokens: List<MarkupToken>): List<IntRange> =
+        tokens.filterIsInstance<MarkupToken.StartTag>().flatMap { tag -> tag.attributes.mapNotNull { it.valueRange } }
 }

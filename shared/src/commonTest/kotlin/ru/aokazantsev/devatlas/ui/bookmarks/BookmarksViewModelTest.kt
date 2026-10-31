@@ -13,6 +13,7 @@ import ru.aokazantsev.devatlas.contents.domain.ObserveContentsUseCaseImpl
 import ru.aokazantsev.devatlas.navigation.Route
 import ru.aokazantsev.devatlas.reading.FakeBookmarkRepository
 import ru.aokazantsev.devatlas.reading.domain.model.ScreenTarget
+import ru.aokazantsev.devatlas.startup.data.VerifiedManifestsImpl
 import ru.aokazantsev.devatlas.testing.FakeJournal
 import ru.aokazantsev.devatlas.testing.ViewModelScopes
 import ru.aokazantsev.devatlas.themeformat.manifest.ThemeManifest
@@ -66,7 +67,7 @@ class BookmarksViewModelTest {
     }
 
     private fun viewModel(): BookmarksViewModel {
-        val library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock(), FakeJournal())
+        val library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock(), FakeJournal(), VerifiedManifestsImpl())
         return scopes.track(BookmarksViewModel(ObserveContentsUseCaseImpl(library, storage, reader, progress, bookmarks), bookmarks))
     }
 

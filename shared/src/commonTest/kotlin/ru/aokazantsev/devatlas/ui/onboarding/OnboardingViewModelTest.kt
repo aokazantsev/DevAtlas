@@ -8,14 +8,17 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import okio.IOException
 import ru.aokazantsev.devatlas.onboarding.data.OnboardingRepositoryImpl
 import ru.aokazantsev.devatlas.onboarding.domain.model.Consent
+import ru.aokazantsev.devatlas.settings.data.FailingPreferencesDataStore
 import ru.aokazantsev.devatlas.settings.data.InMemoryPreferencesDataStore
 import ru.aokazantsev.devatlas.testing.ViewModelScopes
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class OnboardingViewModelTest {
@@ -68,6 +71,19 @@ class OnboardingViewModelTest {
 
         assertEquals(true, done)
         assertEquals(Consent(Consent.CURRENT_POLICY_VERSION, crashReports = true, usageStatistics = false), repository.consent.first())
+    }
+
+    @Test
+    fun failedSaveKeepsOnboardingAndShowsError() = runTest(dispatcher) {
+        val viewModel = scopes.track(OnboardingViewModel(OnboardingRepositoryImpl(FailingPreferencesDataStore(IOException("disk")))))
+        var done = false
+        viewModel.setPolicyAccepted(true)
+
+        viewModel.next { done = true }
+        advanceUntilIdle()
+
+        assertEquals(false, done)
+        assertNotNull(viewModel.state.value.failure)
     }
 
     @Test

@@ -1,15 +1,19 @@
 package ru.aokazantsev.devatlas.ui.addtheme
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dev.zacsweers.metro.Inject
+import androidx.sqlite.SQLiteException
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
@@ -22,9 +26,11 @@ import ru.aokazantsev.devatlas.themes.domain.model.InstallResult
 import ru.aokazantsev.devatlas.themes.domain.model.PrepareResult
 import ru.aokazantsev.devatlas.themes.domain.model.PreparedTheme
 import ru.aokazantsev.devatlas.themes.domain.model.SampleTheme
+import ru.aokazantsev.devatlas.themes.domain.model.ThemeFailure
 
-@Inject
+@AssistedInject
 class AddThemeViewModel(
+    @Assisted private val savedState: SavedStateHandle,
     private val installer: ThemeInstaller,
     private val library: ThemeLibrary,
     private val repository: InstalledThemeRepository,
@@ -32,7 +38,9 @@ class AddThemeViewModel(
     private val endpoints: NetworkEndpoints,
 ) : ViewModel() {
 
-    private val mutableState = MutableStateFlow<AddThemeState>(AddThemeState.Editing(address = "", hint = null))
+    private val mutableState = MutableStateFlow<AddThemeState>(
+        AddThemeState.Editing(address = savedState[ADDRESS_KEY] ?: "", hint = null),
+    )
     val state: StateFlow<AddThemeState> = mutableState.asStateFlow()
 
     val sampleAvailable: Flow<Boolean> = library.observeInstalled().map { themes -> themes.none { it.id == SampleTheme.ID } }
@@ -43,16 +51,17 @@ class AddThemeViewModel(
     private var work: Job? = null
 
     fun setAddress(address: String) {
-        mutableState.value = AddThemeState.Editing(address = address, hint = null)
+        edit(address)
     }
 
     fun paste() {
         val text = platform.clipboardText()?.trim().orEmpty()
-        mutableState.value = if (text.isEmpty()) {
-            AddThemeState.Editing(address = "", hint = "В буфере обмена пусто")
-        } else {
-            AddThemeState.Editing(address = text, hint = null)
-        }
+        if (text.isEmpty()) edit("", hint = "В буфере обмена пусто") else edit(text)
+    }
+
+    private fun edit(address: String, hint: String? = null) {
+        savedState[ADDRESS_KEY] = address
+        mutableState.value = AddThemeState.Editing(address = address, hint = hint)
     }
 
     fun startWithSample() {
@@ -61,17 +70,27 @@ class AddThemeViewModel(
 
     fun load(address: String) {
         work?.cancel()
+        savedState[ADDRESS_KEY] = address
         mutableState.value = AddThemeState.Loading(message = "Скачиваю и проверяю тему…")
         work = viewModelScope.launch {
             mutableState.value = when (val result = installer.prepare(address)) {
                 is PrepareResult.Failed -> AddThemeState.Failed(address = address, failure = result.failure)
-                is PrepareResult.Ready -> AddThemeState.Preview(
-                    prepared = result.prepared,
-                    existing = repository.find(result.prepared.manifest.id),
-                    confirmReplace = false,
-                )
+                is PrepareResult.Ready -> preview(result.prepared)
             }
         }
+    }
+
+    private suspend fun preview(prepared: PreparedTheme): AddThemeState = try {
+        AddThemeState.Preview(prepared = prepared, existing = repository.find(prepared.manifest.id), confirmReplace = false)
+    } catch (cancellation: CancellationException) {
+        installer.discard(prepared)
+        throw cancellation
+    } catch (error: SQLiteException) {
+        installer.discard(prepared)
+        AddThemeState.Failed(
+            address = prepared.source,
+            failure = ThemeFailure("Не удалось прочитать базу приложения: ${error.message ?: "ошибка базы"}"),
+        )
     }
 
     fun install() {
@@ -91,12 +110,12 @@ class AddThemeViewModel(
     fun cancelPreview() {
         val preview = mutableState.value as? AddThemeState.Preview ?: return
         installer.discard(preview.prepared)
-        mutableState.value = AddThemeState.Editing(address = preview.prepared.source, hint = null)
+        edit(preview.prepared.source)
     }
 
     fun backToEditing() {
         val failed = mutableState.value as? AddThemeState.Failed ?: return
-        mutableState.value = AddThemeState.Editing(address = failed.address, hint = null)
+        edit(failed.address)
     }
 
     private fun commit(prepared: PreparedTheme) {
@@ -105,7 +124,7 @@ class AddThemeViewModel(
             when (val result = installer.install(prepared)) {
                 is InstallResult.Failed -> mutableState.value = AddThemeState.Failed(address = prepared.source, failure = result.failure)
                 is InstallResult.Installed -> {
-                    mutableState.value = AddThemeState.Editing(address = "", hint = null)
+                    edit("")
                     installedChannel.send(result.theme.id)
                 }
             }
@@ -116,5 +135,14 @@ class AddThemeViewModel(
         val preview = mutableState.value as? AddThemeState.Preview
         if (preview != null) installer.discard(preview.prepared)
         super.onCleared()
+    }
+
+    @AssistedFactory
+    fun interface Factory {
+        fun create(savedState: SavedStateHandle): AddThemeViewModel
+    }
+
+    private companion object {
+        const val ADDRESS_KEY = "address"
     }
 }

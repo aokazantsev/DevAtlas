@@ -12,6 +12,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ru.aokazantsev.devatlas.designsystem.component.AtlasConfirmDialog
 import ru.aokazantsev.devatlas.designsystem.component.AtlasError
@@ -84,7 +86,11 @@ private fun EditingContent(
             verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.s),
         ) {
             if (onboarding) {
-                AtlasText(text = "Добавить по ссылке", style = AtlasTheme.typography.emphasized.titleMedium)
+                AtlasText(
+                    text = "Добавить по ссылке",
+                    style = AtlasTheme.typography.emphasized.titleMedium,
+                    modifier = Modifier.semantics { heading() },
+                )
             }
             AtlasTextField(
                 value = state.address,
@@ -115,7 +121,11 @@ private fun PreviewContent(state: AddThemeState.Preview, viewModel: AddThemeView
             modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
             verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.s),
         ) {
-            AtlasText(text = manifest.title, style = AtlasTheme.typography.emphasized.headlineMedium)
+            AtlasText(
+                text = manifest.title,
+                style = AtlasTheme.typography.emphasized.headlineMedium,
+                modifier = Modifier.semantics { heading() },
+            )
             manifest.description?.let { AtlasText(text = it, color = AtlasTheme.colors.onSurfaceVariant) }
         }
         AtlasListGroup {

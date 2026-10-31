@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -24,10 +25,13 @@ internal fun PageList(
 ) {
     if (list.items.isEmpty()) return
     val style = AtlasTheme.typography.bodyLarge
-    val labels = list.items.indices.map { index -> if (list.ordered) "${index + 1}." else BULLET }
+    val labels = remember(list.items.size, list.ordered) {
+        List(list.items.size) { index -> if (list.ordered) "${index + 1}." else BULLET }
+    }
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
-    val markerWidth = with(density) { labels.maxOf { measurer.measure(it, style).size.width }.toDp() }
+    val markerWidthPx = remember(labels, style, measurer) { labels.maxOf { measurer.measure(it, style).size.width } }
+    val markerWidth = with(density) { markerWidthPx.toDp() }
     Column(verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.s)) {
         list.items.forEachIndexed { index, item ->
             Row(horizontalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.s)) {

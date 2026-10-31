@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okio.IOException
 import ru.aokazantsev.devatlas.journal.domain.AppJournal
+import ru.aokazantsev.devatlas.startup.domain.VerifiedManifests
 import ru.aokazantsev.devatlas.themes.domain.model.FetchResult
 import ru.aokazantsev.devatlas.themes.domain.model.InstallResult
 import ru.aokazantsev.devatlas.themes.domain.model.InstalledTheme
@@ -34,11 +35,15 @@ internal class ThemeInstallerImpl(
     private val clock: Clock,
     private val usage: UsageStatistics,
     private val journal: AppJournal,
+    private val verified: VerifiedManifests,
 ) : ThemeInstaller {
 
     override suspend fun prepare(address: String): PrepareResult {
         val plan = when (val resolution = resolver.resolve(address)) {
-            is SourceResolution.Rejected -> return PrepareResult.Failed(ThemeFailure(resolution.message, ThemeHelp.PUBLISH_URL))
+            is SourceResolution.Rejected -> {
+                journal.write("theme source: $address: rejected: ${resolution.message}")
+                return PrepareResult.Failed(ThemeFailure(resolution.message, ThemeHelp.PUBLISH_URL))
+            }
             is SourceResolution.Resolved -> resolution.plan
         }
         return when (val fetched = fetcher.fetch(plan)) {
@@ -48,28 +53,31 @@ internal class ThemeInstallerImpl(
         }
     }
 
-    override suspend fun install(prepared: PreparedTheme): InstallResult = withContext(NonCancellable) {
+    override suspend fun install(prepared: PreparedTheme): InstallResult = install(prepared, redownload = false)
+
+    private suspend fun install(prepared: PreparedTheme, redownload: Boolean): InstallResult = withContext(NonCancellable) {
         try {
-            InstallResult.Installed(commit(prepared))
+            InstallResult.Installed(commit(prepared, redownload))
         } catch (error: IOException) {
             storage.discard(prepared.staging)
-            failed(prepared, ThemeFailure("Не удалось записать тему на телефон: ${error.message ?: "ошибка записи"}"))
+            failed(prepared, redownload, ThemeFailure("Не удалось записать тему на телефон: ${error.message ?: "ошибка записи"}"))
         } catch (error: SQLiteException) {
             storage.discard(prepared.staging)
-            failed(prepared, ThemeFailure("Не удалось сохранить тему в базе приложения: ${error.message ?: "ошибка базы"}"))
+            failed(prepared, redownload, ThemeFailure("Не удалось сохранить тему в базе приложения: ${error.message ?: "ошибка базы"}"))
         }
     }
 
-    private fun failed(prepared: PreparedTheme, failure: ThemeFailure): InstallResult.Failed {
-        journal.write("theme install: ${prepared.source}: failed: ${failure.message}")
+    private fun failed(prepared: PreparedTheme, redownload: Boolean, failure: ThemeFailure): InstallResult.Failed {
+        journal.write("theme ${if (redownload) "redownload" else "install"}: ${prepared.source}: failed: ${failure.message}")
         return InstallResult.Failed(failure)
     }
 
-    private suspend fun commit(prepared: PreparedTheme): InstalledTheme {
+    private suspend fun commit(prepared: PreparedTheme, redownload: Boolean): InstalledTheme {
         val id = prepared.manifest.id
         val previous = repository.find(id)
         val becomesCurrent = current.currentThemeId.first()?.let { repository.find(it) } == null
         storage.commit(prepared.staging, id)
+        verified.forget(id)
         val theme = try {
             record(prepared, previous, becomesCurrent)
         } catch (error: SQLiteException) {
@@ -78,8 +86,13 @@ internal class ThemeInstallerImpl(
             throw error
         }
         storage.discard(prepared.staging)
-        usage.hit(if (previous == null) UsageEvent.THEME_DOWNLOAD else UsageEvent.THEME_UPDATE)
-        journal.write("theme ${if (previous == null) "install" else "update"}: ${prepared.source}: ok")
+        val action = when {
+            redownload -> "redownload"
+            previous == null -> "install"
+            else -> "update"
+        }
+        if (!redownload) usage.hit(if (previous == null) UsageEvent.THEME_DOWNLOAD else UsageEvent.THEME_UPDATE)
+        journal.write("theme $action: ${prepared.source}: ok")
         return theme
     }
 
@@ -120,9 +133,12 @@ internal class ThemeInstallerImpl(
         return when (val result = prepare(theme.sourceUrl)) {
             is PrepareResult.Failed -> result.failure
             is PrepareResult.Ready -> if (result.prepared.manifest.id == themeId) {
-                (install(result.prepared) as? InstallResult.Failed)?.failure
+                (install(result.prepared, redownload = true) as? InstallResult.Failed)?.failure
             } else {
                 discard(result.prepared)
+                journal.write(
+                    "theme redownload: ${theme.sourceUrl}: refused: another theme ${result.prepared.manifest.id} instead of $themeId",
+                )
                 ThemeFailure(
                     "По ссылке теперь лежит другая тема: «${result.prepared.manifest.title}». " +
                         "Уберите эту тему кнопкой «Выбрать другую тему» и добавьте её заново по новой ссылке",

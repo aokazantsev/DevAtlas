@@ -6,13 +6,13 @@ devatlas:
   active: true
   ColorOutsideDesignSystem:
     active: true
-    excludes: ['**/designsystem/src/**', '**/test/**', '**/*Test/**']
+    excludes: ['**/designsystem/src/**', '**/src/test/**', '**/src/*Test/**']
   DpLiteralOutsideDesignSystem:
     active: true
-    excludes: ['**/designsystem/src/**', '**/test/**', '**/*Test/**']
+    excludes: ['**/designsystem/src/**', '**/src/test/**', '**/src/*Test/**']
   Material3OutsideDesignSystem:
     active: true
-    excludes: ['**/designsystem/src/**', '**/test/**', '**/*Test/**']
+    excludes: ['**/designsystem/src/**', '**/src/test/**', '**/src/*Test/**']
 
 complexity:
   LongParameterList:
@@ -36,7 +36,7 @@ style:
   MagicNumber:
     ignorePropertyDeclaration: true
     ignoreCompanionObjectPropertyDeclaration: true
-    excludes: ['**/designsystem/src/**', '**/test/**', '**/*Test/**']
+    excludes: ['**/designsystem/src/**', '**/src/test/**', '**/src/*Test/**']
   UnusedPrivateMember:
     ignoreAnnotated: ['Preview']
   MaxLineLength:

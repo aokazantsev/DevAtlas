@@ -110,17 +110,7 @@ internal class KtorPdfDownloader(
         var saved = false
         try {
             val result = try {
-                write(pending, response, total, replacing, onProgress)?.let { (finalName, received) ->
-                    PdfDownloadResult.Saved(
-                        DownloadedFile(
-                            url = request.url,
-                            contentUri = pending.uri,
-                            name = finalName,
-                            sizeBytes = received,
-                            downloadedAtMillis = now,
-                        ),
-                    )
-                } ?: PdfDownloadResult.Failed(saveFailure(null))
+                write(request, pending, response, total, replacing, onProgress, now)
             } catch (error: PublicFileWriteException) {
                 PdfDownloadResult.Failed(saveFailure(error.cause))
             } catch (_: TooLargeException) {
@@ -134,31 +124,53 @@ internal class KtorPdfDownloader(
     }
 
     private suspend fun write(
+        request: PdfRequest,
         pending: PendingPublicFile,
         response: HttpResponse,
         total: Long?,
         replacing: String?,
         onProgress: (Long, Long?) -> Unit,
-    ): Pair<String, Long>? {
+        now: Long,
+    ): PdfDownloadResult {
         val sink = writing { pending.sink().buffer() }
+        val header = ByteArray(PDF_SIGNATURE.size)
         val received = try {
-            copy(response.bodyAsChannel(), sink, total, onProgress)
+            copy(response.bodyAsChannel(), sink, header, total, onProgress)
         } finally {
             writing { sink.close() }
         }
         if (received > MAX_BYTES) throw TooLargeException()
+        if (!header.contentEquals(PDF_SIGNATURE)) return PdfDownloadResult.Failed(NOT_PDF)
         currentCoroutineContext().ensureActive()
         replacing?.let(publicFiles::delete)
-        return pending.publish()?.let { it to received }
+        val finalName = pending.publish() ?: return PdfDownloadResult.Failed(saveFailure(null))
+        return PdfDownloadResult.Saved(
+            DownloadedFile(
+                url = request.url,
+                contentUri = pending.uri,
+                name = finalName,
+                sizeBytes = received,
+                downloadedAtMillis = now,
+            ),
+        )
     }
 
-    private suspend fun copy(channel: ByteReadChannel, sink: BufferedSink, total: Long?, onProgress: (Long, Long?) -> Unit): Long {
+    private suspend fun copy(
+        channel: ByteReadChannel,
+        sink: BufferedSink,
+        header: ByteArray,
+        total: Long?,
+        onProgress: (Long, Long?) -> Unit,
+    ): Long {
         val buffer = ByteArray(CHUNK_SIZE)
         var received = 0L
         onProgress(0L, total)
         while (received <= MAX_BYTES) {
             val read = channel.readAvailable(buffer, 0, buffer.size)
             if (read == -1) break
+            if (received < header.size) {
+                buffer.copyInto(header, received.toInt(), 0, minOf(read, header.size - received.toInt()))
+            }
             writing { sink.write(buffer, 0, read) }
             received += read
             onProgress(received, total)
@@ -196,5 +208,7 @@ internal class KtorPdfDownloader(
         const val MAX_MEGABYTES = 100L
         const val MAX_BYTES = MAX_MEGABYTES * 1024 * 1024
         const val TOO_LARGE = "Файл больше $MAX_MEGABYTES МБ: такие PDF приложение не скачивает"
+        const val NOT_PDF = "По ссылке не PDF: сервер прислал файл другого вида. Откройте ссылку в браузере"
+        val PDF_SIGNATURE = "%PDF-".encodeToByteArray()
     }
 }

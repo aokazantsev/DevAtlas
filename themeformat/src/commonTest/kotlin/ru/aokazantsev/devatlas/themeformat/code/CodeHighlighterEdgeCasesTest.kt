@@ -100,6 +100,13 @@ class CodeHighlighterEdgeCasesTest {
     }
 
     @Test
+    fun cssRuleGroupAfterCommentKeepsSelectors() {
+        val code = "b { top: 0; }\n/* узкие экраны */\n@media (max-width: 600px) {\n  a:hover { color: red; }\n}"
+        assertHas(code, CodeLanguage.CSS, "a" to TAG, ":hover" to TYPE, "color" to PROPERTY)
+        assertHasNot(code, CodeLanguage.CSS, "a" to PROPERTY)
+    }
+
+    @Test
     fun cssKeyframesAndFontFace() {
         val code = "@keyframes spin { from { opacity: 0 } to { opacity: 1 } }\n@font-face { font-family: X; }"
         assertHas(code, CodeLanguage.CSS, "from" to TAG, "to" to TAG, "opacity" to PROPERTY, "font-family" to PROPERTY)

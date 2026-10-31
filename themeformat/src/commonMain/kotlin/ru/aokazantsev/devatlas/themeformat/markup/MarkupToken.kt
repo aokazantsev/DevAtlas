@@ -12,9 +12,5 @@ sealed interface MarkupToken {
 
     data class EndTag(val name: String, override val position: SourcePosition) : MarkupToken
 
-    data class Text(
-        val text: String,
-        override val position: SourcePosition,
-        val rawRange: IntRange? = null,
-    ) : MarkupToken
+    data class Text(val text: String, override val position: SourcePosition) : MarkupToken
 }

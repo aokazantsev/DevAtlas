@@ -35,7 +35,7 @@ interface AppGraph {
     val appViewModel: () -> AppViewModel
     val settingsViewModel: () -> SettingsViewModel
     val onboardingViewModel: () -> OnboardingViewModel
-    val addThemeViewModel: () -> AddThemeViewModel
+    val addThemeViewModel: AddThemeViewModel.Factory
     val contentsViewModel: ContentsViewModel.Factory
     val pageViewModel: PageViewModel.Factory
     val bookmarksViewModel: () -> BookmarksViewModel

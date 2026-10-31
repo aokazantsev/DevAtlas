@@ -6,4 +6,6 @@ interface VerifiedManifests {
     fun replace(manifests: Map<String, ThemeManifest>)
 
     fun find(themeId: String): ThemeManifest?
+
+    fun forget(themeId: String)
 }

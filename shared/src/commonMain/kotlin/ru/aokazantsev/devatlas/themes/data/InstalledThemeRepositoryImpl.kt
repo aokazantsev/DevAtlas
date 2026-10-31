@@ -32,4 +32,8 @@ internal class InstalledThemeRepositoryImpl(
     override suspend fun touch(themeId: String, now: Long) {
         dao.touch(themeId, now)
     }
+
+    override suspend fun updateValidators(themeId: String, sha256: String, etag: String?, lastModified: String?) {
+        dao.updateValidators(themeId, sha256, etag, lastModified)
+    }
 }

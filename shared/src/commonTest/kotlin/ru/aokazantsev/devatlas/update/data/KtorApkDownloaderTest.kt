@@ -88,15 +88,18 @@ class KtorApkDownloaderTest {
         val result = downloader.download(release(sha256 = "0".repeat(64))) { _, _ -> }
 
         assertTrue(assertIs<ApkDownloadResult.Failed>(result).message.contains("не совпал"))
+        assertTrue(result.retryable)
         assertFalse(fileSystem.exists(UPDATES / "DevAtlas-0.2.apk"))
     }
 
     @Test
     fun releaseWithoutChecksumOrHttpsIsNotDownloaded() = runTest {
-        assertIs<ApkDownloadResult.Failed>(downloader.download(release(sha256 = null)) { _, _ -> })
-        assertIs<ApkDownloadResult.Failed>(downloader.download(release(url = "http://example.com/a.apk")) { _, _ -> })
+        val noChecksum = assertIs<ApkDownloadResult.Failed>(downloader.download(release(sha256 = null)) { _, _ -> })
+        val noHttps = assertIs<ApkDownloadResult.Failed>(downloader.download(release(url = "http://example.com/a.apk")) { _, _ -> })
 
         assertEquals(0, requests)
+        assertFalse(noChecksum.retryable)
+        assertFalse(noHttps.retryable)
     }
 
     @Test

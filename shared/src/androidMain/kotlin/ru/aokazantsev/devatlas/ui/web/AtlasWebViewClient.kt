@@ -39,7 +39,7 @@ internal class AtlasWebViewClient(
                 true
             }
             PdfFileNames.isPdfUrl(url) -> {
-                if (!holder.pageShown || holder.activation.consume(url)) callbacks().onPdf(PdfRequest(url = url, title = state.title))
+                if (holder.pdfAllowed(url)) callbacks().onPdf(PdfRequest(url = url, title = state.title))
                 true
             }
             else -> false

@@ -99,7 +99,7 @@ private fun Available(state: UpdateUiState.Available, viewModel: UpdateViewModel
                     diagrams = emptyMap(),
                     links = links,
                     onOpenDiagram = {},
-                    codeCopy = CodeCopy(copy = { false }, systemConfirms = false),
+                    codeCopy = CodeCopy(copy = null, systemConfirms = false),
                 )
             }
         }
@@ -134,7 +134,11 @@ private fun UpdateActions(step: UpdateStep, viewModel: UpdateViewModel) {
         }
         is UpdateStep.Failed -> {
             AtlasText(text = step.message, color = AtlasTheme.colors.error)
-            AtlasPrimaryButton(text = "Повторить", onClick = viewModel::update, modifier = wide)
+            if (step.retryable) {
+                AtlasPrimaryButton(text = "Повторить", onClick = viewModel::update, modifier = wide)
+            } else {
+                AtlasPrimaryButton(text = "Открыть страницу выпусков", onClick = viewModel::openHistory, modifier = wide)
+            }
         }
     }
 }

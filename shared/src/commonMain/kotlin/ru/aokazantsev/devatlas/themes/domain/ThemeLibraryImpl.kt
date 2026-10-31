@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okio.IOException
 import ru.aokazantsev.devatlas.journal.domain.AppJournal
+import ru.aokazantsev.devatlas.startup.domain.VerifiedManifests
 import ru.aokazantsev.devatlas.themes.domain.model.InstalledTheme
 import ru.aokazantsev.devatlas.themes.domain.model.ThemeFailure
 import ru.aokazantsev.devatlas.themes.domain.model.ThemeRemoval
@@ -25,6 +26,7 @@ internal class ThemeLibraryImpl(
     private val progress: ProgressRepository,
     private val clock: Clock,
     private val journal: AppJournal,
+    private val verified: VerifiedManifests,
 ) : ThemeLibrary {
 
     override fun observeInstalled(): Flow<List<InstalledTheme>> = repository.observeAll()
@@ -62,16 +64,28 @@ internal class ThemeLibraryImpl(
         }
 
     private suspend fun removeNow(themeId: String, deleteTheme: Boolean, resetProgress: Boolean): ThemeRemoval {
-        if (resetProgress) progress.reset(themeId)
-        if (!deleteTheme) return ThemeRemoval.ProgressReset
+        if (!deleteTheme) {
+            if (resetProgress) progress.reset(themeId)
+            return ThemeRemoval.ProgressReset
+        }
         val wasCurrent = current.currentThemeId.first() == themeId
         repository.delete(themeId)
+        verified.forget(themeId)
         journal.write("theme delete: $themeId: ok")
+        if (resetProgress) resetAfterDeleting(themeId)
         try {
             storage.deleteTheme(themeId)
         } catch (_: IOException) {
         }
         return if (wasCurrent) switchAfterDeletingCurrent() else ThemeRemoval.ThemeDeleted
+    }
+
+    private suspend fun resetAfterDeleting(themeId: String) {
+        try {
+            progress.reset(themeId)
+        } catch (error: SQLiteException) {
+            journal.write("progress reset: $themeId: failed after delete: ${error.message}")
+        }
     }
 
     private suspend fun switchAfterDeletingCurrent(): ThemeRemoval {

@@ -17,6 +17,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
@@ -121,7 +122,7 @@ private fun AppNavHost(graph: AppGraph, navController: NavHostController, startS
     if (startStack.first() != Route.Onboarding) {
         UpdateNoticeHost(
             viewModel = viewModel { graph.updateNoticeViewModel() },
-            onOpenUpdate = { navController.navigate(Route.Update) },
+            onOpenUpdate = { navController.navigate(Route.Update) { launchSingleTop = true } },
         )
     }
     LaunchedEffect(Unit) {
@@ -141,7 +142,7 @@ private fun NavGraphBuilder.firstRunDestinations(graph: AppGraph, navController:
     composable<Route.AddTheme> { entry ->
         val onboarding = entry.toRoute<Route.AddTheme>().onboarding
         AddThemeScreen(
-            viewModel = viewModel { graph.addThemeViewModel() },
+            viewModel = viewModel { graph.addThemeViewModel.create(createSavedStateHandle()) },
             onboarding = onboarding,
             onBack = if (onboarding) null else ({ entry.whenResumed { navController.popBackStack() } }),
             onInstalled = { themeId ->
@@ -223,7 +224,7 @@ private fun NavGraphBuilder.themeDestinations(graph: AppGraph, navController: Na
     composable<Route.ManageTheme> { entry ->
         val themeId = entry.toRoute<Route.ManageTheme>().themeId
         ManageThemeScreen(
-            viewModel = viewModel(key = themeId) { graph.manageThemeViewModel.create(themeId) },
+            viewModel = viewModel(key = themeId) { graph.manageThemeViewModel.create(themeId, createSavedStateHandle()) },
             onBack = { entry.whenResumed { navController.popBackStack() } },
             onRemoved = { removal -> navController.handleRemoval(removal) },
         )
@@ -252,7 +253,7 @@ private fun NavGraphBuilder.settingsDestinations(graph: AppGraph, navController:
         AboutScreen(
             viewModel = viewModel { graph.aboutViewModel() },
             onBack = { entry.whenResumed { navController.popBackStack() } },
-            onCheckUpdate = { entry.whenResumed { navController.navigate(Route.Update) } },
+            onCheckUpdate = { entry.whenResumed { navController.navigate(Route.Update) { launchSingleTop = true } } },
             onOpenPolicy = { entry.whenResumed { navController.navigate(Route.Web(Consent.POLICY_URL)) } },
         )
     }

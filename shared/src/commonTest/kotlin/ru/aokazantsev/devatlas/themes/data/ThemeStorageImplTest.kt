@@ -144,6 +144,31 @@ class ThemeStorageImplTest {
     }
 
     @Test
+    fun clearStagingReturnsPreviousVersionWhenCommitWasInterrupted() = runTest {
+        storage.commit(stageContent("old"), "a")
+        val interrupted = stageContent("new")
+        fileSystem.createDirectories(interrupted.directory / "previous")
+        fileSystem.atomicMove(storage.themeDirectory("a"), interrupted.directory / "previous" / "a")
+
+        ThemeStorageImpl(platform, fileSystem, CoroutineScope(Dispatchers.Unconfined)).clearStaging()
+
+        assertEquals("old", fileSystem.read(storage.themeDirectory("a") / "manifest.json") { readUtf8() })
+        assertFalse(fileSystem.exists(interrupted.directory))
+    }
+
+    @Test
+    fun clearStagingDropsPreviousVersionWhenCommitFinished() = runTest {
+        storage.commit(stageContent("old"), "a")
+        val finished = stageContent("new")
+        storage.commit(finished, "a")
+
+        ThemeStorageImpl(platform, fileSystem, CoroutineScope(Dispatchers.Unconfined)).clearStaging()
+
+        assertEquals("new", fileSystem.read(storage.themeDirectory("a") / "manifest.json") { readUtf8() })
+        assertFalse(fileSystem.exists(finished.directory))
+    }
+
+    @Test
     fun stagingCleanupFailureDoesNotBreakStart() {
         stageContent("остаток")
         val lockedDisk = object : ForwardingFileSystem(fileSystem) {

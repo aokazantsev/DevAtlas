@@ -33,7 +33,11 @@ class AboutViewModel(
     }
 
     fun copy(url: String) {
-        show(AboutNotice(url, if (platform.copyToClipboard(url)) "Ссылка скопирована" else "Не удалось скопировать ссылку"))
+        if (!platform.copyToClipboard(url)) {
+            show(AboutNotice(url, "Не удалось скопировать ссылку"))
+        } else if (!platform.clipboardConfirmsCopy) {
+            show(AboutNotice(url, "Ссылка скопирована"))
+        }
     }
 
     fun share() {

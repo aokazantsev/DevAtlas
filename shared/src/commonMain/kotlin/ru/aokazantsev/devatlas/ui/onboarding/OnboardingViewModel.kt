@@ -26,7 +26,7 @@ class OnboardingViewModel(
     val state: StateFlow<OnboardingState> = mutableState.asStateFlow()
 
     fun setPolicyAccepted(accepted: Boolean) {
-        mutableState.update { it.copy(policyAccepted = accepted) }
+        mutableState.update { it.copy(policyAccepted = accepted, failure = null) }
     }
 
     fun setCrashReports(enabled: Boolean) {
@@ -41,8 +41,16 @@ class OnboardingViewModel(
         val current = mutableState.value
         if (!current.policyAccepted) return
         viewModelScope.launch {
-            onboarding.accept(crashReports = current.crashReports, usageStatistics = current.usageStatistics)
-            onDone()
+            if (onboarding.accept(crashReports = current.crashReports, usageStatistics = current.usageStatistics)) {
+                mutableState.update { it.copy(failure = null) }
+                onDone()
+            } else {
+                mutableState.update { it.copy(failure = SAVE_FAILED) }
+            }
         }
+    }
+
+    private companion object {
+        const val SAVE_FAILED = "Не удалось сохранить выбор на телефон: проверьте свободное место и нажмите «Дальше» ещё раз"
     }
 }

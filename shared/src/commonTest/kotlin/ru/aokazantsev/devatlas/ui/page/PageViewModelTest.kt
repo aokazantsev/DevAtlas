@@ -15,6 +15,7 @@ import ru.aokazantsev.devatlas.reading.FakeReadingPointRepository
 import ru.aokazantsev.devatlas.reading.domain.model.Bookmark
 import ru.aokazantsev.devatlas.reading.domain.model.ReadingPoint
 import ru.aokazantsev.devatlas.reading.domain.model.ScreenTarget
+import ru.aokazantsev.devatlas.startup.data.VerifiedManifestsImpl
 import ru.aokazantsev.devatlas.testing.FakeJournal
 import ru.aokazantsev.devatlas.testing.FakeUsageStatistics
 import ru.aokazantsev.devatlas.testing.ViewModelScopes
@@ -83,7 +84,7 @@ class PageViewModelTest {
     }
 
     private fun viewModel(pageId: String): PageViewModel {
-        val library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock(), FakeJournal())
+        val library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock(), FakeJournal(), VerifiedManifestsImpl())
         return scopes.track(
             PageViewModel(
                 pageId,

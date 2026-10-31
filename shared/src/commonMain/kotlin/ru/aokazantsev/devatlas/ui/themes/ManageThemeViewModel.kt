@@ -1,7 +1,9 @@
 package ru.aokazantsev.devatlas.ui.themes
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.sqlite.SQLiteException
 import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedFactory
 import dev.zacsweers.metro.AssistedInject
@@ -10,6 +12,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
@@ -24,6 +27,7 @@ import ru.aokazantsev.devatlas.usage.domain.model.UsageEvent
 @AssistedInject
 class ManageThemeViewModel(
     @Assisted private val themeId: String,
+    @Assisted private val savedState: SavedStateHandle,
     private val library: ThemeLibrary,
     updater: ThemeUpdater,
     installer: ThemeInstaller,
@@ -32,7 +36,9 @@ class ManageThemeViewModel(
 
     val update = ThemeUpdateController(themeId, updater, installer, viewModelScope)
 
-    private val mutableState = MutableStateFlow(ManageState())
+    private val mutableState = MutableStateFlow(
+        ManageState(deleteTheme = savedState[DELETE_THEME_KEY] ?: false, resetProgress = savedState[RESET_PROGRESS_KEY] ?: false),
+    )
     val state: StateFlow<ManageState> = mutableState.asStateFlow()
 
     private val removalChannel = Channel<ThemeRemoval>(Channel.BUFFERED)
@@ -40,17 +46,19 @@ class ManageThemeViewModel(
 
     init {
         viewModelScope.launch {
-            library.observeInstalled().collect { themes ->
-                val theme = themes.firstOrNull { it.id == themeId }
-                mutableState.update { state ->
-                    val untouched = !state.loaded || state.sourceAddress == state.theme?.sourceUrl
-                    state.copy(
-                        loaded = true,
-                        theme = theme,
-                        sourceAddress = if (untouched) theme?.sourceUrl.orEmpty() else state.sourceAddress,
-                    )
+            library.observeInstalled()
+                .catch { error -> if (error is SQLiteException) showDatabaseFailure(error) else throw error }
+                .collect { themes ->
+                    val theme = themes.firstOrNull { it.id == themeId }
+                    mutableState.update { state ->
+                        val untouched = !state.loaded || state.sourceAddress == state.theme?.sourceUrl
+                        state.copy(
+                            loaded = true,
+                            theme = theme,
+                            sourceAddress = if (untouched) theme?.sourceUrl.orEmpty() else state.sourceAddress,
+                        )
+                    }
                 }
-            }
         }
     }
 
@@ -66,11 +74,17 @@ class ManageThemeViewModel(
     }
 
     fun setDeleteTheme(enabled: Boolean) {
+        savedState[DELETE_THEME_KEY] = enabled
         mutableState.update { it.copy(deleteTheme = enabled, notice = null) }
     }
 
     fun setResetProgress(enabled: Boolean) {
+        savedState[RESET_PROGRESS_KEY] = enabled
         mutableState.update { it.copy(resetProgress = enabled, notice = null) }
+    }
+
+    private fun showDatabaseFailure(error: SQLiteException) {
+        mutableState.update { it.copy(notice ="Не удалось прочитать базу приложения: ${error.message ?: "ошибка базы"}") }
     }
 
     fun requestRemoval() {
@@ -78,8 +92,15 @@ class ManageThemeViewModel(
         val theme = current.theme ?: return
         if (!current.canContinue) return
         viewModelScope.launch {
-            val viewed = library.viewedCount(themeId)
-            val bookmarked = library.bookmarkCount(themeId)
+            val viewed: Int
+            val bookmarked: Int
+            try {
+                viewed = library.viewedCount(themeId)
+                bookmarked = library.bookmarkCount(themeId)
+            } catch (error: SQLiteException) {
+                showDatabaseFailure(error)
+                return@launch
+            }
             val isCurrent = library.observeCurrent().first()?.id == themeId
             mutableState.update {
                 it.copy(
@@ -110,8 +131,11 @@ class ManageThemeViewModel(
                 if (confirm.deleteTheme) usage.hit(UsageEvent.THEME_DELETE)
             }
             when (outcome) {
-                ThemeRemoval.ProgressReset ->
+                ThemeRemoval.ProgressReset -> {
+                    savedState[DELETE_THEME_KEY] = false
+                    savedState[RESET_PROGRESS_KEY] = false
                     mutableState.update { it.copy(busy = false, deleteTheme = false, resetProgress = false, notice = "Прогресс сброшен") }
+                }
                 is ThemeRemoval.Failed -> mutableState.update { it.copy(busy = false, notice = outcome.failure.message) }
                 else -> removalChannel.send(outcome)
             }
@@ -125,6 +149,11 @@ class ManageThemeViewModel(
 
     @AssistedFactory
     fun interface Factory {
-        fun create(themeId: String): ManageThemeViewModel
+        fun create(themeId: String, savedState: SavedStateHandle): ManageThemeViewModel
+    }
+
+    private companion object {
+        const val DELETE_THEME_KEY = "deleteTheme"
+        const val RESET_PROGRESS_KEY = "resetProgress"
     }
 }

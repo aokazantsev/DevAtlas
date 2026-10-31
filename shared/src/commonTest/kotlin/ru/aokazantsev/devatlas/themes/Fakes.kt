@@ -31,6 +31,7 @@ class FakeClock(var millis: Long = 1_000L) : Clock {
 class FakeInstalledThemeRepository : InstalledThemeRepository {
     var saveFailure: SQLiteException? = null
     var databaseFailure: Exception? = null
+    var findFailure: SQLiteException? = null
     val themes = MutableStateFlow<List<InstalledTheme>>(emptyList())
 
     override fun observeAll(): Flow<List<InstalledTheme>> = themes.map { list -> list.sortedByDescending { it.lastUsedAt } }
@@ -40,7 +41,10 @@ class FakeInstalledThemeRepository : InstalledThemeRepository {
         return themes.value.sortedByDescending { it.lastUsedAt }
     }
 
-    override suspend fun find(themeId: String): InstalledTheme? = themes.value.firstOrNull { it.id == themeId }
+    override suspend fun find(themeId: String): InstalledTheme? {
+        findFailure?.let { throw it }
+        return themes.value.firstOrNull { it.id == themeId }
+    }
 
     override suspend fun save(theme: InstalledTheme) {
         saveFailure?.let { throw it }
@@ -53,7 +57,15 @@ class FakeInstalledThemeRepository : InstalledThemeRepository {
     }
 
     override suspend fun touch(themeId: String, now: Long) {
+        databaseFailure?.let { throw it }
         themes.value = themes.value.map { if (it.id == themeId) it.copy(lastUsedAt = now) else it }
+    }
+
+    override suspend fun updateValidators(themeId: String, sha256: String, etag: String?, lastModified: String?) {
+        saveFailure?.let { throw it }
+        themes.value = themes.value.map {
+            if (it.id == themeId && it.sha256 == sha256) it.copy(etag = etag, lastModified = lastModified) else it
+        }
     }
 }
 
@@ -80,11 +92,19 @@ class FakeProgressRepository : ProgressRepository {
         changes.value++
     }
 
-    override suspend fun viewedCount(themeId: String): Int = viewed[themeId]?.size ?: 0
+    var countFailure: SQLiteException? = null
+
+    override suspend fun viewedCount(themeId: String): Int {
+        countFailure?.let { throw it }
+        return viewed[themeId]?.size ?: 0
+    }
 
     override suspend fun bookmarkCount(themeId: String): Int = bookmarks[themeId] ?: 0
 
+    var resetFailure: SQLiteException? = null
+
     override suspend fun reset(themeId: String) {
+        resetFailure?.let { throw it }
         viewed.remove(themeId)
         bookmarks.remove(themeId)
         changes.value++
@@ -146,7 +166,12 @@ class FakePackageReader : ThemePackageReader {
 
     override fun manifest(themeDirectory: Path): ThemeManifest? = manifests[themeDirectory]
 
-    override fun pageHashes(themeDirectory: Path, manifest: ThemeManifest): Map<String, String> = hashes[themeDirectory].orEmpty()
+    var cancelOnHashes = false
+
+    override fun pageHashes(themeDirectory: Path, manifest: ThemeManifest): Map<String, String> {
+        if (cancelOnHashes) throw kotlinx.coroutines.CancellationException("отменено")
+        return hashes[themeDirectory].orEmpty()
+    }
 
     override fun contentDigest(themeDirectory: Path): String = "digest:$themeDirectory"
 }

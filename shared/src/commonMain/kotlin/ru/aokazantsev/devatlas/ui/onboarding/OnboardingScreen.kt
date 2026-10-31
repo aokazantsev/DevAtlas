@@ -14,6 +14,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ru.aokazantsev.devatlas.designsystem.component.AtlasBottomSheet
 import ru.aokazantsev.devatlas.designsystem.component.AtlasCheckboxRow
@@ -33,12 +35,18 @@ fun OnboardingScreen(viewModel: OnboardingViewModel, onNext: () -> Unit) {
     AtlasScaffold(
         topBar = { AtlasTopBar(title = "DevAtlas") },
         bottomBar = {
-            AtlasPrimaryButton(
-                text = "Дальше",
-                onClick = { viewModel.next(onNext) },
-                enabled = state.policyAccepted,
+            Column(
                 modifier = Modifier.fillMaxWidth().padding(AtlasTheme.spacing.l),
-            )
+                verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.s),
+            ) {
+                state.failure?.let { AtlasText(text = it, color = AtlasTheme.colors.error) }
+                AtlasPrimaryButton(
+                    text = "Дальше",
+                    onClick = { viewModel.next(onNext) },
+                    enabled = state.policyAccepted,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         },
     ) { padding ->
         Column(
@@ -66,7 +74,7 @@ private fun Welcome() {
     AtlasText(
         text = "Добро пожаловать",
         style = AtlasTheme.typography.emphasized.headlineMedium,
-        modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
+        modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l).semantics { heading() },
     )
     AtlasText(
         text = "Темы с разделами, страницами и схемами. Тему вы добавляете сами ссылкой, дальше приложение работает без сети.",

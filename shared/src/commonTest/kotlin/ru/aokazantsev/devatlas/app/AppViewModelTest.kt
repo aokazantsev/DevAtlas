@@ -282,7 +282,6 @@ class AppViewModelTest {
         assertEquals(emptyList(), usage.events)
     }
 
-    @Suppress("LongParameterList")
     private fun viewModelOf(
         checks: RunStartupChecksUseCase,
         settings: ThemeSettingsRepository = FakeThemeSettings(),
@@ -293,7 +292,7 @@ class AppViewModelTest {
         installer: ThemeInstaller = FakeInstaller(failure = null),
         readingSettings: FakeReadingSettings = FakeReadingSettings(),
     ): AppViewModel {
-        val library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock(), FakeJournal())
+        val library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock(), FakeJournal(), VerifiedManifestsImpl())
         return scopes.track(
             AppViewModel(
                 runStartupChecks = checks,
@@ -337,7 +336,7 @@ class AppViewModelTest {
 
         override suspend fun isPolicyAccepted(): Boolean = consent.value.policyAccepted
 
-        override suspend fun accept(crashReports: Boolean, usageStatistics: Boolean) = Unit
+        override suspend fun accept(crashReports: Boolean, usageStatistics: Boolean) = true
 
         override suspend fun setCrashReports(enabled: Boolean) = Unit
 

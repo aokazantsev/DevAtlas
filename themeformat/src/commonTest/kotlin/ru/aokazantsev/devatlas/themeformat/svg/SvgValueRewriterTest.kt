@@ -23,8 +23,8 @@ class SvgValueRewriterTest {
     }
 
     @Test
-    fun styleElementContentIsRewrittenButScriptIsNot() {
-        assertEquals("<style>.A { FILL: B }</style><script>let a</script>", upper("<style>.a { fill: b }</style><script>let a</script>"))
+    fun rawTextElementContentStaysAsIs() {
+        assertEquals("<style>.a { fill: b }</style><script>let a</script>", upper("<style>.a { fill: b }</style><script>let a</script>"))
     }
 
     @Test

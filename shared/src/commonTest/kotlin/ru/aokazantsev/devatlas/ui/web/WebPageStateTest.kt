@@ -27,7 +27,6 @@ class WebPageStateTest {
         state.reload()
 
         assertFalse(state.renderGone)
-        assertEquals(1, state.webViewGeneration)
         assertEquals(0, navigator.reloads)
     }
 
@@ -42,7 +41,6 @@ class WebPageStateTest {
         state.reload()
 
         assertFalse(state.failed)
-        assertEquals(0, state.webViewGeneration)
         assertEquals(1, navigator.reloads)
     }
 }

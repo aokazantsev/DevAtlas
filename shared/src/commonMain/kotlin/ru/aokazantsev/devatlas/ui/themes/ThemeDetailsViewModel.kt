@@ -2,9 +2,11 @@ package ru.aokazantsev.devatlas.ui.themes
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.sqlite.SQLiteException
 import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedFactory
 import dev.zacsweers.metro.AssistedInject
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -28,15 +30,24 @@ class ThemeDetailsViewModel(
 
     val update = ThemeUpdateController(themeId, updater, installer, viewModelScope)
 
+    private val applyFailure = MutableStateFlow<String?>(null)
+
     val state: StateFlow<ThemeDetailsState?> = combine(
         library.observeInstalled().map { themes -> themes.firstOrNull { it.id == themeId } },
         library.observeCurrent().map { it?.id == themeId },
-    ) { theme, isCurrent -> ThemeDetailsState(theme = theme, isCurrent = isCurrent) }
+        applyFailure,
+    ) { theme, isCurrent, failure -> ThemeDetailsState(theme = theme, isCurrent = isCurrent, applyFailure = failure) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), null)
 
     fun apply(onApplied: () -> Unit) {
+        applyFailure.value = null
         viewModelScope.launch {
-            library.apply(themeId)
+            try {
+                library.apply(themeId)
+            } catch (error: SQLiteException) {
+                applyFailure.value = "Не удалось применить тему: ${error.message ?: "ошибка базы"}"
+                return@launch
+            }
             usage.hit(UsageEvent.THEME_SWITCH)
             onApplied()
         }

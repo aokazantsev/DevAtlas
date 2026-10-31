@@ -5,13 +5,14 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.filterNotNull
 
 @Stable
-class ScrollPosition(anchor: Int?, offset: Int = 0) {
+class ScrollPosition(anchor: Int, offset: Int = 0) {
     val scrollState = ScrollState(initial = 0)
     val anchors = ScrollAnchors()
     private val pending = mutableStateOf(
-        anchor?.takeIf { it > 0 || offset > 0 }?.let { ReadingPlace(it, offset.coerceAtLeast(0)) },
+        ReadingPlace(anchor, offset.coerceAtLeast(0)).takeIf { anchor > 0 || offset > 0 },
     )
     private var lastVisible: ReadingPlace? = null
 
@@ -25,7 +26,9 @@ class ScrollPosition(anchor: Int?, offset: Int = 0) {
     fun current(): Int? = place()?.anchor
 
     suspend fun trackVisible() {
-        snapshotFlow { scrollState.value }.collect { visible() }
+        snapshotFlow { scrollState.value.takeUnless { scrollState.isScrollInProgress } }
+            .filterNotNull()
+            .collect { visible() }
     }
 
     private fun place(): ReadingPlace? = pending.value ?: visible()

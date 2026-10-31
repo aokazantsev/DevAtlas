@@ -8,9 +8,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ru.aokazantsev.devatlas.designsystem.component.AtlasBottomSheet
 import ru.aokazantsev.devatlas.designsystem.component.AtlasChoiceGroup
@@ -92,7 +94,9 @@ private fun SectionTitle(text: String) {
         text = text,
         style = AtlasTheme.typography.labelLarge,
         color = AtlasTheme.colors.primary,
-        modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l, vertical = AtlasTheme.spacing.s),
+        modifier = Modifier
+            .padding(horizontal = AtlasTheme.spacing.l, vertical = AtlasTheme.spacing.s)
+            .semantics { heading() },
     )
 }
 
@@ -154,7 +158,7 @@ private fun AppSection(
 
 @Composable
 private fun DataSection(consent: Consent?, onCrashReports: (Boolean) -> Unit, onUsageStatistics: (Boolean) -> Unit) {
-    var details by remember { mutableStateOf<ConsentDetails?>(null) }
+    var details by rememberSaveable { mutableStateOf<ConsentDetails?>(null) }
     SectionTitle("Данные")
     AtlasListGroup {
         AtlasSwitchRow(

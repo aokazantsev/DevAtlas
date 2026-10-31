@@ -89,7 +89,7 @@ internal class UsageStatisticsImpl(
         }
         val today = store.today()
         val oldest = store.oldestKeptDay()
-        val days = store.load().days.filterKeys { it in oldest..today }
+        val days = store.load().days.filterKeys { it >= oldest }
         store.save(UsageLedger(days))
         val state = stateSource.state()
         val id = store.installId()

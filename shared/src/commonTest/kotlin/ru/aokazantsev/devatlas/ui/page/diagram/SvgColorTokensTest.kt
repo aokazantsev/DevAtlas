@@ -43,11 +43,11 @@ class SvgColorTokensTest {
     }
 
     @Test
-    fun multilineStyleValueAndStyleElementAreResolved() {
+    fun multilineStyleValueIsResolvedAndStyleElementIsNot() {
         val svg = "<g style=\"fill: var(--primary);\n  stroke: var(--on-surface)\"/><style>.a { fill: var(--primary) }</style>"
 
         assertEquals(
-            "<g style=\"fill: #112233;\n  stroke: #445566\"/><style>.a { fill: #112233 }</style>",
+            "<g style=\"fill: #112233;\n  stroke: #445566\"/><style>.a { fill: var(--primary) }</style>",
             SvgColorTokens.resolve(svg, palette, "#000000"),
         )
     }

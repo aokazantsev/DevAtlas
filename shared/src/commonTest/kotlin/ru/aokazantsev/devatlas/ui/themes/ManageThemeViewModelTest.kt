@@ -1,5 +1,6 @@
 package ru.aokazantsev.devatlas.ui.themes
 
+import androidx.lifecycle.SavedStateHandle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -8,6 +9,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import ru.aokazantsev.devatlas.startup.data.VerifiedManifestsImpl
 import ru.aokazantsev.devatlas.testing.FakeJournal
 import ru.aokazantsev.devatlas.testing.FakeUsageStatistics
 import ru.aokazantsev.devatlas.testing.ViewModelScopes
@@ -51,18 +53,47 @@ class ManageThemeViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private suspend fun viewModel(themeId: String = "a"): ManageThemeViewModel {
+    private suspend fun viewModel(themeId: String = "a", savedState: SavedStateHandle = SavedStateHandle()): ManageThemeViewModel {
         repository.save(installedOf("a", lastUsedAt = 1L))
         repository.save(installedOf("b", lastUsedAt = 0L))
         return scopes.track(
             ManageThemeViewModel(
                 themeId = themeId,
-                library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock(), FakeJournal()),
+                savedState = savedState,
+                library = ThemeLibraryImpl(repository, current, storage, progress, FakeClock(), FakeJournal(), VerifiedManifestsImpl()),
                 updater = updater,
                 installer = ScriptedInstaller(),
                 usage = FakeUsageStatistics(),
             ),
         )
+    }
+
+    @Test
+    fun optionsSurviveProcessDeath() = runTest(dispatcher) {
+        val savedState = SavedStateHandle()
+        val first = viewModel(savedState = savedState)
+        first.setDeleteTheme(true)
+        first.setResetProgress(true)
+
+        val restored = viewModel(savedState = SavedStateHandle(savedState.keys().associateWith { savedState.get<Any>(it) }))
+        advanceUntilIdle()
+
+        assertEquals(true, restored.state.value.deleteTheme)
+        assertEquals(true, restored.state.value.resetProgress)
+    }
+
+    @Test
+    fun databaseFailureWhileCountingProgressIsShown() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        viewModel.setResetProgress(true)
+        progress.countFailure = androidx.sqlite.SQLiteException("база занята")
+
+        viewModel.requestRemoval()
+        advanceUntilIdle()
+
+        assertNull(viewModel.state.value.confirm)
+        assertNotNull(viewModel.state.value.notice)
     }
 
     @Test

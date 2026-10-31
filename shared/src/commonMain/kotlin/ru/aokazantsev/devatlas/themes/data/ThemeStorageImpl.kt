@@ -40,10 +40,13 @@ internal class ThemeStorageImpl(
 
     override suspend fun commit(staging: StagingArea, themeId: String) = withContext(Dispatchers.IO) {
         val target = themeDirectory(themeId)
-        val backup = staging.directory / PREVIOUS
+        val backup = staging.directory / PREVIOUS / themeId
         fileSystem.createDirectories(themesRoot)
         val hadPrevious = fileSystem.exists(target)
-        if (hadPrevious) fileSystem.atomicMove(target, backup)
+        if (hadPrevious) {
+            fileSystem.createDirectories(staging.directory / PREVIOUS)
+            fileSystem.atomicMove(target, backup)
+        }
         try {
             fileSystem.atomicMove(staging.content, target)
         } catch (error: IOException) {
@@ -54,7 +57,7 @@ internal class ThemeStorageImpl(
 
     override suspend fun rollback(staging: StagingArea, themeId: String) = withContext(Dispatchers.IO) {
         val target = themeDirectory(themeId)
-        val backup = staging.directory / PREVIOUS
+        val backup = staging.directory / PREVIOUS / themeId
         fileSystem.deleteRecursively(target, mustExist = false)
         if (fileSystem.exists(backup)) fileSystem.atomicMove(backup, target)
     }
@@ -76,8 +79,20 @@ internal class ThemeStorageImpl(
         if (stagingCleared) return
         stagingCleared = true
         try {
+            restoreInterruptedCommits()
             fileSystem.deleteRecursively(stagingRoot, mustExist = false)
         } catch (_: IOException) {
+        }
+    }
+
+    private fun restoreInterruptedCommits() {
+        val stagings = fileSystem.listOrNull(stagingRoot).orEmpty()
+        for (backup in stagings.flatMap { fileSystem.listOrNull(it / PREVIOUS).orEmpty() }) {
+            val target = themeDirectory(backup.name)
+            if (!fileSystem.exists(target)) {
+                fileSystem.createDirectories(themesRoot)
+                fileSystem.atomicMove(backup, target)
+            }
         }
     }
 

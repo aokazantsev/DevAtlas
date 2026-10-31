@@ -37,15 +37,15 @@ internal class OnboardingRepositoryImpl(
 
     override suspend fun isPolicyAccepted(): Boolean = consent.first().policyAccepted
 
-    override suspend fun accept(crashReports: Boolean, usageStatistics: Boolean) {
-        try {
-            dataStore.edit { preferences ->
-                preferences[POLICY_VERSION_KEY] = Consent.CURRENT_POLICY_VERSION
-                preferences[CRASH_REPORTS_KEY] = crashReports
-                preferences[USAGE_STATISTICS_KEY] = usageStatistics
-            }
-        } catch (_: IOException) {
+    override suspend fun accept(crashReports: Boolean, usageStatistics: Boolean): Boolean = try {
+        dataStore.edit { preferences ->
+            preferences[POLICY_VERSION_KEY] = Consent.CURRENT_POLICY_VERSION
+            preferences[CRASH_REPORTS_KEY] = crashReports
+            preferences[USAGE_STATISTICS_KEY] = usageStatistics
         }
+        true
+    } catch (_: IOException) {
+        false
     }
 
     override suspend fun setCrashReports(enabled: Boolean) {

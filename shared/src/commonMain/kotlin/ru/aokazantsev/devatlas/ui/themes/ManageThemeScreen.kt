@@ -11,6 +11,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ru.aokazantsev.devatlas.designsystem.component.AtlasBottomSheet
 import ru.aokazantsev.devatlas.designsystem.component.AtlasCheckboxRow
@@ -66,7 +68,11 @@ private fun ManageContent(state: ManageState, viewModel: ManageThemeViewModel, m
             modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
             verticalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.s),
         ) {
-            AtlasText(text = "Ссылка источника", style = AtlasTheme.typography.emphasized.titleMedium)
+            AtlasText(
+                text = "Ссылка источника",
+                style = AtlasTheme.typography.emphasized.titleMedium,
+                modifier = Modifier.semantics { heading() },
+            )
             AtlasTextField(
                 value = state.sourceAddress,
                 onValueChange = viewModel::setSourceAddress,

@@ -14,6 +14,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,8 +42,8 @@ internal fun DiagramViewer(svg: String, contentDescription: String?, onClose: ()
         onDismissRequest = onClose,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
-        var scale by remember { mutableFloatStateOf(1f) }
-        var offset by remember { mutableStateOf(Offset.Zero) }
+        var scale by rememberSaveable { mutableFloatStateOf(1f) }
+        var offset by rememberSaveable(stateSaver = OffsetSaver) { mutableStateOf(Offset.Zero) }
         var viewport by remember { mutableStateOf(IntSize.Zero) }
         var diagram by remember { mutableStateOf(IntSize.Zero) }
         Box(
@@ -49,7 +51,10 @@ internal fun DiagramViewer(svg: String, contentDescription: String?, onClose: ()
                 .fillMaxSize()
                 .background(AtlasTheme.colors.surface)
                 .semantics { testTag = DIAGRAM_VIEWER_TAG }
-                .onSizeChanged { viewport = it }
+                .onSizeChanged {
+                    viewport = it
+                    if (diagram != IntSize.Zero) offset = offset.limitedTo(it, diagram, scale)
+                }
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onDoubleTap = {
@@ -72,7 +77,10 @@ internal fun DiagramViewer(svg: String, contentDescription: String?, onClose: ()
                 palette = palette,
                 contentDescription = contentDescription,
                 modifier = Modifier
-                    .onSizeChanged { diagram = it }
+                    .onSizeChanged {
+                        diagram = it
+                        if (viewport != IntSize.Zero) offset = offset.limitedTo(viewport, it, scale)
+                    }
                     .graphicsLayer {
                         scaleX = scale
                         scaleY = scale
@@ -110,6 +118,11 @@ internal fun Offset.limitedTo(viewport: IntSize, diagram: IntSize, scale: Float)
     val limitY = ((diagram.height * scale - viewport.height) / 2).coerceAtLeast(0f)
     return Offset(x.coerceIn(-limitX, limitX), y.coerceIn(-limitY, limitY))
 }
+
+private val OffsetSaver = Saver<Offset, List<Float>>(
+    save = { listOf(it.x, it.y) },
+    restore = { Offset(it[0], it[1]) },
+)
 
 private const val MIN_SCALE = 1f
 private const val MAX_SCALE = 8f

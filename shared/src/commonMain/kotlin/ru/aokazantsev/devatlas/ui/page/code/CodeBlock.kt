@@ -33,7 +33,8 @@ const val CODE_BLOCK_TAG = "code_block"
 fun CodeBlock(code: String, language: String?, copy: CodeCopy, modifier: Modifier = Modifier, inQuote: Boolean = false) {
     val resolved = remember(language) { language?.let(CodeLanguage::resolve) }
     val palette = rememberCodePalette()
-    val text = remember(code, resolved, palette) { highlightedCode(code, resolved, palette) }
+    val spans = remember(code, resolved) { codeSpans(code, resolved) }
+    val text = remember(code, spans, palette) { highlightedCode(code, spans, palette) }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -41,7 +42,11 @@ fun CodeBlock(code: String, language: String?, copy: CodeCopy, modifier: Modifie
             .background(if (inQuote) AtlasTheme.colors.surfaceContainerHighest else AtlasTheme.colors.surfaceContainerHigh)
             .testTag(CODE_BLOCK_TAG),
     ) {
-        CodeHeader(label = resolved?.title ?: language.orEmpty(), systemConfirms = copy.systemConfirms, onCopy = { copy.copy(code) })
+        CodeHeader(
+            label = resolved?.title ?: language.orEmpty(),
+            systemConfirms = copy.systemConfirms,
+            onCopy = copy.copy?.let { copyCode -> { copyCode(code) } },
+        )
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -54,7 +59,7 @@ fun CodeBlock(code: String, language: String?, copy: CodeCopy, modifier: Modifie
 }
 
 @Composable
-private fun CodeHeader(label: String, systemConfirms: Boolean, onCopy: () -> Boolean) {
+private fun CodeHeader(label: String, systemConfirms: Boolean, onCopy: (() -> Boolean)?) {
     var feedback by remember { mutableStateOf<String?>(null) }
     var presses by remember { mutableIntStateOf(0) }
     LaunchedEffect(presses) {
@@ -74,6 +79,7 @@ private fun CodeHeader(label: String, systemConfirms: Boolean, onCopy: () -> Boo
             maxLines = 1,
             modifier = Modifier.weight(1f),
         )
+        if (onCopy == null) return@Row
         AtlasTextButton(
             text = feedback ?: "Копировать",
             onClick = {

@@ -25,4 +25,7 @@ interface InstalledThemeDao {
 
     @Query("UPDATE installed_theme SET last_used_at = :now WHERE id = :themeId")
     suspend fun touch(themeId: String, now: Long)
+
+    @Query("UPDATE installed_theme SET etag = :etag, last_modified = :lastModified WHERE id = :themeId AND sha256 = :sha256")
+    suspend fun updateValidators(themeId: String, sha256: String, etag: String?, lastModified: String?)
 }

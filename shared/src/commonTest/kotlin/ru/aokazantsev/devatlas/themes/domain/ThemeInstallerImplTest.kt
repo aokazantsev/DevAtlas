@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import okio.IOException
 import ru.aokazantsev.devatlas.di.NetworkEndpoints
+import ru.aokazantsev.devatlas.startup.data.VerifiedManifestsImpl
 import ru.aokazantsev.devatlas.testing.FakeJournal
 import ru.aokazantsev.devatlas.testing.FakeUsageStatistics
 import ru.aokazantsev.devatlas.themes.FakeClock
@@ -18,7 +19,9 @@ import ru.aokazantsev.devatlas.themes.domain.model.InstallResult
 import ru.aokazantsev.devatlas.themes.domain.model.PrepareResult
 import ru.aokazantsev.devatlas.themes.domain.model.ThemeFailure
 import ru.aokazantsev.devatlas.themes.installedOf
+import ru.aokazantsev.devatlas.themes.manifestOf
 import ru.aokazantsev.devatlas.themes.preparedOf
+import ru.aokazantsev.devatlas.usage.domain.model.UsageEvent
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -35,6 +38,7 @@ class ThemeInstallerImplTest {
 
     private val usage = FakeUsageStatistics()
     private val journal = FakeJournal()
+    private val verified = VerifiedManifestsImpl()
 
     private fun installer(fetcher: ThemePackageFetcher = FakePackageFetcher()) = ThemeInstallerImpl(
         resolver = ThemeSourceResolverImpl(NetworkEndpoints.Production),
@@ -46,6 +50,7 @@ class ThemeInstallerImplTest {
         clock = clock,
         usage = usage,
         journal = journal,
+        verified = verified,
     )
 
     private fun installed(result: InstallResult) = assertIs<InstallResult.Installed>(result).theme
@@ -188,6 +193,26 @@ class ThemeInstallerImplTest {
         assertNull(failure)
         assertEquals("fresh", repository.find("a")?.sha256)
         assertEquals(listOf("a"), storage.committed)
+        assertEquals(emptyList(), usage.events)
+        assertEquals(1, journal.lines.count { it.startsWith("theme redownload: ") && it.endsWith(": ok") })
+    }
+
+    @Test
+    fun updateIsCountedAndForgetsVerifiedManifest() = runTest {
+        repository.save(installedOf("a"))
+        verified.replace(mapOf("a" to manifestOf("a")))
+
+        installer().install(preparedOf("a", "new", "p1"))
+
+        assertEquals(listOf(UsageEvent.THEME_UPDATE), usage.events)
+        assertNull(verified.find("a"))
+    }
+
+    @Test
+    fun rejectedAddressIsJournaled() = runTest {
+        installer().prepare("http://example.com/theme.zip")
+
+        assertTrue(journal.lines.single().let { it.startsWith("theme source: ") && it.contains("rejected") })
     }
 
     @Test
@@ -201,6 +226,7 @@ class ThemeInstallerImplTest {
         assertEquals(emptyList(), storage.committed)
         assertEquals(1, storage.discarded.size)
         assertEquals("sha-a", repository.find("a")?.sha256)
+        assertTrue(journal.lines.any { it.startsWith("theme redownload: ") && it.contains("another theme other") })
     }
 
     @Test

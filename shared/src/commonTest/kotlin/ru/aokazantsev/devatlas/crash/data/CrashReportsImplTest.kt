@@ -18,8 +18,13 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import okio.Buffer
+import okio.ForwardingFileSystem
+import okio.ForwardingSink
 import okio.IOException
+import okio.Path
 import okio.Path.Companion.toPath
+import okio.Sink
 import okio.fakefilesystem.FakeFileSystem
 import ru.aokazantsev.devatlas.di.AppInfo
 import ru.aokazantsev.devatlas.di.NetworkEndpoints
@@ -186,6 +191,37 @@ class CrashReportsImplTest {
         gate.complete(Unit)
         first.join()
         waiting.await()
+    }
+
+    @Test
+    fun interruptedWriteKeepsPreviousReport() {
+        reports.record("thread main", IllegalStateException("first"))
+        val brokenDisk = object : ForwardingFileSystem(fileSystem) {
+            override fun sink(file: Path, mustCreate: Boolean): Sink {
+                val real = super.sink(file, mustCreate)
+                return object : ForwardingSink(real) {
+                    override fun write(source: Buffer, byteCount: Long) {
+                        super.write(source, minOf(byteCount, 1L))
+                        throw IOException("диск отвалился")
+                    }
+                }
+            }
+        }
+        val broken = CrashReportsImpl(
+            fileSystem = brokenDisk,
+            platform = FakePlatformBindings(),
+            appInfo = AppInfo(versionName = "0.1", isDebug = false),
+            clock = FakeClock(),
+            journal = journal,
+            onboarding = onboarding,
+            uploader = object : ServiceUploader {
+                override suspend fun post(target: UploadTarget, json: String): Int? = null
+            },
+        )
+
+        broken.record("thread main", IllegalStateException("second"))
+
+        assertTrue(fileSystem.read(PENDING) { readUtf8() }.contains("first"))
     }
 
     private fun JsonObject.text(name: String): String = getValue(name).jsonPrimitive.content
