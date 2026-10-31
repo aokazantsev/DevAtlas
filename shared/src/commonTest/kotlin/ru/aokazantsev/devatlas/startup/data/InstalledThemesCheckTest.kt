@@ -23,8 +23,9 @@ class InstalledThemesCheckTest {
     private val repository = FakeInstalledThemeRepository()
     private val current = FakeCurrentThemeRepository()
     private val storage = FakeThemeStorage()
+    private val verified = VerifiedManifestsImpl()
 
-    private val check = InstalledThemesCheck(repository, current, storage, ThemePackageReaderImpl(fileSystem), fileSystem)
+    private val check = InstalledThemesCheck(repository, current, storage, ThemePackageReaderImpl(fileSystem), fileSystem, verified)
 
     private fun writeTheme(id: String, manifestId: String = id, page: String? = "<p>Привет</p>") {
         val root = "/themes/$id".toPath()
@@ -61,7 +62,7 @@ class InstalledThemesCheckTest {
         val failingDisk = object : ForwardingFileSystem(fileSystem) {
             override fun metadataOrNull(path: Path): FileMetadata? = throw IOException("I/O error")
         }
-        val failingCheck = InstalledThemesCheck(repository, current, storage, ThemePackageReaderImpl(failingDisk), failingDisk)
+        val failingCheck = InstalledThemesCheck(repository, current, storage, ThemePackageReaderImpl(failingDisk), failingDisk, verified)
 
         assertEquals(StartupCheckResult.Failed("I/O error"), failingCheck.check())
     }
@@ -72,6 +73,17 @@ class InstalledThemesCheckTest {
         writeTheme("a")
 
         assertEquals(StartupCheckResult.Passed, check.check())
+    }
+
+    @Test
+    fun healthyThemesHandTheirManifestsToContinuation() = runTest {
+        repository.save(installedOf("a"))
+        writeTheme("a")
+
+        check.check()
+
+        assertEquals("a", verified.find("a")?.id)
+        assertEquals(null, verified.find("b"))
     }
 
     @Test

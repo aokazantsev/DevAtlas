@@ -125,6 +125,57 @@ class BookmarksE2eTest {
     }
 
     @Test
+    fun systemCancelOfDragRestoresShownOrder() {
+        app.passOnboarding()
+        insertThree()
+        app.openBookmarks()
+        app.waitForText("Третья")
+        val row = app.onNode(hasText("Третья") and hasClickAction())
+        val step = row.fetchSemanticsNode().boundsInRoot.height / STEPS_PER_ROW
+
+        row.performTouchInput {
+            down(center)
+            advanceEventTime(viewConfiguration.longPressTimeoutMillis + LONG_PRESS_MARGIN_MILLIS)
+            repeat(STEPS_PER_ROW * 2) {
+                moveBy(Offset(0f, -step))
+                advanceEventTime(FRAME_MILLIS)
+            }
+            cancel()
+        }
+
+        app.waitForIdle()
+        app.waitUntil(WAIT_MILLIS) { rowTop("Первая") < rowTop("Вторая") && rowTop("Вторая") < rowTop("Третья") }
+        assertEquals(listOf("Первая", "Вторая", "Третья"), storedTitles())
+    }
+
+    @Test
+    fun secondFingerDuringDragDoesNotOpenAnotherRow() {
+        app.passOnboarding()
+        insertThree()
+        app.openBookmarks()
+        app.waitForText("Третья")
+        val row = app.onNode(hasText("Третья") and hasClickAction())
+        val offsetToSecond = rowTop("Вторая") - rowTop("Третья")
+
+        row.performTouchInput {
+            down(0, center)
+            advanceEventTime(viewConfiguration.longPressTimeoutMillis + LONG_PRESS_MARGIN_MILLIS)
+            moveTo(0, center + Offset(0f, 1f))
+            advanceEventTime(FRAME_MILLIS)
+            down(1, center + Offset(0f, offsetToSecond))
+            advanceEventTime(FRAME_MILLIS)
+            up(1)
+            advanceEventTime(FRAME_MILLIS)
+            up(0)
+        }
+
+        app.waitForIdle()
+        app.waitForText("Закладки")
+        app.assertNoText("О разделе")
+        assertEquals(listOf("Первая", "Вторая", "Третья"), storedTitles())
+    }
+
+    @Test
     fun longPressWithoutMoveDoesNotOpenBookmark() {
         app.passOnboarding()
         insertThree()

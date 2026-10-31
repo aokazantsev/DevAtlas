@@ -22,7 +22,7 @@ import ru.aokazantsev.devatlas.database.data.entity.ViewedPageEntity
         ReadingPointEntity::class,
         DownloadedFileEntity::class,
     ],
-    version = 4,
+    version = 5,
 )
 @ConstructedBy(DevAtlasDatabaseConstructor::class)
 abstract class DevAtlasDatabase : RoomDatabase() {

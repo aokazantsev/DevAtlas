@@ -1,6 +1,8 @@
 package ru.aokazantsev.devatlas.e2e
 
 import android.os.SystemClock
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
@@ -20,15 +22,15 @@ class ContinueE2eTest {
 
     private val app get() = e2e.compose
 
-    private fun readingPointIs(kind: String, nodeId: String, scrolled: Boolean): Boolean = runBlocking {
-        val point = e2e.graph.readingPointDao.find(ThemeZips.SAMPLE_ID) ?: return@runBlocking false
+    private fun readingPointIs(themeId: String, kind: String, nodeId: String, scrolled: Boolean): Boolean = runBlocking {
+        val point = e2e.graph.readingPointDao.find(themeId) ?: return@runBlocking false
         point.kind == kind && point.nodeId == nodeId && (point.anchor > 0) == scrolled
     }
 
-    private fun relaunchAfterPoint(kind: String, nodeId: String, scrolled: Boolean) {
+    private fun relaunchAfterPoint(kind: String, nodeId: String, scrolled: Boolean, themeId: String = ThemeZips.SAMPLE_ID) {
         e2e.close()
         val deadline = SystemClock.uptimeMillis() + WAIT_MILLIS
-        while (!readingPointIs(kind, nodeId, scrolled)) {
+        while (!readingPointIs(themeId, kind, nodeId, scrolled)) {
             check(SystemClock.uptimeMillis() < deadline) { "Точка чтения не записалась: $kind $nodeId" }
             SystemClock.sleep(POLL_MILLIS)
         }
@@ -106,6 +108,28 @@ class ContinueE2eTest {
 
         app.waitForContentsOf(ThemeZips.SAMPLE_TITLE)
         app.assertNoText("Следующая: Таблицы")
+    }
+
+    @Test
+    fun restartScrollsParentListToRowWeCameFrom() {
+        e2e.server.serveZip(TestNetwork.SAMPLE_PATH, ThemeZips.longListZip())
+        e2e.launch()
+        app.acceptPolicy()
+        app.clickText("Начать с примера")
+        app.installFromPreview(ThemeZips.LONG_LIST_TITLE)
+        app.waitForContentsOf(ThemeZips.LONG_LIST_TITLE)
+        app.clickText(ThemeZips.LONG_LIST_LAST_PAGE_TITLE)
+        app.waitForText(ThemeZips.LONG_LIST_LAST_PAGE_TEXT)
+
+        relaunchAfterPoint("page", ThemeZips.LONG_LIST_LAST_PAGE_ID, scrolled = false, themeId = ThemeZips.LONG_LIST_ID)
+
+        app.waitForText(ThemeZips.LONG_LIST_LAST_PAGE_TEXT)
+        app.pressBack()
+        app.waitFor(hasText(ThemeZips.LONG_LIST_LAST_PAGE_TITLE) and hasClickAction())
+        app.onNode(hasText(ThemeZips.LONG_LIST_LAST_PAGE_TITLE) and hasClickAction()).assertIsDisplayed()
+        app.onAllNodes(hasText(ThemeZips.LONG_LIST_FIRST_PAGE_TITLE) and hasClickAction()).fetchSemanticsNodes().let { nodes ->
+            if (nodes.isNotEmpty()) app.onNode(hasText(ThemeZips.LONG_LIST_FIRST_PAGE_TITLE) and hasClickAction()).assertIsNotDisplayed()
+        }
     }
 
     private companion object {

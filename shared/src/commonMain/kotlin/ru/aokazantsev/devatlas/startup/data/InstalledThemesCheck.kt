@@ -12,6 +12,7 @@ import kotlinx.coroutines.withContext
 import okio.FileSystem
 import okio.IOException
 import ru.aokazantsev.devatlas.startup.domain.StartupCheck
+import ru.aokazantsev.devatlas.startup.domain.VerifiedManifests
 import ru.aokazantsev.devatlas.startup.domain.model.StartupCheckResult
 import ru.aokazantsev.devatlas.themeformat.manifest.ThemeManifest
 import ru.aokazantsev.devatlas.themes.domain.CurrentThemeRepository
@@ -29,6 +30,7 @@ internal class InstalledThemesCheck(
     private val storage: ThemeStorage,
     private val reader: ThemePackageReader,
     private val fileSystem: FileSystem,
+    private val verified: VerifiedManifests,
 ) : StartupCheck {
 
     override suspend fun check(): StartupCheckResult = try {
@@ -47,23 +49,26 @@ internal class InstalledThemesCheck(
         storage.clearStaging()
         val currentId = current.currentThemeId.first()
         val themes = repository.all().sortedByDescending { it.id == currentId }
+        val manifests = mutableMapOf<String, ThemeManifest>()
         for (theme in themes) {
-            val reason = damageOf(theme)
-            if (reason != null) return StartupCheckResult.ThemeDamaged(DamagedTheme(theme.id, theme.title, reason))
+            when (val verdict = verify(theme)) {
+                is ThemeVerdict.Damaged -> return StartupCheckResult.ThemeDamaged(DamagedTheme(theme.id, theme.title, verdict.reason))
+                is ThemeVerdict.Healthy -> manifests[theme.id] = verdict.manifest
+            }
         }
+        verified.replace(manifests)
         return StartupCheckResult.Passed
     }
 
-    private fun damageOf(theme: InstalledTheme): String? {
+    private fun verify(theme: InstalledTheme): ThemeVerdict {
         val directory = storage.themeDirectory(theme.id)
-        if (!fileSystem.exists(directory / ThemeManifest.FILE_NAME)) return "Файлы темы пропали с устройства"
-        val manifest = reader.manifest(directory)
-        val missing = manifest?.pages?.firstOrNull { !fileSystem.exists(directory / it.file) }
+        if (!fileSystem.exists(directory / ThemeManifest.FILE_NAME)) return ThemeVerdict.Damaged("Файлы темы пропали с устройства")
+        val manifest = reader.manifest(directory) ?: return ThemeVerdict.Damaged("Файл manifest.json темы испорчен")
+        val missing = manifest.pages.firstOrNull { !fileSystem.exists(directory / it.file) }
         return when {
-            manifest == null -> "Файл manifest.json темы испорчен"
-            manifest.id != theme.id -> "Файлы темы относятся к другой теме"
-            missing != null -> "Пропал файл страницы «${missing.file}»"
-            else -> null
+            manifest.id != theme.id -> ThemeVerdict.Damaged("Файлы темы относятся к другой теме")
+            missing != null -> ThemeVerdict.Damaged("Пропал файл страницы «${missing.file}»")
+            else -> ThemeVerdict.Healthy(manifest)
         }
     }
 }

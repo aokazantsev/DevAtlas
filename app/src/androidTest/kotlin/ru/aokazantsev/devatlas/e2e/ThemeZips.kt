@@ -13,6 +13,13 @@ object ThemeZips {
     const val SAMPLE_ID = "devatlas-sample"
     const val SAMPLE_TITLE = "Пример DevAtlas"
     const val SAMPLE_PAGE_COUNT = 12
+    const val LONG_LIST_ID = "long-list"
+    const val LONG_LIST_TITLE = "Длинная тема"
+    const val LONG_LIST_PAGES = 40
+    const val LONG_LIST_LAST_PAGE_ID = "page-40"
+    const val LONG_LIST_LAST_PAGE_TITLE = "Страница 40"
+    const val LONG_LIST_FIRST_PAGE_TITLE = "Страница 01"
+    const val LONG_LIST_LAST_PAGE_TEXT = "Конец длинной темы"
     const val EXTRA_PAGE_ID = "extra"
     const val REMOVED_PAGE_ID = "internal-links"
     const val CHANGED_PAGE_FILE = "pages/welcome.html"
@@ -90,6 +97,24 @@ object ThemeZips {
     fun withWebLinks(): ByteArray {
         val files = sampleFiles().toMutableMap()
         files[LINKS_PAGE_FILE] = WEB_LINKS_PAGE.trimIndent().toByteArray()
+        return zip(files)
+    }
+
+    fun longListZip(): ByteArray {
+        val files = linkedMapOf<String, ByteArray>()
+        val tree = JSONArray()
+        (1..LONG_LIST_PAGES).forEach { number ->
+            val label = number.toString().padStart(2, '0')
+            val last = number == LONG_LIST_PAGES
+            tree.put(JSONObject().put("id", "page-$number").put("title", "Страница $label").put("file", "pages/page-$number.html"))
+            files["pages/page-$number.html"] = "<p>${if (last) LONG_LIST_LAST_PAGE_TEXT else "Текст страницы $label"}</p>\n".toByteArray()
+        }
+        val manifest = JSONObject()
+            .put("formatVersion", 1)
+            .put("id", LONG_LIST_ID)
+            .put("title", LONG_LIST_TITLE)
+            .put("tree", tree)
+        files[MANIFEST] = manifest.toString().toByteArray()
         return zip(files)
     }
 

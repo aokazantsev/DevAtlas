@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
@@ -22,6 +23,7 @@ import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.zIndex
+import kotlinx.coroutines.delay
 
 @Composable
 fun <T> AtlasReorderableGroup(
@@ -39,6 +41,11 @@ fun <T> AtlasReorderableGroup(
     val currentKeys by rememberUpdatedState(keys)
     val shown = state.displayed(keys).filter { it in byKey }
     val container = remember { ReorderContainer() }
+    LaunchedEffect(state.settled, keys) {
+        if (state.settled == null) return@LaunchedEffect
+        if (state.isAwaitingOwner(keys)) delay(OWNER_SETTLE_MILLIS)
+        state.release()
+    }
     AtlasListGroup(
         modifier = modifier
             .onGloballyPositioned { container.coordinates = it }
@@ -48,10 +55,11 @@ fun <T> AtlasReorderableGroup(
                     if (!awaitHold(down)) return@awaitEachGesture
                     if (!state.start(currentKeys, down.position.y)) return@awaitEachGesture
                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    var committed = false
                     try {
-                        followDrag(down, state)
+                        committed = followDrag(down, state)
                     } finally {
-                        state.finish()?.let { (from, to) -> currentOnMove(from, to) }
+                        state.finish(committed)?.let { (from, to) -> currentOnMove(from, to) }
                     }
                 }
             },
@@ -82,6 +90,7 @@ fun <T> AtlasReorderableGroup(
 }
 
 private const val DRAGGED_SCALE = 1.03f
+private const val OWNER_SETTLE_MILLIS = 300L
 
 private fun moveActions(index: Int, count: Int, onMove: (Int, Int) -> Unit): List<CustomAccessibilityAction> = buildList {
     if (index > 0) add(CustomAccessibilityAction("Переместить выше") { onMove(index, index - 1); true })
@@ -102,11 +111,14 @@ private suspend fun AwaitPointerEventScope.awaitHold(down: PointerInputChange): 
     return held || finished == null
 }
 
-private suspend fun AwaitPointerEventScope.followDrag(down: PointerInputChange, state: ReorderState) {
+private suspend fun AwaitPointerEventScope.followDrag(down: PointerInputChange, state: ReorderState): Boolean {
     while (true) {
-        val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: return
-        change.consume()
-        if (!change.pressed) return
+        val event = awaitPointerEvent(PointerEventPass.Initial)
+        val change = event.changes.firstOrNull { it.id == down.id } ?: return false
+        val cancelled = !change.pressed && change.isConsumed
+        event.changes.forEach { it.consume() }
+        if (cancelled) return false
+        if (!change.pressed) return true
         state.dragTo(change.position.y)
     }
 }

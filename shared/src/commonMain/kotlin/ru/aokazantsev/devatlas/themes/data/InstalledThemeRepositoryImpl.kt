@@ -32,8 +32,4 @@ internal class InstalledThemeRepositoryImpl(
     override suspend fun touch(themeId: String, now: Long) {
         dao.touch(themeId, now)
     }
-
-    override suspend fun markChecked(themeId: String, now: Long) {
-        dao.markChecked(themeId, now)
-    }
 }

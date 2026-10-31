@@ -19,7 +19,19 @@ internal class ReorderState {
     var dragged by mutableStateOf<Any?>(null)
         private set
 
-    fun displayed(keys: List<Any>): List<Any> = if (dragged == null) keys else order ?: keys
+    var settled by mutableStateOf<List<Any>?>(null)
+        private set
+
+    fun displayed(keys: List<Any>): List<Any> = when {
+        dragged != null -> order ?: keys
+        else -> settled?.takeIf { it.sameRowsAs(keys) } ?: keys
+    }
+
+    fun isAwaitingOwner(keys: List<Any>): Boolean = settled?.let { it != keys && it.sameRowsAs(keys) } == true
+
+    fun release() {
+        settled = null
+    }
 
     fun place(key: Any, placed: ReorderBounds) {
         if (bounds[key] != placed) bounds[key] = placed
@@ -46,6 +58,7 @@ internal class ReorderState {
         startIndex = index
         grab = y - placed[index].top
         pointerY = y
+        settled = null
         dragged = keys[index]
         return true
     }
@@ -61,13 +74,18 @@ internal class ReorderState {
         order = current
     }
 
-    fun finish(): Pair<Int, Int>? {
+    fun finish(commit: Boolean): Pair<Int, Int>? {
         val key = dragged ?: return null
-        val to = order?.indexOf(key) ?: startIndex
+        val finalOrder = order
+        val to = finalOrder?.indexOf(key) ?: startIndex
         dragged = null
         order = null
-        return if (to == startIndex) null else startIndex to to
+        if (!commit || to == startIndex) return null
+        settled = finalOrder
+        return startIndex to to
     }
+
+    private fun List<Any>.sameRowsAs(other: List<Any>): Boolean = size == other.size && toSet() == other.toSet()
 
     private fun targetIndex(current: List<Any>, key: Any, y: Float): Int? {
         val index = current.indexOf(key)

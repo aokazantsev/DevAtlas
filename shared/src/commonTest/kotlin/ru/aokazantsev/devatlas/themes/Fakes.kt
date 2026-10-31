@@ -32,7 +32,6 @@ class FakeInstalledThemeRepository : InstalledThemeRepository {
     var saveFailure: SQLiteException? = null
     var databaseFailure: Exception? = null
     val themes = MutableStateFlow<List<InstalledTheme>>(emptyList())
-    val checked = mutableListOf<String>()
 
     override fun observeAll(): Flow<List<InstalledTheme>> = themes.map { list -> list.sortedByDescending { it.lastUsedAt } }
 
@@ -55,10 +54,6 @@ class FakeInstalledThemeRepository : InstalledThemeRepository {
 
     override suspend fun touch(themeId: String, now: Long) {
         themes.value = themes.value.map { if (it.id == themeId) it.copy(lastUsedAt = now) else it }
-    }
-
-    override suspend fun markChecked(themeId: String, now: Long) {
-        checked += themeId
     }
 }
 
@@ -197,7 +192,6 @@ fun installedOf(id: String, lastUsedAt: Long = 0L, sha256: String = "sha-$id") =
     etag = "etag-$id",
     lastModified = null,
     sha256 = sha256,
-    checkedAt = 0L,
     pageCount = 1,
     sizeBytes = 1_000L,
     lastUsedAt = lastUsedAt,

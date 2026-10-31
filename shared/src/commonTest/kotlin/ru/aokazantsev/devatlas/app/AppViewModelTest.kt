@@ -10,11 +10,9 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import ru.aokazantsev.devatlas.contents.domain.ObserveContentsUseCaseImpl
 import ru.aokazantsev.devatlas.navigation.Route
 import ru.aokazantsev.devatlas.onboarding.domain.OnboardingRepository
 import ru.aokazantsev.devatlas.onboarding.domain.model.Consent
-import ru.aokazantsev.devatlas.reading.FakeBookmarkRepository
 import ru.aokazantsev.devatlas.reading.FakeReadingPointRepository
 import ru.aokazantsev.devatlas.reading.FakeReadingSettings
 import ru.aokazantsev.devatlas.reading.domain.FindContinuationUseCaseImpl
@@ -23,15 +21,16 @@ import ru.aokazantsev.devatlas.reading.domain.model.ScreenTarget
 import ru.aokazantsev.devatlas.settings.domain.ThemeSettingsRepository
 import ru.aokazantsev.devatlas.settings.domain.model.Appearance
 import ru.aokazantsev.devatlas.settings.domain.model.ThemeMode
+import ru.aokazantsev.devatlas.startup.data.VerifiedManifestsImpl
 import ru.aokazantsev.devatlas.startup.domain.RunStartupChecksUseCase
 import ru.aokazantsev.devatlas.startup.domain.model.StartupCheckResult
+import ru.aokazantsev.devatlas.testing.FakeUsageStatistics
 import ru.aokazantsev.devatlas.testing.ViewModelScopes
 import ru.aokazantsev.devatlas.themeformat.manifest.ThemeManifest
 import ru.aokazantsev.devatlas.themeformat.manifest.ThemeNode
 import ru.aokazantsev.devatlas.themes.FakeClock
 import ru.aokazantsev.devatlas.themes.FakeCurrentThemeRepository
 import ru.aokazantsev.devatlas.themes.FakeInstalledThemeRepository
-import ru.aokazantsev.devatlas.themes.FakePackageReader
 import ru.aokazantsev.devatlas.themes.FakeProgressRepository
 import ru.aokazantsev.devatlas.themes.FakeThemeStorage
 import ru.aokazantsev.devatlas.themes.domain.ThemeInstaller
@@ -43,6 +42,7 @@ import ru.aokazantsev.devatlas.themes.domain.model.PreparedTheme
 import ru.aokazantsev.devatlas.themes.domain.model.ThemeFailure
 import ru.aokazantsev.devatlas.themes.installedOf
 import ru.aokazantsev.devatlas.ui.splash.SplashState
+import ru.aokazantsev.devatlas.usage.domain.model.UsageEvent
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -58,7 +58,8 @@ class AppViewModelTest {
 
     private val storage = FakeThemeStorage()
 
-    private val reader = FakePackageReader()
+    private val verifiedManifests = VerifiedManifestsImpl()
+    private val usage = FakeUsageStatistics()
 
     private val readingPoints = FakeReadingPointRepository()
 
@@ -256,6 +257,7 @@ class AppViewModelTest {
         advanceUntilIdle()
 
         assertNull(repository.find("a"))
+        assertEquals(listOf(UsageEvent.THEME_DELETE), usage.events)
         assertEquals(1, progress.viewedCount("a"))
         assertEquals(SplashState.Ready, viewModel.startupState.value)
         assertEquals(listOf(Route.Contents()), viewModel.startStack.value)
@@ -276,6 +278,7 @@ class AppViewModelTest {
         val state = viewModel.startupState.value as SplashState.ThemeDamaged
         assertEquals(null, state.busyText)
         assertEquals(true, state.failure?.message?.startsWith("Не удалось изменить базу приложения"))
+        assertEquals(emptyList(), usage.events)
     }
 
     @Suppress("LongParameterList")
@@ -296,11 +299,8 @@ class AppViewModelTest {
                 onboarding = onboarding,
                 library = library,
                 installer = installer,
-                findContinuation = FindContinuationUseCaseImpl(
-                    readingSettings,
-                    readingPoints,
-                    ObserveContentsUseCaseImpl(library, storage, reader, progress, FakeBookmarkRepository()),
-                ),
+                findContinuation = FindContinuationUseCaseImpl(readingSettings, readingPoints, verifiedManifests),
+                usage = usage,
                 themeSettings = settings,
             ),
         )
@@ -309,7 +309,7 @@ class AppViewModelTest {
     private suspend fun continuationViewModel(readingSettings: FakeReadingSettings = FakeReadingSettings()): AppViewModel {
         val repository = FakeInstalledThemeRepository()
         repository.save(installedOf("a"))
-        reader.manifests[storage.themeDirectory("a")] = ThemeManifest(
+        val manifest = ThemeManifest(
             formatVersion = 1,
             id = "a",
             title = "A",
@@ -319,6 +319,7 @@ class AppViewModelTest {
                 ThemeNode.Section("s", "Раздел", listOf(ThemeNode.Page("p1", "П1", "p1.html"), ThemeNode.Page("p2", "П2", "p2.html"))),
             ),
         )
+        verifiedManifests.replace(mapOf("a" to manifest))
         return viewModelOf(
             QueuedChecks(StartupCheckResult.Passed),
             onboarding = FakeOnboarding(accepted = true),

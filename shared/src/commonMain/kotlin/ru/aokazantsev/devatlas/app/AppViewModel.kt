@@ -21,6 +21,8 @@ import ru.aokazantsev.devatlas.themes.domain.ThemeInstaller
 import ru.aokazantsev.devatlas.themes.domain.ThemeLibrary
 import ru.aokazantsev.devatlas.themes.domain.model.ThemeRemoval
 import ru.aokazantsev.devatlas.ui.splash.SplashState
+import ru.aokazantsev.devatlas.usage.domain.UsageStatistics
+import ru.aokazantsev.devatlas.usage.domain.model.UsageEvent
 
 @Inject
 class AppViewModel(
@@ -29,6 +31,7 @@ class AppViewModel(
     private val library: ThemeLibrary,
     private val installer: ThemeInstaller,
     private val findContinuation: FindContinuationUseCase,
+    private val usage: UsageStatistics,
     themeSettings: ThemeSettingsRepository,
 ) : ViewModel() {
 
@@ -73,6 +76,7 @@ class AppViewModel(
             if (removal is ThemeRemoval.Failed) {
                 mutableStartupState.value = damaged.copy(busyText = null, failure = removal.failure)
             } else {
+                usage.hit(UsageEvent.THEME_DELETE)
                 check()
             }
         }

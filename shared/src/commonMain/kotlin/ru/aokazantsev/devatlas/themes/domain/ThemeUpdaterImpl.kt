@@ -15,7 +15,6 @@ import ru.aokazantsev.devatlas.themes.domain.model.ThemeFailure
 import ru.aokazantsev.devatlas.themes.domain.model.ThemeHelp
 import ru.aokazantsev.devatlas.themes.domain.model.UpdateCheck
 import ru.aokazantsev.devatlas.themes.domain.model.UpdateSummary
-import kotlin.time.Clock
 
 @ContributesBinding(AppScope::class)
 @Inject
@@ -25,7 +24,6 @@ internal class ThemeUpdaterImpl(
     private val storage: ThemeStorage,
     private val reader: ThemePackageReader,
     private val repository: InstalledThemeRepository,
-    private val clock: Clock,
 ) : ThemeUpdater {
 
     override suspend fun check(themeId: String, newAddress: String?): UpdateCheck {
@@ -37,7 +35,7 @@ internal class ThemeUpdaterImpl(
         }
         val validators = if (newAddress == null) CacheValidators(theme.etag, theme.lastModified).takeUnless { it.isEmpty } else null
         return when (val fetched = fetcher.fetch(plan, validators)) {
-            FetchResult.NotModified -> noChanges(theme)
+            FetchResult.NotModified -> UpdateCheck.NoChanges
             is FetchResult.Failed -> UpdateCheck.Failed(fetched.failure)
             is FetchResult.Fetched -> judge(theme, fetched.prepared, sourceChanged = newAddress != null)
         }
@@ -56,7 +54,7 @@ internal class ThemeUpdaterImpl(
         }
         !sourceChanged && prepared.sha256 == theme.sha256 -> {
             storage.discard(prepared.staging)
-            noChanges(theme)
+            UpdateCheck.NoChanges
         }
         else -> UpdateCheck.Available(
             prepared = prepared,
@@ -65,20 +63,17 @@ internal class ThemeUpdaterImpl(
         )
     }
 
-    private suspend fun noChanges(theme: InstalledTheme): UpdateCheck {
-        repository.markChecked(theme.id, clock.now().toEpochMilliseconds())
-        return UpdateCheck.NoChanges
-    }
-
     private fun summarize(theme: InstalledTheme, prepared: PreparedTheme): UpdateSummary {
         val installedDirectory = storage.themeDirectory(theme.id)
         val oldManifest = reader.manifest(installedDirectory)
         val oldHashes = oldManifest?.let { reader.pageHashes(installedDirectory, it) }.orEmpty()
         val newHashes = reader.pageHashes(prepared.staging.content, prepared.manifest)
+        val newSections = prepared.manifest.sectionIds().toSet()
         return UpdateSummary(
             added = newHashes.keys.count { it !in oldHashes },
             removed = oldHashes.keys.count { it !in newHashes },
             changed = newHashes.count { (id, hash) -> oldHashes[id]?.let { it != hash } == true },
+            removedSections = oldManifest?.sectionIds().orEmpty().count { it !in newSections },
         )
     }
 }

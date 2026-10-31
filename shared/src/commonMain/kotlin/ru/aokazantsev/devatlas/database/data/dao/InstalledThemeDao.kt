@@ -25,7 +25,4 @@ interface InstalledThemeDao {
 
     @Query("UPDATE installed_theme SET last_used_at = :now WHERE id = :themeId")
     suspend fun touch(themeId: String, now: Long)
-
-    @Query("UPDATE installed_theme SET checked_at = :now WHERE id = :themeId")
-    suspend fun markChecked(themeId: String, now: Long)
 }

@@ -27,22 +27,9 @@ fun UpdateHost(state: UpdateState, controller: ThemeUpdateController) {
             AtlasSecondaryButton(text = "Закрыть", onClick = controller::dismiss, modifier = Modifier.fillMaxWidth())
         }
         is UpdateState.Available -> AtlasBottomSheet(title = "Есть обновление", onDismiss = controller::cancel) {
-            AtlasText(text = summaryText(state), color = AtlasTheme.colors.onSurfaceVariant)
+            AtlasText(text = updateSummaryText(state), color = AtlasTheme.colors.onSurfaceVariant)
             AtlasPrimaryButton(text = "Обновить", onClick = controller::confirm, modifier = Modifier.fillMaxWidth())
             AtlasSecondaryButton(text = "Отмена", onClick = controller::cancel, modifier = Modifier.fillMaxWidth())
         }
     }
-}
-
-private fun summaryText(state: UpdateState.Available): String {
-    val summary = state.summary
-    val source = if (state.sourceChanged) "Ссылка источника будет заменена. " else ""
-    val changes = when {
-        summary.isEmpty && !state.contentChanged -> "Содержимое не изменилось."
-        summary.isEmpty -> "Страницы не изменились: обновились схемы или другие файлы темы."
-        else ->
-            "Страниц добавлено: ${summary.added}, удалено: ${summary.removed}, изменено: ${summary.changed}. " +
-                "Отметки «Просмотрено» и закладки удалённых страниц и разделов сбросятся."
-    }
-    return source + changes
 }

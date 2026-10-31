@@ -13,8 +13,8 @@ import ru.aokazantsev.devatlas.database.data.dao.ReadingPointDao
 import ru.aokazantsev.devatlas.database.data.dao.ViewedPageDao
 import ru.aokazantsev.devatlas.database.data.entity.ViewedPageEntity
 import ru.aokazantsev.devatlas.themeformat.manifest.ThemeManifest
-import ru.aokazantsev.devatlas.themeformat.manifest.ThemeNode
 import ru.aokazantsev.devatlas.themes.domain.ProgressRepository
+import ru.aokazantsev.devatlas.themes.domain.sectionIds
 
 @ContributesBinding(AppScope::class)
 @Inject
@@ -43,7 +43,7 @@ internal class ProgressRepositoryImpl(
 
     override suspend fun keepOnly(themeId: String, manifest: ThemeManifest) {
         val pageIds = manifest.pages.map { it.id }
-        val sectionIds = manifest.tree.sectionIds()
+        val sectionIds = manifest.sectionIds()
         inTransaction {
             viewedPages.deleteExcept(themeId, pageIds)
             bookmarks.deleteMissing(themeId, pageIds, sectionIds)
@@ -53,9 +53,5 @@ internal class ProgressRepositoryImpl(
 
     private suspend fun inTransaction(block: suspend () -> Unit) {
         database.useWriterConnection { connection -> connection.immediateTransaction { block() } }
-    }
-
-    private fun List<ThemeNode>.sectionIds(): List<String> = flatMap { node ->
-        if (node is ThemeNode.Section) listOf(node.id) + node.children.sectionIds() else emptyList()
     }
 }

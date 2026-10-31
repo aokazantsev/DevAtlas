@@ -2,10 +2,10 @@ package ru.aokazantsev.devatlas.themes.domain
 
 import kotlinx.coroutines.test.runTest
 import ru.aokazantsev.devatlas.di.NetworkEndpoints
-import ru.aokazantsev.devatlas.themes.FakeClock
 import ru.aokazantsev.devatlas.themes.FakeInstalledThemeRepository
 import ru.aokazantsev.devatlas.themes.FakePackageFetcher
 import ru.aokazantsev.devatlas.themes.FakePackageReader
+import ru.aokazantsev.devatlas.themeformat.manifest.ThemeNode
 import ru.aokazantsev.devatlas.themes.FakeThemeStorage
 import ru.aokazantsev.devatlas.themes.domain.model.CacheValidators
 import ru.aokazantsev.devatlas.themes.domain.model.FetchResult
@@ -33,18 +33,16 @@ class ThemeUpdaterImplTest {
         storage = storage,
         reader = reader,
         repository = repository,
-        clock = FakeClock(),
     )
 
     @Test
-    fun notModifiedMeansNoChangesAndRemembersCheck() = runTest {
+    fun notModifiedMeansNoChanges() = runTest {
         repository.save(installedOf("a"))
         val fetcher = FakePackageFetcher(FetchResult.NotModified)
 
         val result = updater(fetcher).check("a")
 
         assertEquals(UpdateCheck.NoChanges, result)
-        assertEquals(listOf("a"), repository.checked)
         assertEquals(CacheValidators("etag-a", null), fetcher.requests.single().second)
     }
 
@@ -84,6 +82,29 @@ class ThemeUpdaterImplTest {
         val available = assertIs<UpdateCheck.Available>(result)
         assertEquals(UpdateSummary(added = 1, removed = 2, changed = 1), available.summary)
         assertEquals(true, available.contentChanged)
+    }
+
+    @Test
+    fun summaryCountsRemovedSectionsEvenWhenPagesAreUnchanged() = runTest {
+        repository.save(installedOf("a", sha256 = "old"))
+        val prepared = preparedOf("a", "new", "p1")
+        val directory = storage.themeDirectory("a")
+        reader.manifests[directory] = manifestOf("a", "A", "p1").let { manifest ->
+            manifest.copy(
+                tree = manifest.tree + ThemeNode.Section(
+                    id = "s1",
+                    title = "s1",
+                    children = listOf(ThemeNode.Section(id = "s2", title = "s2", children = emptyList())),
+                ),
+            )
+        }
+        reader.hashes[directory] = mapOf("p1" to "1")
+        reader.hashes[prepared.staging.content] = mapOf("p1" to "1")
+
+        val result = updater(FakePackageFetcher(FetchResult.Fetched(prepared))).check("a")
+
+        val summary = assertIs<UpdateCheck.Available>(result).summary
+        assertEquals(UpdateSummary(added = 0, removed = 0, changed = 0, removedSections = 2), summary)
     }
 
     @Test

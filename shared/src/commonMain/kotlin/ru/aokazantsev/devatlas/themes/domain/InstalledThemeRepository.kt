@@ -15,6 +15,4 @@ interface InstalledThemeRepository {
     suspend fun delete(themeId: String)
 
     suspend fun touch(themeId: String, now: Long)
-
-    suspend fun markChecked(themeId: String, now: Long)
 }

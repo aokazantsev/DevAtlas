@@ -93,7 +93,6 @@ internal class ThemeInstallerImpl(
             etag = prepared.etag,
             lastModified = prepared.lastModified,
             sha256 = prepared.sha256,
-            checkedAt = now,
             pageCount = prepared.manifest.pages.size,
             sizeBytes = prepared.sizeBytes,
             lastUsedAt = previous?.lastUsedAt ?: if (becomesCurrent) now else NEVER_USED,

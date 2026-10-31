@@ -36,7 +36,7 @@ class ReorderStateTest {
         state.dragTo(10f + ROW * 1.7f)
         assertEquals(listOf("b", "c", "a"), state.displayed(keys))
 
-        assertEquals(0 to 2, state.finish())
+        assertEquals(0 to 2, state.finish(commit = true))
         assertNull(state.dragged)
     }
 
@@ -50,7 +50,7 @@ class ReorderStateTest {
 
         state.dragTo(10f)
         assertEquals(keys, state.displayed(keys))
-        assertNull(state.finish())
+        assertNull(state.finish(commit = true))
     }
 
     @Test
@@ -84,7 +84,7 @@ class ReorderStateTest {
         state.dragTo(2 * ROW + 10f - ROW * 0.6f)
 
         assertEquals(listOf("a", "c", "b"), state.displayed(keys))
-        assertEquals(2 to 1, state.finish())
+        assertEquals(2 to 1, state.finish(commit = true))
     }
 
     @Test
@@ -94,7 +94,7 @@ class ReorderStateTest {
 
         state.dragTo(15f)
 
-        assertNull(state.finish())
+        assertNull(state.finish(commit = true))
         assertEquals(keys, state.displayed(keys))
     }
 
@@ -105,10 +105,52 @@ class ReorderStateTest {
         state.dragTo(10f + ROW * 0.6f)
         assertEquals(listOf("b", "a", "c"), state.displayed(keys))
 
-        assertEquals(0 to 1, state.finish())
+        assertEquals(0 to 1, state.finish(commit = true))
 
-        assertEquals(keys, state.displayed(keys))
+        assertEquals(listOf("b", "a", "c"), state.displayed(keys))
         assertEquals(listOf("b", "a", "c"), state.displayed(listOf("b", "a", "c")))
+    }
+
+    @Test
+    fun settledOrderBridgesTheFrameBeforeOwnerCatchesUp() {
+        val state = stateWithRows()
+        state.start(keys, 10f)
+        state.dragTo(10f + ROW * 0.6f)
+        state.finish(commit = true)
+
+        assertTrue(state.isAwaitingOwner(keys))
+        assertEquals(listOf("b", "a", "c"), state.displayed(keys))
+
+        assertFalse(state.isAwaitingOwner(listOf("b", "a", "c")))
+        state.release()
+        assertEquals(keys, state.displayed(keys))
+    }
+
+    @Test
+    fun settledOrderIsDroppedWhenRowsChange() {
+        val state = stateWithRows()
+        state.start(keys, 10f)
+        state.dragTo(10f + ROW * 0.6f)
+        state.finish(commit = true)
+
+        val changed = listOf("a", "c")
+
+        assertFalse(state.isAwaitingOwner(changed))
+        assertEquals(changed, state.displayed(changed))
+    }
+
+    @Test
+    fun cancelledGestureRestoresOriginalOrderWithoutMove() {
+        val state = stateWithRows()
+        state.start(keys, 10f)
+        state.dragTo(10f + ROW * 1.7f)
+        assertEquals(listOf("b", "c", "a"), state.displayed(keys))
+
+        assertNull(state.finish(commit = false))
+
+        assertNull(state.dragged)
+        assertNull(state.settled)
+        assertEquals(keys, state.displayed(keys))
     }
 
     private companion object {
