@@ -22,11 +22,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import ru.aokazantsev.devatlas.designsystem.component.AtlasBottomSheet
-import ru.aokazantsev.devatlas.designsystem.component.AtlasCheckOption
-import ru.aokazantsev.devatlas.designsystem.component.AtlasCheckboxDialog
 import ru.aokazantsev.devatlas.designsystem.component.AtlasChoiceGroup
 import ru.aokazantsev.devatlas.designsystem.component.AtlasChoiceOption
 import ru.aokazantsev.devatlas.designsystem.component.AtlasConfirmDialog
@@ -89,6 +88,14 @@ private fun CatalogSection(themeName: String) {
             )
             CatalogGroup("Шапка") {
                 AtlasTopBar(title = "Содержание", onBack = {}, windowInsets = WindowInsets(0, 0, 0, 0))
+                AtlasTopBar(title = "Статья о Kotlin", subtitle = "kotlinlang.org", onBack = {}, windowInsets = WindowInsets(0, 0, 0, 0))
+                AtlasTopBar(
+                    title = "Вход в личный кабинет",
+                    subtitle = "www.gosuslugi.ru.login-check.example.top",
+                    subtitleOverflow = TextOverflow.StartEllipsis,
+                    onBack = {},
+                    windowInsets = WindowInsets(0, 0, 0, 0),
+                )
             }
             CatalogGroup("Цвета") { ColorRoles() }
             CatalogGroup("Типографика") { TypographySamples() }
@@ -221,7 +228,7 @@ private fun ShapeSample(name: String, shape: Shape) {
 private fun IconSamples() {
     val icons = listOf(
         AtlasIcons.Check, AtlasIcons.CheckCircle, AtlasIcons.ChevronRight, AtlasIcons.ArrowBack,
-        AtlasIcons.Settings, AtlasIcons.Info, AtlasIcons.Close, AtlasIcons.Error, AtlasIcons.Refresh,
+        AtlasIcons.Settings, AtlasIcons.Info, AtlasIcons.Close, AtlasIcons.Error,
         AtlasIcons.LightMode, AtlasIcons.DarkMode, AtlasIcons.Contrast, AtlasIcons.Palette, AtlasIcons.Add,
         AtlasIcons.Folder, AtlasIcons.Article, AtlasIcons.BookmarkAdd, AtlasIcons.BookmarkAdded, AtlasIcons.Bookmarks,
         AtlasIcons.Edit, AtlasIcons.OpenInNew, AtlasIcons.ContentCopy, AtlasIcons.Download, AtlasIcons.DeleteSweep,
@@ -391,22 +398,12 @@ private fun DividerSample() {
 @Composable
 private fun OverlaySamples() {
     var sheetShown by remember { mutableStateOf(false) }
-    var dialogShown by remember { mutableStateOf(false) }
     var confirmShown by remember { mutableStateOf(false) }
-    var options by remember {
-        mutableStateOf(
-            listOf(
-                AtlasCheckOption(key = "delete", title = "Удалить тему", checked = false),
-                AtlasCheckOption(key = "reset", title = "Сбросить прогресс", checked = false),
-            ),
-        )
-    }
     Row(
         modifier = Modifier.padding(horizontal = AtlasTheme.spacing.l),
         horizontalArrangement = Arrangement.spacedBy(AtlasTheme.spacing.s),
     ) {
         AtlasSecondaryButton(text = "Шторка", onClick = { sheetShown = true })
-        AtlasSecondaryButton(text = "Диалог", onClick = { dialogShown = true })
         AtlasSecondaryButton(text = "Вопрос", onClick = { confirmShown = true })
     }
     if (confirmShown) {
@@ -424,18 +421,6 @@ private fun OverlaySamples() {
             AtlasPrimaryButton(text = "Подтвердить", onClick = { sheetShown = false }, modifier = Modifier.fillMaxWidth())
             AtlasSecondaryButton(text = "Отмена", onClick = { sheetShown = false }, modifier = Modifier.fillMaxWidth())
         }
-    }
-    if (dialogShown) {
-        AtlasCheckboxDialog(
-            title = "Управление темой",
-            options = options,
-            confirmText = "Применить",
-            onCheckedChange = { key, value ->
-                options = options.map { if (it.key == key) it.copy(checked = value) else it }
-            },
-            onConfirm = { dialogShown = false },
-            onDismiss = { dialogShown = false },
-        )
     }
 }
 

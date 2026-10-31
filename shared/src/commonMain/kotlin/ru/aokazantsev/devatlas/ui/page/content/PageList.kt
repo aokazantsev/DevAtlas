@@ -22,6 +22,7 @@ internal fun PageList(
     onOpenDiagram: (PageBlock.Figure) -> Unit,
     codeCopy: CodeCopy,
 ) {
+    if (list.items.isEmpty()) return
     val style = AtlasTheme.typography.bodyLarge
     val labels = list.items.indices.map { index -> if (list.ordered) "${index + 1}." else BULLET }
     val measurer = rememberTextMeasurer()

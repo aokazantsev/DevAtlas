@@ -59,7 +59,7 @@ class AppServicesImplTest {
         assertEquals(1, usage.sent)
         assertEquals(1, crashSendings)
         assertEquals(1, schedules)
-        assertEquals(1, updateApks.discardedInstalled)
+        assertEquals(1, updateApks.discardedAll)
     }
 
     @Test

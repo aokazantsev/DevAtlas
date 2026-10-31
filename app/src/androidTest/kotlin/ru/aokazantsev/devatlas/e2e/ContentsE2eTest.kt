@@ -182,7 +182,37 @@ class ContentsE2eTest {
         app.waitForToggle("Просмотрено", on = true)
     }
 
+    @Test
+    fun brokenDiagramWithViewBoxShowsPlaceholderAndPageStillWorks() {
+        app.passOnboarding()
+        sampleFile("diagrams/roles.svg").writeText(BROKEN_SVG_WITH_VIEWBOX)
+        app.clickText("Схемы")
+
+        app.clickText("Как устроены схемы")
+
+        app.waitForText("Схема не открывается")
+        app.waitForText("Одна и та же схема в любой теме приложения.")
+        app.clickText("Просмотрено")
+        app.waitForToggle("Просмотрено", on = true)
+    }
+
+    @Test
+    fun emptyListsOnPageDoNotCrash() {
+        val files = ThemeZips.sampleFiles() + (ThemeZips.CHANGED_PAGE_FILE to EMPTY_LISTS_PAGE.toByteArray())
+        e2e.server.serveZip(TestNetwork.SAMPLE_PATH, ThemeZips.zip(files))
+        app.passOnboarding()
+
+        app.clickText("Добро пожаловать")
+
+        app.waitForText("До пустых списков.")
+        app.waitForText("После пустых списков.")
+        app.clickText("Просмотрено")
+        app.waitForToggle("Просмотрено", on = true)
+    }
+
     private companion object {
+        const val BROKEN_SVG_WITH_VIEWBOX = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 300\"><rect"
+        const val EMPTY_LISTS_PAGE = "<p>До пустых списков.</p><ul></ul><ol></ol><p>После пустых списков.</p>"
         const val WAIT_MILLIS = 10_000L
         const val KOTLIN_DOCS_URL = "https://kotlinlang.org/docs/multiplatform.html"
     }

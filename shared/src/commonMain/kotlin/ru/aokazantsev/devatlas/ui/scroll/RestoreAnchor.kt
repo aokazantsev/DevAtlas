@@ -7,9 +7,13 @@ import androidx.compose.runtime.withFrameNanos
 @Composable
 fun RestoreAnchor(position: ScrollPosition) {
     LaunchedEffect(position) {
-        if (position.isRestored) return@LaunchedEffect
-        withFrameNanos { }
-        position.anchors.topAtOrBefore(position.initialAnchor)?.let { position.scrollState.scrollTo(it) }
-        position.markRestored()
+        position.pendingPlace?.let { place ->
+            withFrameNanos { }
+            val target = position.anchors.topOf(place.anchor)?.plus(place.offset)
+                ?: position.anchors.topAtOrBefore(place.anchor)
+            target?.let { position.scrollState.scrollTo(it) }
+            position.markRestored()
+        }
+        position.trackVisible()
     }
 }

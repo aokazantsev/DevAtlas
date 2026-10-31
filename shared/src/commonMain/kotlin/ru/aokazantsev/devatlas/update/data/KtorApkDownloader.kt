@@ -118,7 +118,9 @@ internal class KtorApkDownloader(
 
     private fun clearFolder() {
         if (fileSystem.exists(folder)) {
-            fileSystem.list(folder).filter { it.name.endsWith(UpdateFiles.APK_EXTENSION) }.forEach { fileSystem.delete(it) }
+            fileSystem.list(folder)
+                .filter { it.name.endsWith(UpdateFiles.APK_EXTENSION) }
+                .forEach { fileSystem.delete(it, mustExist = false) }
         }
         fileSystem.createDirectories(folder)
     }

@@ -131,7 +131,7 @@ class UpdateViewModelTest {
     }
 
     @Test
-    fun newerReleaseOnRecheckDropsDownloadedFile() = runTest {
+    fun newerReleaseOnRecheckIsDownloadedAgain() = runTest {
         val viewModel = viewModel()
         advanceUntilIdle()
         download.complete(ApkDownloadResult.Saved(APK))
@@ -141,11 +141,54 @@ class UpdateViewModelTest {
         check = UpdateCheck.Available(newer, listOf(newer), hasOlderChanges = false)
         viewModel.check()
         advanceUntilIdle()
+        download = CompletableDeferred(ApkDownloadResult.Saved(NEWER_APK))
 
         viewModel.update()
         advanceUntilIdle()
 
         assertEquals(2, downloads)
+        assertEquals(0, apks.discardedAll)
+        assertEquals(listOf(APK, NEWER_APK), installer.installed)
+    }
+
+    @Test
+    fun upToDateOnRecheckDiscardsDownloadedFile() = runTest {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        download.complete(ApkDownloadResult.Saved(APK))
+        viewModel.update()
+        advanceUntilIdle()
+        check = UpdateCheck.UpToDate("0.2")
+        viewModel.check()
+        advanceUntilIdle()
+
+        viewModel.update()
+        advanceUntilIdle()
+
+        assertEquals(UpdateUiState.UpToDate("0.2"), viewModel.state.value)
+        assertEquals(1, apks.discardedAll)
+        assertEquals(1, downloads)
+        assertEquals(listOf(APK), installer.installed)
+    }
+
+    @Test
+    fun leavingTheScreenAfterRecheckDiscards() = runTest {
+        val store = ViewModelStore()
+        val viewModel = ViewModelProvider.create(store, viewModelFactory { initializer { newViewModel() } })[UpdateViewModel::class]
+        advanceUntilIdle()
+        download.complete(ApkDownloadResult.Saved(APK))
+        viewModel.update()
+        advanceUntilIdle()
+        val newer = AppRelease(AppVersion(listOf(0, 3)), bodyHtml = "", apk = null)
+        check = UpdateCheck.Available(newer, listOf(newer), hasOlderChanges = false)
+        viewModel.check()
+        advanceUntilIdle()
+        assertEquals(0, apks.discardedAll)
+
+        store.clear()
+        advanceUntilIdle()
+
+        assertEquals(1, apks.discardedAll)
     }
 
     @Test
@@ -278,5 +321,6 @@ class UpdateViewModelTest {
 
     private companion object {
         val APK = "/data/updates/DevAtlas-0.2.apk".toPath()
+        val NEWER_APK = "/data/updates/DevAtlas-0.3.apk".toPath()
     }
 }

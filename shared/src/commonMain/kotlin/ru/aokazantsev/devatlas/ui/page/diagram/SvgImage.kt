@@ -9,6 +9,6 @@ internal expect fun SvgImage(
     palette: SvgPalette,
     contentDescription: String?,
     modifier: Modifier = Modifier,
-    loading: @Composable () -> Unit,
-    fallback: @Composable () -> Unit,
+    loading: @Composable (Modifier) -> Unit,
+    fallback: @Composable (Modifier) -> Unit,
 )

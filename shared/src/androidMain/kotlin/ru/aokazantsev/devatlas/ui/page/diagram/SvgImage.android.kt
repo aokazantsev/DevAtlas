@@ -1,11 +1,11 @@
 package ru.aokazantsev.devatlas.ui.page.diagram
 
-import android.graphics.RectF
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
@@ -19,6 +19,7 @@ import com.caverock.androidsvg.SVG
 import com.caverock.androidsvg.SVGParseException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import ru.aokazantsev.devatlas.themeformat.svg.SvgViewport
 
 @Composable
 internal actual fun SvgImage(
@@ -26,28 +27,33 @@ internal actual fun SvgImage(
     palette: SvgPalette,
     contentDescription: String?,
     modifier: Modifier,
-    loading: @Composable () -> Unit,
-    fallback: @Composable () -> Unit,
+    loading: @Composable (Modifier) -> Unit,
+    fallback: @Composable (Modifier) -> Unit,
 ) {
-    val parsed by produceState<ParsedSvg?>(initialValue = null, svg, palette) {
+    val viewport = remember(svg) { SvgViewport.of(svg) }
+    if (viewport == null) {
+        fallback(Modifier)
+        return
+    }
+    val sized = Modifier.aspectRatio(viewport.ratio.coerceAtLeast(MIN_ASPECT_RATIO))
+    val parsed by produceState<ParsedSvg?>(initialValue = null, svg, palette, viewport) {
         value = withContext(Dispatchers.Default) {
-            ParsedSvg(parse(SvgColorTokens.resolve(svg, palette.roles, palette.textColor)))
+            ParsedSvg(parse(SvgColorTokens.resolve(svg, palette.roles, palette.textColor), viewport))
         }
     }
     val ready = parsed
     if (ready == null) {
-        loading()
+        loading(sized)
         return
     }
     val document = ready.document
     if (document == null) {
-        fallback()
+        fallback(sized)
         return
     }
-    val box = document.documentViewBox
     Canvas(
         modifier = modifier
-            .aspectRatio((box.width() / box.height()).coerceAtLeast(MIN_ASPECT_RATIO))
+            .then(sized)
             .semantics {
                 role = Role.Image
                 if (contentDescription != null) this.contentDescription = contentDescription
@@ -59,28 +65,17 @@ internal actual fun SvgImage(
     }
 }
 
-private fun parse(svg: String): SVG? {
+private fun parse(svg: String, viewport: SvgViewport): SVG? {
     val document = try {
         SVG.getFromString(svg)
     } catch (_: SVGParseException) {
         return null
     }
-    val box = document.documentViewBox ?: sizeBox(document)
-    val ratio = box.width() / box.height()
-    if (!ratio.isFinite() || ratio <= 0f) return null
-    if (ratio < MIN_ASPECT_RATIO) document.documentPreserveAspectRatio = PreserveAspectRatio.LETTERBOX
-    document.setDocumentViewBox(box.left, box.top, box.width(), box.height())
+    if (viewport.ratio < MIN_ASPECT_RATIO) document.documentPreserveAspectRatio = PreserveAspectRatio.LETTERBOX
+    document.setDocumentViewBox(viewport.left, viewport.top, viewport.width, viewport.height)
     document.setDocumentWidth("100%")
     document.setDocumentHeight("100%")
     return document
 }
 
-private fun sizeBox(document: SVG): RectF {
-    val width = document.documentWidth
-    val height = document.documentHeight
-    return if (width > 0f && height > 0f) RectF(0f, 0f, width, height) else RectF(0f, 0f, DEFAULT_WIDTH, DEFAULT_HEIGHT)
-}
-
 private const val MIN_ASPECT_RATIO = 0.25f
-private const val DEFAULT_WIDTH = 300f
-private const val DEFAULT_HEIGHT = 150f

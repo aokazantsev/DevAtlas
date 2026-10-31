@@ -55,10 +55,17 @@ class MockServerRule : ExternalResource() {
         }
     }
 
-    fun servePdf(path: String, bytes: ByteArray = PDF_BYTES, fileName: String? = null, throttled: Boolean = false) {
+    fun servePdf(
+        path: String,
+        bytes: ByteArray = PDF_BYTES,
+        fileName: String? = null,
+        throttled: Boolean = false,
+        headersDelaySeconds: Long = 0,
+    ) {
         route(path) {
             MockResponse.Builder()
                 .code(OK)
+                .apply { if (headersDelaySeconds > 0) headersDelay(headersDelaySeconds, TimeUnit.SECONDS) }
                 .addHeader("Content-Type", "application/pdf")
                 .apply { if (fileName != null) addHeader("Content-Disposition", "attachment; filename=\"$fileName\"") }
                 .apply { if (throttled) throttleBody(THROTTLE_BYTES, 1, TimeUnit.SECONDS) }
@@ -78,6 +85,15 @@ class MockServerRule : ExternalResource() {
     }
 
     fun requestCount(path: String): Int = log.count { it == path }
+
+    fun serveRedirect(path: String, target: String) {
+        route(path) {
+            MockResponse.Builder()
+                .code(FOUND)
+                .addHeader("Location", server.url(target).toString())
+                .build()
+        }
+    }
 
     fun serveStatus(path: String, status: Int) {
         route(path) { MockResponse.Builder().code(status).build() }
@@ -160,6 +176,7 @@ class MockServerRule : ExternalResource() {
         const val YANDEX_API_PATH = "/yandex/download"
         const val GOOGLE_DRIVE_PATH = "/gdrive/download"
         const val OK = 200
+        const val FOUND = 302
         const val NOT_MODIFIED = 304
         const val NOT_FOUND = 404
         const val THROTTLE_BYTES = 1024L

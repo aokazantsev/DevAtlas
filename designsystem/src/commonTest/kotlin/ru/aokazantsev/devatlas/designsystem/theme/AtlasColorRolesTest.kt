@@ -61,7 +61,6 @@ class AtlasColorRolesTest {
             )
 
             assertEquals(expected, AtlasColorRoles.colors(scheme), "тёмная=$dark")
-            assertEquals(expected.keys, AtlasColorRoles.names)
         }
     }
 }

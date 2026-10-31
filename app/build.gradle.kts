@@ -9,8 +9,15 @@ val releaseSigning: Properties? = run {
     val local = Properties()
     rootProject.file("local.properties").takeIf { it.isFile }?.reader(Charsets.UTF_8)?.use(local::load)
     val path = providers.environmentVariable("DEVATLAS_SIGNING").orNull ?: local.getProperty("devatlas.signing")
-    path?.let(::file)?.takeIf { it.isFile }?.let { signingFile ->
-        Properties().apply { signingFile.reader(Charsets.UTF_8).use(::load) }
+    path?.let(rootProject::file)?.let { signingFile ->
+        if (!signingFile.isFile) throw GradleException("Файл подписи не найден: $signingFile")
+        val signing = Properties().apply { signingFile.reader(Charsets.UTF_8).use(::load) }
+        val missing = listOf("storeFile", "storePassword", "keyAlias", "keyPassword").filter { signing.getProperty(it).isNullOrBlank() }
+        if (missing.isNotEmpty()) throw GradleException("В $signingFile нет ключей: ${missing.joinToString()}")
+        val store = signingFile.parentFile.resolve(signing.getProperty("storeFile"))
+        if (!store.isFile) throw GradleException("Хранилище ключа не найдено: $store")
+        signing.setProperty("storeFile", store.path)
+        signing
     }
 }
 
@@ -31,7 +38,7 @@ android {
     signingConfigs {
         releaseSigning?.let { signing ->
             create("release") {
-                storeFile = file(signing.getProperty("storeFile"))
+                storeFile = File(signing.getProperty("storeFile"))
                 storePassword = signing.getProperty("storePassword")
                 keyAlias = signing.getProperty("keyAlias")
                 keyPassword = signing.getProperty("keyPassword")

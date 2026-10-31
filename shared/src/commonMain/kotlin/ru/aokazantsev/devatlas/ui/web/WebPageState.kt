@@ -2,6 +2,7 @@ package ru.aokazantsev.devatlas.ui.web
 
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
@@ -19,8 +20,14 @@ class WebPageState {
     var failed by mutableStateOf(false)
         internal set
 
+    var renderGone by mutableStateOf(false)
+        private set
+
     var canGoBack by mutableStateOf(false)
         internal set
+
+    var webViewGeneration by mutableIntStateOf(0)
+        private set
 
     internal var navigator: WebNavigator? = null
 
@@ -30,6 +37,19 @@ class WebPageState {
 
     fun reload() {
         failed = false
-        navigator?.reload()
+        if (renderGone) {
+            renderGone = false
+            webViewGeneration++
+        } else {
+            navigator?.reload()
+        }
+    }
+
+    internal fun onRenderGone() {
+        renderGone = true
+        failed = false
+        progress = null
+        canGoBack = false
+        navigator = null
     }
 }

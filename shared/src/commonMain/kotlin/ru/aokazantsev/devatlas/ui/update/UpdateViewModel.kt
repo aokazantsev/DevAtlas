@@ -150,7 +150,7 @@ class UpdateViewModel(
     private fun reusableDownload(release: AppRelease): DownloadedUpdate? {
         val ready = downloaded ?: return null
         if (ready.matches(release)) return ready
-        discardDownload()
+        downloaded = null
         return null
     }
 

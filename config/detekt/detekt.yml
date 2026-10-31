@@ -12,7 +12,7 @@ devatlas:
     excludes: ['**/designsystem/src/**', '**/test/**', '**/*Test/**']
   Material3OutsideDesignSystem:
     active: true
-    excludes: ['**/designsystem/src/**']
+    excludes: ['**/designsystem/src/**', '**/test/**', '**/*Test/**']
 
 complexity:
   LongParameterList:

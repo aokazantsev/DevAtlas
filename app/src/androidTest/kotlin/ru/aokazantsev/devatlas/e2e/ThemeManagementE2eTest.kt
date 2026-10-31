@@ -1,11 +1,17 @@
 package ru.aokazantsev.devatlas.e2e
 
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isOff
 import androidx.compose.ui.test.isOn
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
@@ -148,6 +154,39 @@ class ThemeManagementE2eTest {
         app.clickText(sampleTitle)
         app.waitForText("Источник")
         app.waitForText(TestNetwork.endpoints().sampleThemeUrl)
+    }
+
+    @Test
+    fun replaceDialogStaysUsableWithLargeFont() {
+        app.passOnboarding()
+        e2e.server.serveZip("/other/sample.zip", ThemeZips.sampleZip())
+
+        app.withFontScale(LARGE_FONT_SCALE) {
+            app.openThemesList()
+            app.clickText("Добавить тему")
+            app.checkAddress(e2e.server.baseUrl + "/other/sample.zip")
+            app.waitForTextContaining("Эта тема уже установлена")
+            app.clickText("Установить")
+
+            app.waitFor(hasText(REPLACE_QUESTION) and (hasScrollAction() or hasAnyAncestor(hasScrollAction())))
+            listOf("Не заменять", "Заменить").forEach { label ->
+                app.onNodeWithText(label).assertIsDisplayed().assertHasClickAction()
+                assertLabelFits(label)
+            }
+            app.clickText("Заменить")
+
+            app.waitForText("Источник")
+            app.waitForText(e2e.server.baseUrl + "/other/sample.zip")
+        }
+    }
+
+    private fun assertLabelFits(label: String) {
+        val layouts = mutableListOf<TextLayoutResult>()
+        app.onNode(hasText(label), useUnmergedTree = true).fetchSemanticsNode()
+            .config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
+        val layout = layouts.single()
+        assertFalse("Подпись «$label» не должна обрезаться", layout.hasVisualOverflow)
+        assertFalse("Подпись «$label» не должна заканчиваться многоточием", (0 until layout.lineCount).any(layout::isLineEllipsized))
     }
 
     @Test
@@ -552,5 +591,7 @@ class ThemeManagementE2eTest {
     private companion object {
         const val WAIT_MILLIS = 10_000L
         const val SERVER_ERROR = 500
+        const val REPLACE_QUESTION = "Заменить источник и содержимое темы «${ThemeZips.SAMPLE_TITLE}»? " +
+            "Отметки «Просмотрено» и закладки сохранятся у страниц и разделов, которые остались в теме."
     }
 }

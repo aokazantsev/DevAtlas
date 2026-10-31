@@ -1,5 +1,7 @@
 package ru.aokazantsev.devatlas.designsystem.component
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -18,7 +20,7 @@ fun AtlasConfirmDialog(
         onDismissRequest = onDismiss,
         modifier = modifier,
         title = { AtlasText(text = title) },
-        text = { AtlasText(text = text) },
+        text = { AtlasText(text = text, modifier = Modifier.verticalScroll(rememberScrollState())) },
         confirmButton = { AtlasTextButton(text = confirmText, onClick = onConfirm) },
         dismissButton = { AtlasTextButton(text = dismissText, onClick = onDismiss) },
     )

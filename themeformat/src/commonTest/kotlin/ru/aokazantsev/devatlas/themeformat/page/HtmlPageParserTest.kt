@@ -58,6 +58,21 @@ class HtmlPageParserTest {
     }
 
     @Test
+    fun emptyListsBecomeEmptyListBlocksWithoutIssues() {
+        val page = parse("<ul></ul>\n<ol>\n</ol>\n<p>after</p>")
+
+        assertEquals(
+            listOf(
+                PageBlock.ListBlock(false, emptyList()),
+                PageBlock.ListBlock(true, emptyList()),
+                PageBlock.Paragraph(listOf(PageInline.Text("after"))),
+            ),
+            page.document.blocks,
+        )
+        assertTrue(page.issues.isEmpty())
+    }
+
+    @Test
     fun codeBlockKeepsWhitespaceAndLanguage() {
         val blocks = parse("<pre><code class=\"language-kotlin\">\nfun a() {\n    b &lt; c\n}\n</code></pre>").document.blocks
 

@@ -56,7 +56,5 @@ object AtlasColorRoles {
         "on-tertiary-fixed-variant" to { it.onTertiaryFixedVariant },
     )
 
-    val names: Set<String> = selectors.keys
-
     fun colors(scheme: ColorScheme): Map<String, Color> = selectors.mapValues { (_, select) -> select(scheme) }
 }

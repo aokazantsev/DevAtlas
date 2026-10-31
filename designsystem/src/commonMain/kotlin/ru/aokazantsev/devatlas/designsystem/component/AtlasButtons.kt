@@ -7,6 +7,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -17,7 +18,7 @@ fun AtlasPrimaryButton(
     enabled: Boolean = true,
 ) {
     Button(onClick = onClick, shapes = ButtonDefaults.shapes(), modifier = modifier, enabled = enabled) {
-        AtlasText(text = text, maxLines = 1)
+        AtlasText(text = text, textAlign = TextAlign.Center)
     }
 }
 
@@ -30,7 +31,7 @@ fun AtlasSecondaryButton(
     enabled: Boolean = true,
 ) {
     FilledTonalButton(onClick = onClick, shapes = ButtonDefaults.shapes(), modifier = modifier, enabled = enabled) {
-        AtlasText(text = text, maxLines = 1)
+        AtlasText(text = text, textAlign = TextAlign.Center)
     }
 }
 
@@ -43,6 +44,6 @@ fun AtlasTextButton(
     enabled: Boolean = true,
 ) {
     TextButton(onClick = onClick, shapes = ButtonDefaults.shapes(), modifier = modifier, enabled = enabled) {
-        AtlasText(text = text, maxLines = 1)
+        AtlasText(text = text, textAlign = TextAlign.Center)
     }
 }

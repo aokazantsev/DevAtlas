@@ -2,7 +2,6 @@ package ru.aokazantsev.devatlas.update.data
 
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
-import ru.aokazantsev.devatlas.di.AppInfo
 import ru.aokazantsev.devatlas.themes.FakePlatformBindings
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -12,9 +11,8 @@ class UpdateApkStorageImplTest {
 
     private val fileSystem = FakeFileSystem()
 
-    private fun storage(installed: String = "0.2") = UpdateApkStorageImpl(
+    private fun storage() = UpdateApkStorageImpl(
         fileSystem = fileSystem,
-        appInfo = AppInfo(versionName = installed, isDebug = false),
         platform = FakePlatformBindings(),
     )
 
@@ -24,15 +22,6 @@ class UpdateApkStorageImplTest {
     }
 
     private fun left() = fileSystem.list(UPDATES).map { it.name }.sorted()
-
-    @Test
-    fun installedAndOlderApksAreRemovedNewerIsKept() {
-        put("DevAtlas-0.1.apk", "DevAtlas-0.2.apk", "DevAtlas-0.3.apk")
-
-        storage(installed = "0.2-debug").discardInstalled()
-
-        assertEquals(listOf("DevAtlas-0.3.apk"), left())
-    }
 
     @Test
     fun discardAllRemovesApksButNotOtherFiles() {
@@ -46,7 +35,6 @@ class UpdateApkStorageImplTest {
     @Test
     fun missingFolderIsNotAnError() {
         storage().discardAll()
-        storage().discardInstalled()
 
         assertTrue(!fileSystem.exists(UPDATES))
     }

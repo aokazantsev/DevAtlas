@@ -19,6 +19,7 @@ fun AtlasText(
     color: Color = Color.Unspecified,
     textAlign: TextAlign? = null,
     maxLines: Int = Int.MAX_VALUE,
+    overflow: TextOverflow = TextOverflow.Ellipsis,
     onTextLayout: (TextLayoutResult) -> Unit = {},
 ) {
     Text(
@@ -28,7 +29,7 @@ fun AtlasText(
         color = color,
         textAlign = textAlign,
         maxLines = maxLines,
-        overflow = TextOverflow.Ellipsis,
+        overflow = overflow,
         onTextLayout = onTextLayout,
     )
 }

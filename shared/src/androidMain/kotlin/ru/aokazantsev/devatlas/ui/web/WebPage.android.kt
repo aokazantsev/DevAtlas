@@ -1,12 +1,13 @@
 package ru.aokazantsev.devatlas.ui.web
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.os.Bundle
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -27,33 +28,43 @@ actual fun WebPage(
     val holder = rememberSaveable(saver = WebViewHolderSaver) { WebViewHolder(saved = null) }
     val callbacks = rememberUpdatedState(WebCallbacks(onPdf, onExternal, onNothingShown))
     BackHandler(enabled = state.canGoBack) { state.goBack() }
-    AndroidView(
-        factory = { context ->
-            WebView(context).also { webView ->
-                holder.webView = webView
-                webView.configure(state, holder, callbacks::value)
-                state.navigator = object : WebNavigator {
-                    override fun goBack() {
-                        if (webView.canGoBack()) webView.goBack()
+    if (!state.renderGone) {
+        key(state.webViewGeneration) {
+            AndroidView(
+                factory = { context -> createWebView(context, startUrl, state, holder, callbacks::value) },
+                modifier = modifier,
+                onRelease = { webView ->
+                    if (holder.webView === webView) {
+                        holder.webView = null
+                        state.navigator = null
                     }
-
-                    override fun reload() {
-                        if (webView.url == null) webView.loadUrl(startUrl) else webView.reload()
-                    }
-                }
-                val saved = holder.saved
-                if (saved == null || saved.isEmpty || webView.restoreState(saved) == null) webView.loadUrl(startUrl)
-            }
-        },
-        modifier = modifier,
-    )
-    DisposableEffect(holder) {
-        onDispose {
-            state.navigator = null
-            holder.webView?.destroy()
-            holder.webView = null
+                    webView.destroy()
+                },
+            )
         }
     }
+}
+
+private fun createWebView(
+    context: Context,
+    startUrl: String,
+    state: WebPageState,
+    holder: WebViewHolder,
+    callbacks: () -> WebCallbacks,
+): WebView = AtlasWebView(context, onUserInput = holder.activation::onUserInput).also { webView ->
+    holder.webView = webView
+    webView.configure(state, holder, callbacks)
+    state.navigator = object : WebNavigator {
+        override fun goBack() {
+            if (webView.canGoBack()) webView.goBack()
+        }
+
+        override fun reload() {
+            if (webView.url == null) webView.loadUrl(startUrl) else webView.reload()
+        }
+    }
+    val saved = holder.saved
+    if (saved == null || saved.isEmpty || webView.restoreState(saved) == null) webView.loadUrl(state.url ?: startUrl)
 }
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -79,7 +90,9 @@ private fun WebView.configure(state: WebPageState, holder: WebViewHolder, callba
             PdfFileNames.isPdfUrl(url)
         val web = url.startsWith("https://", ignoreCase = true) || url.startsWith("http://", ignoreCase = true)
         when {
-            isPdf -> callbacks().onPdf(PdfRequest(url = url, title = state.title, contentDisposition = contentDisposition))
+            isPdf -> if (!holder.pageShown || holder.activation.consume(url)) {
+                callbacks().onPdf(PdfRequest(url = url, title = state.title, contentDisposition = contentDisposition))
+            }
             web && !holder.pageShown -> callbacks().onExternal(url)
         }
         if (!holder.pageShown) callbacks().onNothingShown()

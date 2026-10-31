@@ -3,12 +3,16 @@ package ru.aokazantsev.devatlas.e2e
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isOff
 import androidx.compose.ui.test.isOn
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollTo
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.test.espresso.intent.Intents.intended
@@ -87,6 +91,24 @@ class OnboardingE2eTest {
         app.clickText("Что уходит в статистике")
         app.waitForTextContaining("Названия тем, их адреса и тексты не отправляются")
         app.clickText("Закрыть")
+    }
+
+    @Test
+    fun whatIsSentSheetCloseButtonIsReachableWithLargeFont() {
+        val app = e2e.compose
+        app.waitForText("Добро пожаловать")
+        app.withFontScale(LARGE_FONT_SCALE) {
+            app.waitForText("Добро пожаловать")
+
+            app.clickText("Что уходит в статистике")
+            app.waitForTextContaining("Названия тем, их адреса и тексты не отправляются")
+            val close = hasText("Закрыть") and hasAnyAncestor(hasScrollAction())
+            app.waitFor(close)
+            app.onNode(close).performScrollTo().assertIsDisplayed()
+            app.clickText("Закрыть")
+
+            app.waitForGone("Закрыть")
+        }
     }
 
     @Test

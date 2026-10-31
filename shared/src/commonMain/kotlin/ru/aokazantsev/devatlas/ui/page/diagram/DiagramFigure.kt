@@ -41,8 +41,8 @@ internal fun DiagramFigure(
                 modifier = frame
                     .clickable(onClickLabel = "Открыть на весь экран", role = Role.Button, onClick = onOpen)
                     .padding(AtlasTheme.spacing.s),
-                loading = { AtlasLoadingIndicator(frame) },
-                fallback = { DiagramUnavailable(frame) },
+                loading = { sized -> AtlasLoadingIndicator(frame.padding(AtlasTheme.spacing.s).then(sized)) },
+                fallback = { sized -> DiagramUnavailable(frame.padding(AtlasTheme.spacing.s).then(sized)) },
             )
         }
         if (figure.caption.isNotEmpty()) {

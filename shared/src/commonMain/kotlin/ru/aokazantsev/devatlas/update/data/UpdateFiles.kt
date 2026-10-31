@@ -9,11 +9,4 @@ internal object UpdateFiles {
     private const val APK_PREFIX = "DevAtlas-"
 
     fun apkName(version: AppVersion): String = "$APK_PREFIX$version$APK_EXTENSION"
-
-    fun versionOf(apkName: String): AppVersion? =
-        if (apkName.startsWith(APK_PREFIX) && apkName.endsWith(APK_EXTENSION)) {
-            AppVersion.parse(apkName.removePrefix(APK_PREFIX).removeSuffix(APK_EXTENSION))
-        } else {
-            null
-        }
 }

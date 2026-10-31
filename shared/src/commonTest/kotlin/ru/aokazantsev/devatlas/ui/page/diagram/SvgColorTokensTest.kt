@@ -1,5 +1,6 @@
 package ru.aokazantsev.devatlas.ui.page.diagram
 
+import androidx.compose.material3.lightColorScheme
 import ru.aokazantsev.devatlas.designsystem.theme.AtlasColorRoles
 import ru.aokazantsev.devatlas.themeformat.svg.ColorRole
 import kotlin.test.Test
@@ -53,7 +54,7 @@ class SvgColorTokensTest {
 
     @Test
     fun designSystemRolesAreExactlyTheFormatRoles() {
-        assertEquals(ColorRole.entries.map { it.cssName }.toSet(), AtlasColorRoles.names)
+        assertEquals(ColorRole.entries.map { it.cssName }.toSet(), AtlasColorRoles.colors(lightColorScheme()).keys)
     }
 
     @Test

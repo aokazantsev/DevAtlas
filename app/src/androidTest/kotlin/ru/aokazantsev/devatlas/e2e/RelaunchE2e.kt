@@ -46,6 +46,10 @@ class RelaunchE2e {
         scenario?.recreate()
     }
 
+    fun rotate(orientation: Int) {
+        scenario?.onActivity { it.requestedOrientation = orientation }
+    }
+
     fun close() {
         scenario?.close()
         scenario = null

@@ -6,7 +6,10 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.test.runTest
 import okio.ByteString.Companion.encodeUtf8
+import okio.FileSystem
+import okio.ForwardingFileSystem
 import okio.IOException
+import okio.Path
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import ru.aokazantsev.devatlas.di.AppInfo
@@ -28,7 +31,9 @@ class KtorApkDownloaderTest {
     private var requests = 0
     private var answer: () -> Pair<HttpStatusCode, String> = { HttpStatusCode.OK to APK_TEXT }
 
-    private val downloader = KtorApkDownloader(
+    private val downloader = downloader(fileSystem)
+
+    private fun downloader(files: FileSystem) = KtorApkDownloader(
         client = HttpClient(MockEngine {
             requests++
             val (status, body) = answer()
@@ -36,7 +41,7 @@ class KtorApkDownloaderTest {
         }),
         endpoints = NetworkEndpoints.Production,
         appInfo = AppInfo(versionName = "0.1", isDebug = false),
-        fileSystem = fileSystem,
+        fileSystem = files,
         platform = FakePlatformBindings(),
     )
 
@@ -53,6 +58,29 @@ class KtorApkDownloaderTest {
         assertEquals(UPDATES / "DevAtlas-0.2.apk", saved.file)
         assertEquals(APK_TEXT, fileSystem.read(saved.file) { readUtf8() })
         assertFalse(fileSystem.exists(UPDATES / "DevAtlas-0.1.apk"))
+    }
+
+    @Test
+    fun downloadKeepsNonApkFilesInFolder() = runTest {
+        fileSystem.createDirectories(UPDATES)
+        fileSystem.write(UPDATES / "notes.txt") { writeUtf8("keep") }
+
+        assertIs<ApkDownloadResult.Saved>(downloader.download(release()) { _, _ -> })
+
+        assertEquals("keep", fileSystem.read(UPDATES / "notes.txt") { readUtf8() })
+    }
+
+    @Test
+    fun downloadSurvivesApkDeletedDuringClear() = runTest {
+        fileSystem.createDirectories(UPDATES)
+        val vanishing = object : ForwardingFileSystem(fileSystem) {
+            override fun list(dir: Path): List<Path> =
+                if (dir == UPDATES) super.list(dir) + (UPDATES / "DevAtlas-0.1.apk") else super.list(dir)
+        }
+
+        val saved = assertIs<ApkDownloadResult.Saved>(downloader(vanishing).download(release()) { _, _ -> })
+
+        assertEquals(APK_TEXT, fileSystem.read(saved.file) { readUtf8() })
     }
 
     @Test

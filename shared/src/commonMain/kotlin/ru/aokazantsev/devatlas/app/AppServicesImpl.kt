@@ -39,7 +39,7 @@ internal class AppServicesImpl(
         usage.hit(UsageEvent.APP_START)
         scheduler.schedule()
         scope.launch {
-            updateApks.discardInstalled()
+            updateApks.discardAll()
             crashReports.sendPending()
             usage.send()
         }
