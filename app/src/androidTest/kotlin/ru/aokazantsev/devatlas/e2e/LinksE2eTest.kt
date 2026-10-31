@@ -181,6 +181,33 @@ class LinksE2eTest {
     }
 
     @Test
+    fun siteOpensAfterNetworkReturnsOnRetry() {
+        openLinksPage()
+
+        app.clickLink("статья после сбоя")
+        app.waitForTextContaining("Страница не открылась")
+        e2e.server.startLateSite()
+        app.clickText("Повторить")
+
+        app.waitForText(WebSite.ARTICLE_TITLE)
+        app.waitForGone("Повторить")
+    }
+
+    @Test
+    fun pdfLinkWithoutExtensionDownloadsOnRetryAfterNetworkReturns() {
+        openLinksPage()
+
+        app.clickLink("отчёт после сбоя")
+        app.waitForTextContaining("Страница не открылась")
+        e2e.server.startLateSite()
+        app.clickText("Повторить")
+
+        app.waitForIntents(pdfOpened, 1)
+        app.waitForTextContaining("Сайт:")
+        app.waitUntil(WAIT_MILLIS) { app.onAllNodes(hasContentDescription("Открыть в браузере")).fetchSemanticsNodes().isEmpty() }
+    }
+
+    @Test
     fun siteCannotOpenOtherAppsWithoutTap() {
         openLinksPage()
 

@@ -6,6 +6,7 @@ import mockwebserver3.MockWebServer
 import mockwebserver3.RecordedRequest
 import okio.Buffer
 import org.junit.rules.ExternalResource
+import java.net.ServerSocket
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
@@ -13,6 +14,8 @@ import java.util.concurrent.TimeUnit
 class MockServerRule : ExternalResource() {
 
     val server = MockWebServer()
+
+    private val lateSite = MockWebServer()
 
     private val routes = ConcurrentHashMap<String, (RecordedRequest) -> MockResponse>()
     private val log = CopyOnWriteArrayList<String>()
@@ -119,23 +122,33 @@ class MockServerRule : ExternalResource() {
         }
     }
 
-    override fun before() {
-        server.dispatcher = object : Dispatcher() {
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                val path = request.url.encodedPath
-                log += path
-                headerLog += path to request.headers
-                return routes[path]?.invoke(request) ?: MockResponse.Builder().code(NOT_FOUND).build()
-            }
+    private val dispatcher = object : Dispatcher() {
+        override fun dispatch(request: RecordedRequest): MockResponse {
+            val path = request.url.encodedPath
+            log += path
+            headerLog += path to request.headers
+            return routes[path]?.invoke(request) ?: MockResponse.Builder().code(NOT_FOUND).build()
         }
+    }
+
+    fun startLateSite() {
+        lateSite.dispatcher = dispatcher
+        lateSite.start(checkNotNull(TestNetwork.lateSitePort))
+    }
+
+    override fun before() {
+        server.dispatcher = dispatcher
         server.start()
         TestNetwork.baseUrl = server.url("/").toString()
+        TestNetwork.lateSitePort = ServerSocket(0).use { it.localPort }
         serveZip(TestNetwork.SAMPLE_PATH, ThemeZips.sampleZip())
     }
 
     override fun after() {
         TestNetwork.baseUrl = null
+        TestNetwork.lateSitePort = null
         server.close()
+        lateSite.close()
     }
 
     companion object {

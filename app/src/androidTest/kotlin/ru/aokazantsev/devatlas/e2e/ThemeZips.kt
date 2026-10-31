@@ -27,6 +27,8 @@ object ThemeZips {
         <p>Битый: <a href="https://devatlas.test/files/missing.pdf" download="e2e-missing.pdf">пропавший файл</a>.</p>
         <p>Нет сети: <a href="https://offline.test/page.html">сайт без сети</a>.</p>
         <p>Без нажатия: <a href="https://devatlas.test/web/auto.html">сайт с автопереходом</a>.</p>
+        <p>Сеть вернётся: <a href="https://late.test/web/article.html">статья после сбоя</a>,
+        <a href="https://late.test/files/report">отчёт после сбоя</a>.</p>
         <p>Почта: <a href="mailto:hello@example.com">написать письмо</a>, <a href="tel:+70000000000">позвонить</a>.</p>
     """
 
