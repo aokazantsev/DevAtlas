@@ -33,6 +33,7 @@ android {
         versionName = "0.1"
         testInstrumentationRunner = "ru.aokazantsev.devatlas.e2e.DevAtlasTestRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
+        testInstrumentationRunnerArguments["timeout_msec"] = "180000"
     }
 
     signingConfigs {
