@@ -62,6 +62,7 @@ internal object JvmFamilyRules {
             StringRule("'", templates = StringTemplates.DOLLAR),
         ),
         stringPrefixes = setOf("r"),
+        rawStringPrefixes = setOf("r"),
         annotationPrefix = '@',
         identifierExtra = "$",
         capitalizedTypes = true,

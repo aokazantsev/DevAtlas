@@ -150,6 +150,15 @@ class HtmlPageParserTest {
     }
 
     @Test
+    fun missingDownloadWarningNamesTheWholeFileNameChain() {
+        val message = parse("<a href=\"https://example.com/doc.pdf\">pdf</a>").issues.single().message
+
+        listOf("ответа сервера", "адреса", "заголовка страницы", "домена с датой").forEach { part ->
+            assertTrue(part in message, "нет «$part» в «$message»")
+        }
+    }
+
+    @Test
     fun unknownTagsBecomeTextWithWarning() {
         val page = parse("<div><span>hello</span></div><script>alert(1)</script><p style=\"color:red\" onclick=\"x\">p</p>")
 

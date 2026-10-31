@@ -83,7 +83,14 @@ T max(const std::vector&lt;T&gt;&amp; values) {
 </code></pre>
 <pre><code class="language-csharp">public record User(int Id, string Name);
 
-var path = @"C:\themes";
+public class Greeter
+{
+    private const string Folder = @"C:\themes";
+
+    public string Greet(User user) =&gt; $"Привет, {user.Name}!"; // приветствие
+
+    public int Count(IEnumerable&lt;User&gt; users) =&gt; users.Count(u =&gt; u.Id &gt; 0);
+}
 </code></pre>
 <pre><code class="language-go">func Sum(values []int) int {
     total := 0
@@ -116,10 +123,15 @@ end
 <pre><code class="language-shell"># собрать архив темы
 ./gradlew :tools:themecheck:run --args="sample-theme --zip $HOME/theme.zip"
 </code></pre>
-<pre><code class="language-sql">SELECT page_id, COUNT(*) AS views
-FROM viewed_pages
-WHERE theme_id = 'devatlas-sample'
-GROUP BY page_id;
+<pre><code class="language-sql">-- самые просматриваемые страницы темы
+SELECT p.id, p.title, COUNT(v.id) AS views
+FROM pages AS p
+LEFT JOIN page_views AS v ON v.page_id = p.id
+WHERE p.theme_id = 'devatlas-sample' AND v.viewed_at &gt;= DATE '2026-10-01'
+GROUP BY p.id, p.title
+HAVING COUNT(v.id) &gt; 0
+ORDER BY views DESC
+LIMIT 10;
 </code></pre>
 <pre><code class="language-json">{
   "id": "welcome",
@@ -136,17 +148,32 @@ jobs:
     runs-on: ubuntu-latest  # бесплатно для открытых репозиториев
 </code></pre>
 <pre><code class="language-xml">&lt;?xml version="1.0" encoding="utf-8"?&gt;
-&lt;TextView android:id="@+id/title" android:text="@string/app_name" /&gt;
+&lt;!-- заголовок экрана --&gt;
+&lt;LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"&gt;
+
+    &lt;TextView
+        android:id="@+id/title"
+        android:text="@string/app_name" /&gt;
+&lt;/LinearLayout&gt;
 </code></pre>
 <pre><code class="language-markdown"># Тема
 - страницы в `pages/`
 - [формат](https://aokazantsev.ru/pets/devatlas/themes/)
 </code></pre>
-<pre><code class="language-diff">--- a/manifest.json
+<pre><code class="language-diff">diff --git a/manifest.json b/manifest.json
+index 3f2a1c4..8b7d9e0 100644
+--- a/manifest.json
 +++ b/manifest.json
-@@ -2,1 +2,1 @@
--  "title": "Пример"
-+  "title": "Пример DevAtlas"
+@@ -1,5 +1,5 @@
+ {
+   "id": "devatlas-sample",
+-  "title": "Пример",
++  "title": "Пример DevAtlas",
+   "version": 1
+ }
 </code></pre>
 <p>Короткие имена тоже работают: <code>kt</code>, <code>kts</code>, <code>js</code>, <code>ts</code>,
 <code>sh</code>, <code>yml</code> и другие из списка на странице «Как сделать тему».</p>

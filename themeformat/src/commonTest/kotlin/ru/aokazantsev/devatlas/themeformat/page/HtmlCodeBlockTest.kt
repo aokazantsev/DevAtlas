@@ -4,6 +4,7 @@ import ru.aokazantsev.devatlas.themeformat.code.CodeHighlighter
 import ru.aokazantsev.devatlas.themeformat.code.CodeLanguage
 import ru.aokazantsev.devatlas.themeformat.issue.IssueCode
 import ru.aokazantsev.devatlas.themeformat.issue.IssueSeverity
+import ru.aokazantsev.devatlas.themeformat.page.model.PageBlock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -17,6 +18,19 @@ class HtmlCodeBlockTest {
         (CodeLanguage.entries.flatMap { it.aliases + it.id } + "KOTLIN").forEach { name ->
             val found = issues("<pre><code class=\"language-$name\">x</code></pre>").filter { it.code == IssueCode.CODE_LANGUAGE }
             assertEquals(emptyList(), found, name)
+        }
+    }
+
+    @Test
+    fun languageClassIsFoundAmongAnyWhitespaceSeparators() {
+        val classes = listOf(
+            "a\tlanguage-kotlin", "a\nlanguage-kotlin", "language-kotlin\r\nb", "  language-kotlin  ", "x\u000Clanguage-kotlin",
+        )
+        classes.forEach { cls ->
+            val page = HtmlPageParser.parse("pages/page.html", "<pre><code class=\"$cls\">x</code></pre>")
+            val block = page.document.blocks.single() as PageBlock.Code
+            assertEquals("kotlin", block.language, cls)
+            assertEquals(emptyList(), page.issues.filter { it.code == IssueCode.CODE_LANGUAGE }, cls)
         }
     }
 

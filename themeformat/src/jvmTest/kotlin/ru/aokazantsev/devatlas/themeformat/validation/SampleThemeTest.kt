@@ -3,7 +3,9 @@ package ru.aokazantsev.devatlas.themeformat.validation
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
+import ru.aokazantsev.devatlas.themeformat.code.CodeHighlighter
 import ru.aokazantsev.devatlas.themeformat.code.CodeLanguage
+import ru.aokazantsev.devatlas.themeformat.code.CodeTokenKind
 import ru.aokazantsev.devatlas.themeformat.issue.IssueCode
 import ru.aokazantsev.devatlas.themeformat.manifest.ThemeNode
 import ru.aokazantsev.devatlas.themeformat.page.HtmlPageParser
@@ -57,6 +59,48 @@ class SampleThemeTest {
         assertTrue(styles.any { it.bold } && styles.any { it.italic } && styles.any { it.code })
         assertTrue(inlines.any { it == PageInline.LineBreak })
         assertTrue(styles.contains(InlineStyle.Plain))
+    }
+
+    @Test
+    fun sampleCodeBlocksHighlightWithoutArtifacts() {
+        val source = FileSystem.SYSTEM.read(repository / "sample-theme/pages/text/code.html") { readUtf8() }
+        val byLanguage = flatten(HtmlPageParser.parse("pages/text/code.html", source).document.blocks)
+            .filterIsInstance<PageBlock.Code>()
+            .associateBy { it.language }
+
+        fun tokens(language: String): List<Pair<String, CodeTokenKind>> {
+            val block = checkNotNull(byLanguage[language]) { language }
+            return CodeHighlighter.highlight(block.code, checkNotNull(CodeLanguage.resolve(language)))
+                .map { block.code.substring(it.start, it.end) to it.kind }
+        }
+
+        val csharp = tokens("csharp")
+        assertTrue("@\"C:\\themes\"" to CodeTokenKind.STRING in csharp, "$csharp")
+        assertTrue(csharp.any { it.second == CodeTokenKind.STRING && it.first.startsWith("$\"") }, "$csharp")
+        assertTrue(csharp.any { it.second == CodeTokenKind.COMMENT && it.first.startsWith("//") }, "$csharp")
+        assertTrue("record" to CodeTokenKind.KEYWORD in csharp, "$csharp")
+
+        val xml = tokens("xml")
+        assertTrue(xml.first().second == CodeTokenKind.META && xml.first().first.startsWith("<?xml"), "$xml")
+        assertTrue(xml.any { it.second == CodeTokenKind.COMMENT }, "$xml")
+        val tags = xml.filter { it.first.startsWith("<") && it.second == CodeTokenKind.TAG }.map { it.first }
+        assertEquals(listOf("<LinearLayout", "<TextView", "</LinearLayout"), tags)
+        val attributes = xml.filter { it.second == CodeTokenKind.ATTRIBUTE }.map { it.first }
+        assertTrue(attributes.all { it.startsWith("android:") || it.startsWith("xmlns:") }, "$attributes")
+
+        val diff = tokens("diff")
+        val headers = diff.filter { it.second == CodeTokenKind.META && (it.first.startsWith("---") || it.first.startsWith("+++")) }
+        assertEquals(listOf("--- a/manifest.json", "+++ b/manifest.json"), headers.map { it.first })
+        assertEquals(1, diff.count { it.second == CodeTokenKind.DELETED }, "$diff")
+        assertEquals(1, diff.count { it.second == CodeTokenKind.INSERTED }, "$diff")
+
+        val sql = tokens("sql")
+        assertEquals(CodeTokenKind.COMMENT, sql.first().second, "$sql")
+        val clauses = listOf("SELECT", "FROM", "LEFT", "JOIN", "WHERE", "GROUP", "HAVING", "ORDER", "LIMIT")
+        assertTrue(clauses.all { it to CodeTokenKind.KEYWORD in sql }, "$sql")
+        assertTrue("'devatlas-sample'" to CodeTokenKind.STRING in sql, "$sql")
+        assertTrue("'2026-10-01'" to CodeTokenKind.STRING in sql, "$sql")
+        assertEquals(listOf("0", "10"), sql.filter { it.second == CodeTokenKind.NUMBER }.map { it.first })
     }
 
     @Test

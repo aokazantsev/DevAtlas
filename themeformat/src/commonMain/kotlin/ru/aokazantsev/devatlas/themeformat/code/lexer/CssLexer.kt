@@ -9,8 +9,12 @@ internal class CssLexer : CodeLexer {
     }
 
     private class CssScan(private val s: LexerState) {
-        private var depth = 0
+        private val blocks = mutableListOf<Boolean>()
+        private var preludeStart = s.pos
         private var expectProperty = false
+
+        private val inDeclarations: Boolean
+            get() = blocks.lastOrNull() == true
 
         private val scanners: List<() -> Boolean> = listOf(
             ::comment,
@@ -50,19 +54,22 @@ internal class CssLexer : CodeLexer {
 
         private fun punctuation(): Boolean {
             when (s.char()) {
-                '{' -> {
-                    depth++
-                    expectProperty = true
-                }
-                '}' -> {
-                    depth = maxOf(0, depth - 1)
-                    expectProperty = depth > 0
-                }
-                ';' -> expectProperty = depth > 0
+                '{' -> blocks += !opensRuleGroup()
+                '}' -> if (blocks.isNotEmpty()) blocks.removeAt(blocks.lastIndex)
+                ';' -> Unit
                 else -> return false
             }
+            expectProperty = inDeclarations
             s.pos++
+            preludeStart = s.pos
             return true
+        }
+
+        private fun opensRuleGroup(): Boolean {
+            val first = s.skipWhitespace(preludeStart)
+            if (s.charAt(first) != '@') return false
+            val name = s.text.substring(first + 1, s.identifierEnd(first + 1, NAME_EXTRA)).lowercase()
+            return name in RULE_GROUPS || name.endsWith("keyframes")
         }
 
         private fun atRule(): Boolean {
@@ -79,21 +86,25 @@ internal class CssLexer : CodeLexer {
 
         private fun hash(): Boolean {
             if (s.char() != '#' || !LexerState.isIdentifierPart(s.char(1), NAME_EXTRA)) return false
-            val inValue = depth > 0 && !expectProperty
+            val inValue = inDeclarations && !expectProperty
             s.emitTo(s.identifierEnd(s.pos + 1, NAME_EXTRA), if (inValue) CodeTokenKind.NUMBER else CodeTokenKind.TYPE)
             return true
         }
 
         private fun number(): Boolean {
             val char = s.char() ?: return false
+            val signed = char == '-' && !LexerState.isIdentifierPart(s.previous(), NAME_EXTRA) && startsNumber(s.pos + 1)
             val fraction = char == '.' && s.char(1)?.isDigit() == true
-            if (!char.isDigit() && !fraction) return false
-            if (depth == 0 || expectProperty) return false
-            var end = s.numberEnd(s.pos)
+            if (!char.isDigit() && !fraction && !signed) return false
+            if (!inDeclarations || expectProperty) return false
+            var end = s.numberEnd(if (signed) s.pos + 1 else s.pos)
             if (s.charAt(end) == '%') end++
             s.emitTo(end, CodeTokenKind.NUMBER)
             return true
         }
+
+        private fun startsNumber(index: Int): Boolean =
+            s.charAt(index)?.isDigit() == true || s.charAt(index) == '.' && s.charAt(index + 1)?.isDigit() == true
 
         private fun identifier(): Boolean {
             val selector = s.char() == '.' || s.char() == ':'
@@ -104,7 +115,7 @@ internal class CssLexer : CodeLexer {
             val kind = when {
                 !selector && isPropertyName(end) -> CodeTokenKind.PROPERTY
                 s.startsWith("--") -> CodeTokenKind.VARIABLE
-                depth > 0 && !expectProperty -> null
+                inDeclarations && !expectProperty -> null
                 selector -> CodeTokenKind.TYPE
                 else -> CodeTokenKind.TAG
             }
@@ -114,11 +125,12 @@ internal class CssLexer : CodeLexer {
         }
 
         private fun isPropertyName(end: Int): Boolean =
-            depth > 0 && expectProperty && s.charAt(s.skipSpaces(end)) == ':'
+            inDeclarations && expectProperty && s.charAt(s.skipSpaces(end)) == ':'
     }
 
     private companion object {
         const val NAME_EXTRA = "-"
         const val IMPORTANT_LENGTH = 10
+        val RULE_GROUPS = words("media supports layer container document scope starting-style")
     }
 }
