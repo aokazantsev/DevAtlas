@@ -1,6 +1,8 @@
 package ru.aokazantsev.devatlas.e2e
 
+import androidx.activity.BackEventCompat
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -54,6 +56,61 @@ class NavigationE2eTest {
         }
     }
 
+    @Test
+    fun predictiveBackGestureDoesNotAnimateScreen() {
+        val app = e2e.compose
+        app.passOnboarding()
+        app.openSettings()
+
+        app.mainClock.autoAdvance = false
+        try {
+            val boundsBefore = app.onNodeWithContentDescription("Назад").getBoundsInRoot()
+            app.activityRule.scenario.onActivity { activity ->
+                val dispatcher = activity.onBackPressedDispatcher
+                dispatcher.dispatchOnBackStarted(BackEventCompat(0f, 0f, 0f, BackEventCompat.EDGE_LEFT))
+                dispatcher.dispatchOnBackProgressed(BackEventCompat(0f, 0f, HALF_GESTURE, BackEventCompat.EDGE_LEFT))
+            }
+            app.mainClock.advanceTimeBy(SHORT_TIME_MILLIS)
+            val boundsDuringGesture = app.onNodeWithContentDescription("Назад").getBoundsInRoot()
+            check(boundsDuringGesture == boundsBefore) {
+                "Экран сдвинулся во время жеста «назад»: $boundsBefore → $boundsDuringGesture"
+            }
+
+            app.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+            app.assertShownAfterShortTime(shown = "Настройки", gone = "Назад")
+        } finally {
+            app.mainClock.autoAdvance = true
+        }
+    }
+
+    @Test
+    fun cancelledBackGestureKeepsScreenAndNextBackWorks() {
+        val app = e2e.compose
+        app.passOnboarding()
+        app.openSettings()
+
+        app.mainClock.autoAdvance = false
+        try {
+            val boundsBefore = app.onNodeWithContentDescription("Назад").getBoundsInRoot()
+            app.activityRule.scenario.onActivity { activity ->
+                val dispatcher = activity.onBackPressedDispatcher
+                dispatcher.dispatchOnBackStarted(BackEventCompat(0f, 0f, 0f, BackEventCompat.EDGE_LEFT))
+                dispatcher.dispatchOnBackProgressed(BackEventCompat(0f, 0f, HALF_GESTURE, BackEventCompat.EDGE_LEFT))
+                dispatcher.dispatchOnBackCancelled()
+            }
+            app.assertShownAfterShortTime(shown = "Назад", gone = "Настройки")
+            val boundsAfterCancel = app.onNodeWithContentDescription("Назад").getBoundsInRoot()
+            check(boundsAfterCancel == boundsBefore) {
+                "Экран сдвинулся после отмены жеста «назад»: $boundsBefore → $boundsAfterCancel"
+            }
+
+            app.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+            app.assertShownAfterShortTime(shown = "Настройки", gone = "Назад")
+        } finally {
+            app.mainClock.autoAdvance = true
+        }
+    }
+
     private fun DevAtlasComposeRule.assertShownAfterShortTime(shown: String, gone: String) {
         mainClock.advanceTimeBy(SHORT_TIME_MILLIS)
         check(onAllNodesWithContentDescription(gone).fetchSemanticsNodes().isEmpty()) {
@@ -77,5 +134,6 @@ class NavigationE2eTest {
 
     private companion object {
         const val SHORT_TIME_MILLIS = 100L
+        const val HALF_GESTURE = 0.5f
     }
 }

@@ -121,6 +121,8 @@ private fun AppNavHost(graph: AppGraph, navController: NavHostController, startS
         exitTransition = { ExitTransition.None },
         popEnterTransition = { EnterTransition.None },
         popExitTransition = { ExitTransition.None },
+        predictivePopEnterTransition = { EnterTransition.None },
+        predictivePopExitTransition = { ExitTransition.None },
     ) {
         firstRunDestinations(graph, navController)
         contentsDestinations(graph, navController, links)
