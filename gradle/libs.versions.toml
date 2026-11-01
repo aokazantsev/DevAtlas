@@ -31,6 +31,8 @@ mockwebserver = "5.5.1"
 android-compileSdk = "37"
 android-targetSdk = "36"
 android-minSdk = "29"
+app-versionCode = "3"
+app-versionName = "0.1.2"
 
 [libraries]
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose-multiplatform" }
