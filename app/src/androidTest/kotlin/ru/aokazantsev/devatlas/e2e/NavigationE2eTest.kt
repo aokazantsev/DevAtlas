@@ -1,6 +1,7 @@
 package ru.aokazantsev.devatlas.e2e
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -31,6 +32,39 @@ class NavigationE2eTest {
     }
 
     @Test
+    fun stackScreensChangeWithoutTransition() {
+        val app = e2e.compose
+        app.passOnboarding()
+
+        app.mainClock.autoAdvance = false
+        try {
+            app.onNodeWithContentDescription("Настройки").performClick()
+            app.assertShownAfterShortTime(shown = "Назад", gone = "Настройки")
+
+            app.onNodeWithContentDescription("Назад").performClick()
+            app.assertShownAfterShortTime(shown = "Настройки", gone = "Назад")
+
+            app.onNodeWithContentDescription("Настройки").performClick()
+            app.assertShownAfterShortTime(shown = "Назад", gone = "Настройки")
+
+            app.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+            app.assertShownAfterShortTime(shown = "Настройки", gone = "Назад")
+        } finally {
+            app.mainClock.autoAdvance = true
+        }
+    }
+
+    private fun DevAtlasComposeRule.assertShownAfterShortTime(shown: String, gone: String) {
+        mainClock.advanceTimeBy(SHORT_TIME_MILLIS)
+        check(onAllNodesWithContentDescription(gone).fetchSemanticsNodes().isEmpty()) {
+            "«$gone» ещё на экране через $SHORT_TIME_MILLIS мс: переход между экранами анимирован"
+        }
+        check(onAllNodesWithContentDescription(shown).fetchSemanticsNodes().size == 1) {
+            "«$shown» не появилось через $SHORT_TIME_MILLIS мс"
+        }
+    }
+
+    @Test
     fun aboutShowsVersion() {
         val app = e2e.compose
         app.passOnboarding()
@@ -39,5 +73,9 @@ class NavigationE2eTest {
         app.clickText("О приложении")
 
         app.waitForText("Версия")
+    }
+
+    private companion object {
+        const val SHORT_TIME_MILLIS = 100L
     }
 }

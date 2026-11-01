@@ -1,5 +1,7 @@
 package ru.aokazantsev.devatlas.app
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -112,7 +114,14 @@ fun DevAtlasApp(
 @Composable
 private fun AppNavHost(graph: AppGraph, navController: NavHostController, startStack: List<Route>, links: LinksViewModel) {
     var stackOpened by rememberSaveable { mutableStateOf(false) }
-    NavHost(navController = navController, startDestination = startStack.first()) {
+    NavHost(
+        navController = navController,
+        startDestination = startStack.first(),
+        enterTransition = { EnterTransition.None },
+        exitTransition = { ExitTransition.None },
+        popEnterTransition = { EnterTransition.None },
+        popExitTransition = { ExitTransition.None },
+    ) {
         firstRunDestinations(graph, navController)
         contentsDestinations(graph, navController, links)
         themeDestinations(graph, navController)
