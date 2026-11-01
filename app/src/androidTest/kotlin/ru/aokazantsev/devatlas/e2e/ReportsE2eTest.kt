@@ -8,6 +8,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import ru.aokazantsev.devatlas.BuildConfig
 import ru.aokazantsev.devatlas.crash.data.installCrashCatcher
 
 @RunWith(AndroidJUnit4::class)
@@ -60,7 +61,7 @@ class ReportsE2eTest {
 
         val packet = waitForBody(TestNetwork.USAGE_PATH)
         assertTrue(Regex("[0-9a-f]{32}").matches(packet.getString("id")))
-        assertEquals("0.1", packet.getString("version"))
+        assertEquals(Releases.INSTALLED_VERSION, packet.getString("version"))
         assertTrue(Regex("\\d+\\.\\d+(\\.\\d+)?").matches(packet.getString("windows")))
         val events = packet.getJSONObject("events")
         assertEquals(1, events.getInt("app.start"))
@@ -95,11 +96,11 @@ class ReportsE2eTest {
 
         val report = waitForBody(TestNetwork.CRASH_REPORT_PATH)
         assertEquals("DevAtlas", report.getString("app"))
-        assertEquals("0.1-debug", report.getString("version"))
+        assertEquals(BuildConfig.VERSION_NAME, report.getString("version"))
         assertTrue(report.getString("os").startsWith("Android "))
         assertEquals("thread $CRASHING_THREAD", report.getString("source"))
         assertTrue(report.getString("error").contains("IllegalStateException: e2e crash"))
-        assertTrue(report.getString("log").contains("start 0.1-debug"))
+        assertTrue(report.getString("log").contains("start ${BuildConfig.VERSION_NAME}"))
     }
 
     @Test

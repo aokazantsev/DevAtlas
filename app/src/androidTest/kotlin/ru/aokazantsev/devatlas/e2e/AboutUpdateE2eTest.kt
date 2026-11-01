@@ -20,6 +20,7 @@ import org.junit.Assume.assumeFalse
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import ru.aokazantsev.devatlas.BuildConfig
 import ru.aokazantsev.devatlas.di.AppLinks
 
 @RunWith(AndroidJUnit4::class)
@@ -56,7 +57,7 @@ class AboutUpdateE2eTest {
         e2e.launch()
         app.passOnboarding()
         openAbout()
-        app.waitForText("0.1-debug")
+        app.waitForText(BuildConfig.VERSION_NAME)
 
         app.clickText("Исходный код на GitHub")
         intended(allOf(hasAction(Intent.ACTION_VIEW), hasData(AppLinks.GITHUB_URL)))
@@ -144,11 +145,11 @@ class AboutUpdateE2eTest {
 
     @Test
     fun latestVersionAndGitHubErrorAreExplained() {
-        Releases.serve(e2e.server, versions = listOf("0.1"))
+        Releases.serve(e2e.server, versions = listOf(Releases.INSTALLED_VERSION))
         e2e.launch()
         app.passOnboarding()
         openUpdate()
-        app.waitForText("Установлена последняя версия 0.1")
+        app.waitForText("Установлена последняя версия ${Releases.INSTALLED_VERSION}")
 
         e2e.server.serveStatus(TestNetwork.RELEASES_PATH, SERVER_ERROR)
         app.clickText("Проверить ещё раз")

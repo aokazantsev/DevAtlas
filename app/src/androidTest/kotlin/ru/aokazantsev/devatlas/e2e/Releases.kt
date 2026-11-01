@@ -2,19 +2,21 @@ package ru.aokazantsev.devatlas.e2e
 
 import mockwebserver3.MockResponse
 import okio.Buffer
+import ru.aokazantsev.devatlas.BuildConfig
 import java.security.MessageDigest
 
 object Releases {
 
     const val APK_PATH = "/releases/DevAtlas-9.9.apk"
     const val NEW_VERSION = "9.9"
+    val INSTALLED_VERSION = BuildConfig.VERSION_NAME.substringBefore('-')
     const val CHANGE_TEXT = "Исправлена прокрутка длинных страниц"
     val APK_BYTES = "e2e apk bytes".toByteArray()
 
     fun serve(
         server: MockServerRule,
         sha256: String? = sha256(APK_BYTES),
-        versions: List<String> = listOf(NEW_VERSION, "0.1"),
+        versions: List<String> = listOf(NEW_VERSION, INSTALLED_VERSION),
         extraNotesHtml: String = "",
     ) {
         val items = versions.joinToString(",") { version -> release(server, version, sha256, extraNotesHtml) }

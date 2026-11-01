@@ -29,8 +29,8 @@ android {
         applicationId = "ru.aokazantsev.devatlas"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = 2
+        versionName = "0.1.1"
         testInstrumentationRunner = "ru.aokazantsev.devatlas.e2e.DevAtlasTestRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
         testInstrumentationRunnerArguments["timeout_msec"] = "180000"
