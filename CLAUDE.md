@@ -106,7 +106,7 @@ Compose и DI, цели `android` и `jvm`.
 
 ## Сборка и проверки
 
-- Сборки на ПК разработчика — через очередь ресурсов: `python "<dev-config>/claude/hooks/slots.py" run -- ./gradlew …`
+- Сборки на ПК разработчика — через очередь ресурсов: `python "<dev-config>/rules/hooks/slots.py" run -- ./gradlew …`
   (папка вне слотов другого проекта: ритуальной чистки нет, ждёт только чужую сборку). `adb` — через `slots.py device -- adb …`.
 - Перед коммитом: `./gradlew detekt :detekt-rules:test :designsystem:testAndroidHostTest
   :shared:testAndroidHostTest :themeformat:jvmTest :tools:themecheck:test :app:assembleSslDebug :app:assembleNoSslDebug
