@@ -109,7 +109,7 @@ Compose и DI, цели `android` и `jvm`.
 ## Сборка и проверки
 
 - Сборки на ПК разработчика — через очередь ресурсов: `python "<dev-config>/rules/hooks/slots.py" run -- ./gradlew …`
-  (папка вне слотов другого проекта: ритуальной чистки нет, ждёт только чужую сборку). `adb` — через `slots.py device -- adb …`.
+  (папка вне слотов другого проекта: ритуальной чистки нет, ждёт только чужую сборку).
 - Перед коммитом: `./gradlew detekt :detekt-rules:test :designsystem:testAndroidHostTest
   :shared:testAndroidHostTest :themeformat:jvmTest :tools:themecheck:test :app:assembleSslDebug :app:assembleNoSslDebug
   :app:connectedSslDebugAndroidTest` (e2e — на телефоне, обёртка сама
@@ -122,4 +122,4 @@ Compose и DI, цели `android` и `jvm`.
 
 ## Правила кода
 
-- Комментариев и KDoc нет. Один класс — один файл (кроме вложенных в `sealed`).
+- Один класс — один файл (кроме вложенных в `sealed`).
