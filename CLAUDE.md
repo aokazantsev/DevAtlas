@@ -1,7 +1,8 @@
 # DevAtlas — правила проекта для Claude
 
-Решения прожарки и план версии 0.1 — `pets/dev-tools/devatlas.md` в личной базе знаний разработчика; общие правила
-pet-проектов — `C:\Users\aokaz\dev-config\rules\pets.md` (правила окружения разработчика). Здесь — устройство кода и правила работы с ним.
+Решения и опыт проекта — заметка `pets/dev-tools/devatlas.md` в личной базе знаний разработчика; общие правила
+pet-проектов, включая публикацию, — `C:\Users\aokaz\dev-config\rules\pets.md` (правила окружения разработчика). Здесь —
+устройство кода и правила работы с ним.
 
 ## Платформа
 
@@ -54,9 +55,10 @@ Compose и DI, цели `android` и `jvm`.
 - Настройки — DataStore Preferences, файл `settings.preferences_pb` в `filesDir`: режим оформления и
   «Цвета из обоев» (`Appearance`).
 - База — Room KMP с `BundledSQLiteDriver`, `devatlas.db`, схемы — `shared/schemas` (в git).
-  До выпуска 0.1 миграций не пишем, но каждая правка схемы поднимает `version` в `DevAtlasDatabase`: debug-сборка
-  тогда пересоздаёт базу (`fallbackToDestructiveMigration` в `DatabaseBindings`), а правка схемы без смены версии
-  даёт на сплеше ошибку проверки базы. После выпуска — только миграциями.
+  Схема 5 ушла в 0.1: правка схемы — поднять `version` в `DevAtlasDatabase` и написать миграцию; правка без смены
+  версии даёт на сплеше ошибку проверки базы. Без миграции debug-сборка пересоздаёт базу
+  (`fallbackToDestructiveMigration` в `DatabaseBindings`), а release базу не откроет, поэтому миграцию проверяет
+  установка релиза поверх прошлого.
 
 ## Дизайн-система
 
@@ -114,9 +116,10 @@ Compose и DI, цели `android` и `jvm`.
   берёт устройство).
 - CI — GitHub Actions на push в `main`: detekt, unit-тесты, `themecheck --strict` по `sample-theme` (архив —
   артефакт), APK; отдельный job — e2e на эмуляторе API 34.
-- Варианты сборки — `debug` (суффикс `.debug`, каталог компонентов) и `release`.
+- Варианты: флейворы `ssl`/`noSsl` × `debug`/`release`. `noSsl` доверяет ещё пользовательским ЦС (AgentProxy видит
+  HTTPS) и есть только в debug; релиз — `sslRelease`, e2e — `sslDebug`, ручная проверка на телефоне и APK-артефакт
+  CI — `noSslDebug`. `debug` — суффикс `.debug` и каталог компонентов.
 
 ## Правила кода
 
 - Комментариев и KDoc нет. Один класс — один файл (кроме вложенных в `sealed`).
-- Ничего корпоративного в коде, README и примерах.
